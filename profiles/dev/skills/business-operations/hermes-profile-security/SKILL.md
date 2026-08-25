@@ -91,6 +91,12 @@ telegram.require_mention
    be absent but the platform listing still enables those toolsets, report the
    mismatch; do not claim success from the YAML alone.
 
+   For the currently running conversation, the actual function namespace is a
+   separate fact: inspect the tools exposed to the session and do not substitute
+   `hermes tools list` for a claim about already-loaded function schemas. A
+   platform listing can change on disk while an existing session keeps its
+   cached prompt/tool manifest until reset or restart.
+
 4. **Resolve the toolset configuration layer before changing it.** In the
    installed runtime, gateway platform sessions resolve
    `platform_toolsets.<platform>`. A top-level `toolsets` list can remain

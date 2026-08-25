@@ -34,6 +34,30 @@ profile-specific values.
 The non-interactive command form is important: bare `hermes tools` opens an
 interactive configuration UI and may fail when run without a TTY.
 
+## Config migration and layered toolset semantics
+
+- `hermes -p <profile> config check` can report `Config version: 38 → 39`
+  without persisting the migration. Use the explicit mutating command
+  `hermes -p <profile> config migrate` when the owner authorized migration.
+- The repository root is a separate Hermes home: run
+  `HERMES_HOME=/root/.hermes hermes config migrate` for its `config.yaml`, and
+  run the profile form for each profile that must be migrated. Before committing,
+  compare `git status --porcelain`, `git diff --name-only`, and the complete diff;
+  only the known migration files may be staged.
+- A migration can materialize comments/defaults and bump `_config_version` even
+  when no literal `bfl` or `video_generate` entry exists in the saved config.
+  Do not infer extra semantic changes from the migration banner alone.
+- The root `toolsets` list is not simply ignored: the Kanban gate can inspect it
+  for worker capability checks such as the presence of `kanban`. Messaging
+  platform scope is resolved from `platform_toolsets.<platform>` by
+  `_get_platform_tools`. Preserve the root list when the Kanban architecture
+  depends on it, and configure Telegram/CLI platform scope separately.
+- In Hermes 0.20.5, `_RECENTLY_SHIPPED_TOOLSETS` is empty and `bfl` is retired;
+  migration 38→39 removes saved `bfl` entries. Credential-based autoactivation
+  (for example xAI `x_search` and Home Assistant) is a separate code path. Do
+  not report an active `bfl` autoactivation without checking the installed
+  source and resolving `toolsets.TOOLSETS`.
+
 ## Restart and log evidence
 
 - Gateway dispatcher log entries are append-only evidence. Inspect the most
