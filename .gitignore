@@ -25,13 +25,6 @@
 !/profiles/*/profile.yaml
 !/profiles/*/.no-bundled-skills
 
-# All functional skill content: local, bundled, and Skills Hub installations,
-# including references, scripts, templates, and assets.
-!/skills/
-!/skills/**
-!/profiles/*/skills/
-!/profiles/*/skills/**
-
 # Hermes bookkeeping and generated dependency/cache artifacts are not skill
 # source and remain excluded even inside the opened trees above.
 /skills/.bundled_manifest
