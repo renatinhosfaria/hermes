@@ -186,17 +186,69 @@ bloqueio, e não se instala recurso arbitrário por iniciativa do dispatcher.
 
 ## Cartões
 
-- Use `idempotency_key` nativa no formato
-  `<canal>:<chat_id>:<message_id>:<etapa>`.
-- Inclua `schema_version`, `correlation_id`, origem, pedido exato, contexto,
-  restrições, critérios de aceite e `test_mode`.
+### O pedido é copiado, não reescrito
+
+`pedido_exato` é obrigatório e literal. Carrega a mensagem do solicitante
+exatamente como chegou: sem reformular, resumir, corrigir ou traduzir. É o campo
+de onde todo o resto do cartão deriva.
+
+Identificador se copia, nunca se escreve de memória. Telefone, id, chave,
+código: quando um deles precisar aparecer em outro campo do corpo, ele é copiado
+caractere por caractere a partir de pedido_exato — nunca reconstruído a partir
+do que você lembra do turno.
+
+Um dígito trocado num telefone faz o especialista verificar a pessoa errada e
+devolver o veredito certo sobre a pergunta errada. Nada no fluxo detecta isso.
+
+Antes de chamar `kanban_create`, confira. Compare dígito a dígito cada
+identificador do corpo com o que está em pedido_exato. Se divergir, corrija a
+partir de pedido_exato — nunca a partir da sua memória do turno nem de um
+cartão anterior.
+
+Cartões anteriores da mesma conversa não são fonte. Havendo mais de um caso
+em andamento no mesmo chat, os dados de um não completam nem corrigem o outro.
+Cada cartão deriva do seu próprio pedido_exato.
+
+### Campos
+
+- Inclua schema_version, correlation_id, origem, pedido_exato, contexto,
+  restrições, critérios de aceite e test_mode.
 - Inclua apenas os campos necessários à etapa; workers não veem cartões irmãos.
-- Não coloque segredo em nenhum campo. Não coloque telefone ou mensagem bruta
-  em summary/metadata.
-- O CEO não deve preencher nem prescrever `skills` no cartão, nem indicar
-  ferramenta, MCP ou script do executor. A seleção e a verificação de
-  capacidades pertencem integralmente ao worker.
-- Use `max_retries: 2` quando a intenção for tentativa inicial + uma repetição.
+- Não coloque segredo em nenhum campo. Não coloque telefone ou mensagem bruta em
+  summary nem em metadata. O corpo do cartão é outra coisa: ali o telefone
+  é necessário e vai íntegro.
+- Não preencha nem prescreva skills no cartão, nem indique ferramenta, MCP ou
+  script do executor. A seleção de capacidades pertence ao worker.
+
+### Idempotência
+
+Use idempotency_key no formato <telefone-em-dígitos>:<etapa> — por exemplo
+5534992135520:identificacao. Etapas: identificacao, cadastro, atendimento.
+
+O formato anterior desta skill era <canal>:<chat_id>:<message_id>:<etapa>. Ele
+não funciona no Telegram: o message_id existe no runtime, mas não é exposto ao
+agente — a injeção por turno existe só para Discord. Sem ele, a chave era
+improvisada e mudava entre sessões, e a proteção contra duplicata nunca existiu.
+
+Com a chave por telefone, uma rajada de mensagens do mesmo contato não cria
+cartões duplicados: o quadro devolve o id do que já existe. Quando isso acontecer,
+não crie nada — acrescente o texto novo como comentário com kanban_comment e
+siga esperando.
+
+Cliente duplicado no FamaChat corrompe a estrutura v3 de que o reno depende.
+Isto é integridade de dado, não organização.
+
+### Teto de tempo
+
+Passe max_runtime_seconds em toda tarefa de atendimento: 300 para porteiro e
+cadastro, 600 para reno e famaagent.
+
+max_retries NÃO é parâmetro de kanban_create — escrevê-lo no corpo não tem
+efeito. Quem controla retentativa é o despachante, pelo failure_limit do quadro.
+
+Sem max_runtime_seconds, uma tarefa travada só é recolhida pela varredura de
+dispatch_stale_timeout_seconds — padrão quatro horas. Um lead esperando quatro
+horas é exatamente o que a regra do silêncio existe para impedir.
 
 ## Um fluxo por chat
 
