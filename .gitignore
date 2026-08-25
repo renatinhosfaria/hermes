@@ -25,6 +25,15 @@
 !/profiles/*/profile.yaml
 !/profiles/*/.no-bundled-skills
 
+# Skills: todas as skills do CEO e dos profiles são versionadas.
+# O deny-all acima é reaberto em cascata antes do conteúdo das skills.
+!/skills/
+!/skills/**
+!/profiles/*/skills/
+!/profiles/*/skills/**
+# Skills customizadas e empacotadas entram no repositório; skills novas
+# semeadas pelo Hermes devem ser auditadas e commitadas normalmente.
+
 # Hermes bookkeeping and generated dependency/cache artifacts are not skill
 # source and remain excluded even inside the opened trees above.
 /skills/.bundled_manifest
@@ -56,8 +65,8 @@
 !/ops/
 !/ops/**
 
-# Skills: o deny-all acima ignora profiles/*/skills/.
-# Skills CUSTOMIZADAS são versionadas por inclusão forçada (git add -f) e
-# permanecem rastreadas — .gitignore não afeta arquivo já rastreado.
-# Skills EMPACOTADAS com o Hermes (listadas em skills/.bundled_manifest)
-# continuam ignoradas: são semeadas pela instalação e reproduzíveis.
+# User-authored operational documentation and automation.
+!/docs/
+!/docs/**
+!/ops/
+!/ops/**
