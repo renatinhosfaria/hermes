@@ -3,6 +3,7 @@ model:
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
   context_length: 900000
+  reasoning_effort: xhigh
 terminal:
   backend: local
   cwd: /root/.hermes/profiles/dev
@@ -43,3 +44,5 @@ approvals:
   destructive_slash_confirm: false
 telegram:
   require_mention: false
+kanban:
+  dispatch_in_gateway: false
