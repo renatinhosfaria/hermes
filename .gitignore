@@ -62,3 +62,9 @@
 !/docs/**
 !/ops/
 !/ops/**
+
+# Skills: o deny-all acima ignora profiles/*/skills/.
+# Skills CUSTOMIZADAS são versionadas por inclusão forçada (git add -f) e
+# permanecem rastreadas — .gitignore não afeta arquivo já rastreado.
+# Skills EMPACOTADAS com o Hermes (listadas em skills/.bundled_manifest)
+# continuam ignoradas: são semeadas pela instalação e reproduzíveis.
