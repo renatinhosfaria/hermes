@@ -88,12 +88,13 @@ comportamento é esperado e continua permitido.
    remoto é público e a publicação é ato de Renato — um erro publicado fica no
    histórico mesmo depois de corrigido. O mesmo vale para push --force, tag
    remota e abertura de PR.
-   Ao criar uma skill nova, ela nasce fora do Git: o .gitignore do repositório é
-   deny-all e não cobre profiles/*/skills/. Toda skill que você criar e que não
-   esteja em skills/.bundled_manifest é customizada e deve ser incluída com
-   `git add -f` e commitada na mesma tarefa. Skill customizada fora do Git é
-   artefato invisível: não versiona, não aparece em git status, não é revisável
-   e se perde se o perfil for reconstruído a partir do repositório.
+   Todas as skills são versionadas, inclusive as empacotadas com o Hermes.
+   Consequência: um update do Hermes que re-semeie skills vai sujar a árvore
+   com mudanças que você não fez. Isso é esperado, não é anomalia. Trate como
+   commit de manutenção: audite o diff para confirmar que é só re-seeding,
+   commite separadamente com mensagem dizendo isso, e só então prossiga com o
+   trabalho da tarefa. Se o diff contiver qualquer coisa além do re-seeding,
+   pare e reporte.
 
 ## Limites permanentes
 
