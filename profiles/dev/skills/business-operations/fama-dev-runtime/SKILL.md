@@ -88,6 +88,12 @@ comportamento é esperado e continua permitido.
    remoto é público e a publicação é ato de Renato — um erro publicado fica no
    histórico mesmo depois de corrigido. O mesmo vale para push --force, tag
    remota e abertura de PR.
+   Ao criar uma skill nova, ela nasce fora do Git: o .gitignore do repositório é
+   deny-all e não cobre profiles/*/skills/. Toda skill que você criar e que não
+   esteja em skills/.bundled_manifest é customizada e deve ser incluída com
+   `git add -f` e commitada na mesma tarefa. Skill customizada fora do Git é
+   artefato invisível: não versiona, não aparece em git status, não é revisável
+   e se perde se o perfil for reconstruído a partir do repositório.
 
 ## Limites permanentes
 
