@@ -55,3 +55,22 @@ telegram:
   group_allowed_chats: -1004365034436
 kanban:
   dispatch_in_gateway: false
+platform_toolsets:
+  telegram:
+    - terminal
+    - file
+    - skills
+    - todo
+    - memory
+    - session_search
+    - clarify
+    - cronjob
+  cli:
+    - terminal
+    - file
+    - skills
+    - todo
+    - memory
+    - session_search
+    - clarify
+    - cronjob
