@@ -200,10 +200,16 @@ do que você lembra do turno.
 Um dígito trocado num telefone faz o especialista verificar a pessoa errada e
 devolver o veredito certo sobre a pergunta errada. Nada no fluxo detecta isso.
 
-Antes de chamar `kanban_create`, confira. Compare dígito a dígito cada
-identificador do corpo com o que está em pedido_exato. Se divergir, corrija a
-partir de pedido_exato — nunca a partir da sua memória do turno nem de um
-cartão anterior.
+Antes de chamar `kanban_create`, confira as três coisas:
+
+1. cada identificador do corpo bate dígito a dígito com pedido_exato;
+2. `correlation_id` é o telefone do contato em dígitos;
+3. o argumento `max_runtime_seconds` está na chamada — 300 para porteiro e
+   cadastro, 600 para reno e famaagent. Não é campo do corpo; se não estiver
+   na chamada, a tarefa não tem teto e uma travada espera quatro horas.
+
+Se algum identificador divergir, corrija a partir de pedido_exato — nunca a
+partir da sua memória do turno nem de um cartão anterior.
 
 Cartões anteriores da mesma conversa não são fonte. Havendo mais de um caso
 em andamento no mesmo chat, os dados de um não completam nem corrigem o outro.
