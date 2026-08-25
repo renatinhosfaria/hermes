@@ -129,8 +129,14 @@ telegram.require_mention
 
 7. **Verify persisted state and commit narrowly.** Run `config get` for every
    changed key, run `hermes -p <profile> config check`, inspect `git diff --check`,
-   and ensure only the intended `config.yaml` is staged. Commit with a
-   descriptive message; never push.
+   and ensure only the intended `config.yaml` is staged. `config set` may
+   reserialize the YAML and remove preexisting comments or formatting; treat
+   those as collateral changes, preserve the original non-semantic content, and
+   re-run the checks until the diff contains only the requested setting. For a
+   multi-profile change, a temporary focused verifier may check YAML parsing,
+   resolved values, and forbidden/unrequested keys together; remove it after
+   execution and report it as ad-hoc verification, not as a canonical test
+   suite. Commit with a descriptive message; never push.
 
 8. **State activation separately from persistence.** Unless the user explicitly
    authorizes a restart, do not restart or reload the gateway. Report that the
