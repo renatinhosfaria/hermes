@@ -1,0 +1,58 @@
+# Telegram Gateway Diagnostics Reference
+
+This reference records reusable findings from a Hermes profile security audit.
+It deliberately omits live IDs, tokens, invite links, message bodies, and other
+profile-specific values.
+
+## Configuration paths
+
+- `platforms.telegram.home_channel` controls the configured Telegram home
+  channel and topic/thread routing.
+- In the installed runtime, Telegram authorization is evaluated from the
+  adapter's `allow_from` and group restriction values exposed through the
+  `telegram` configuration namespace.
+- A root-level `TELEGRAM_ALLOWED_USERS` entry is not the adapter configuration
+  path. `hermes config set` can still persist an unrecognized custom key and
+  bridge it to `.env`, so audit both locations by count and remove the stale
+  YAML root entry when the documented adapter keys are present.
+
+## Toolset resolution finding
+
+`hermes_cli/tools_config.py::_get_platform_tools()` resolves
+`config["platform_toolsets"][platform]`. It does not use the top-level
+`config["toolsets"]` list to scope a messaging platform. Therefore:
+
+1. A top-level `toolsets` list can look correct in `config.yaml` while the
+   Telegram gateway still exposes the default/full platform toolsets.
+2. Use `hermes -p <profile> tools list --platform telegram` to inspect the
+   effective platform listing.
+3. If the listing contradicts the requested least-privilege set, report the
+   mismatch and correct the platform-specific configuration through the
+   documented Hermes tools workflow rather than claiming the top-level list
+   worked.
+
+The non-interactive command form is important: bare `hermes tools` opens an
+interactive configuration UI and may fail when run without a TTY.
+
+## Restart and log evidence
+
+- Gateway dispatcher log entries are append-only evidence. Inspect the most
+  recent matching entries and distinguish a historical dispatcher-lock message
+  from a newer `disabled via config kanban.dispatch_in_gateway=false` message.
+- Persisted config and active process state are separate facts. A config write
+  does not prove that the running gateway has reloaded it.
+- To inspect whether a running process inherited an environment variable, count
+  matching entries in `/proc/<PID>/environ`; never print the values. A zero
+  count describes the process environment only and does not prove that Hermes
+  has not loaded `.env` internally.
+- If the user owns the restart, do not restart the gateway. Report the
+  persisted state and explicitly state that activation is pending restart.
+
+## Safe Telegram diagnostic rules
+
+- Never call `getUpdates` against a bot whose gateway is long-polling.
+- Authenticate API calls from the protected profile `.env` without printing the
+  token or interpolated URL.
+- For `.env`, report only occurrence counts; do not print matching lines.
+- Request only the chat metadata and member/admin data needed for the audit;
+  do not include invite links or unrelated permissions in the report.

@@ -51,9 +51,9 @@ for path in "${must_be_allowed[@]}"; do
     fi
 done
 
-# Classify skills from the same origin hashes Hermes records. New local skills
-# and bundled skills changed by the user must be versioned; unchanged bundled
-# and Skills Hub installations must remain ignored.
+# Classify skills from the same origin hashes Hermes records. Every skill must
+# be visible to Git, regardless of whether it is local, bundled, or installed
+# from the Skills Hub. Runtime metadata remains ignored below.
 skills_root="$repo_dir/skills"
 skill_versioned_count=0
 skill_managed_count=0
@@ -67,14 +67,15 @@ if [ -d "$skills_root" ]; then
         [ -z "$kind" ] && continue
         case "$kind" in
             versioned)
-                if git check-ignore -q -- "$path"; then
+                if git check-ignore --no-index -q -- "$path"; then
                     fail "skill personalizada ou modificada está ignorada: $path"
                 fi
                 skill_versioned_count=$((skill_versioned_count + 1))
                 ;;
             managed)
-                git check-ignore -q -- "$path" \
-                    || fail "skill gerenciada foi liberada indevidamente: $path"
+                if git check-ignore --no-index -q -- "$path"; then
+                    fail "skill oficial ou do Hub está ignorada: $path"
+                fi
                 skill_managed_count=$((skill_managed_count + 1))
                 ;;
             *) fail "classificação de skill desconhecida: $kind" ;;
@@ -145,7 +146,7 @@ PY
         skills/.curator_state \
         skills/.curator_ledger.jsonl \
         skills/.hub/lock.json; do
-        git check-ignore -q -- "$metadata" \
+        git check-ignore --no-index -q -- "$metadata" \
             || fail "metadado gerenciado de skills não está ignorado: $metadata"
     done
 fi
@@ -158,14 +159,15 @@ if [ -d "$repo_dir/profiles" ]; then
         [ -z "$kind" ] && continue
         case "$kind" in
             versioned)
-                if git check-ignore -q -- "$path"; then
+                if git check-ignore --no-index -q -- "$path"; then
                     fail "skill personalizada ou modificada de profile está ignorada: $path"
                 fi
                 profile_skill_versioned_count=$((profile_skill_versioned_count + 1))
                 ;;
             managed)
-                git check-ignore -q -- "$path" \
-                    || fail "skill gerenciada de profile foi liberada indevidamente: $path"
+                if git check-ignore --no-index -q -- "$path"; then
+                    fail "skill oficial ou do Hub de profile está ignorada: $path"
+                fi
                 profile_skill_managed_count=$((profile_skill_managed_count + 1))
                 ;;
             *) fail "classificação de skill de profile desconhecida: $kind" ;;
@@ -250,9 +252,53 @@ PY
             .curator_state \
             .curator_ledger.jsonl \
             .hub/lock.json; do
-            git check-ignore -q -- "$relative_profile/$metadata" \
+            git check-ignore --no-index -q -- "$relative_profile/$metadata" \
                 || fail "metadado gerenciado de skills de profile não está ignorado: $relative_profile/$metadata"
         done
+    done
+fi
+
+# Every functional file under every skill tree must be available to Git. Keep
+# only Hermes bookkeeping and generated dependency/cache artifacts ignored.
+skill_content_count=0
+skill_metadata_count=0
+skill_trees=()
+[ -d "$repo_dir/skills" ] && skill_trees+=(skills)
+for tree in profiles/*/skills; do
+    [ -d "$tree" ] && skill_trees+=("$tree")
+done
+
+if [ "${#skill_trees[@]}" -gt 0 ]; then
+    mapfile -d '' skill_files < <(find "${skill_trees[@]}" -type f -print0)
+    declare -A ignored_skill_files=()
+    if [ "${#skill_files[@]}" -gt 0 ]; then
+        while IFS= read -r -d '' path; do
+            ignored_skill_files["$path"]=1
+        done < <(printf '%s\0' "${skill_files[@]}" | git check-ignore --no-index -z --stdin || true)
+    fi
+
+    for relative_path in "${skill_files[@]}"; do
+        case "$relative_path" in
+            skills/*) tree_relative="${relative_path#skills/}" ;;
+            profiles/*/skills/*)
+                tree_relative="${relative_path#profiles/}"
+                tree_relative="${tree_relative#*/skills/}"
+                ;;
+            *) fail "arquivo fora das árvores de skills esperadas: $relative_path" ;;
+        esac
+
+        case "$tree_relative" in
+            .bundled_manifest|.usage.json|.usage.json.lock|.curator_state|.curator_ledger.jsonl|.curator_suppressed|.hub/*|*/__pycache__/*|*.pyc|*/node_modules/*|*/.venv/*)
+                [ "${ignored_skill_files[$relative_path]:-}" = 1 ] \
+                    || fail "metadado ou artefato gerado de skill não está ignorado: $relative_path"
+                skill_metadata_count=$((skill_metadata_count + 1))
+                ;;
+            *)
+                [ -z "${ignored_skill_files[$relative_path]:-}" ] \
+                    || fail "conteúdo funcional de skill está ignorado: $relative_path"
+                skill_content_count=$((skill_content_count + 1))
+                ;;
+        esac
     done
 fi
 
@@ -297,6 +343,7 @@ if [ -n "$tracked_paths" ]; then
         || fail "padrão de credencial encontrado em arquivo rastreado: $leaked_files"
 fi
 
-printf 'OK: política Git segura verificada em %s (skills raiz versionadas=%s, gerenciadas=%s; profiles versionadas=%s, gerenciadas=%s)\n' \
+printf 'OK: política Git segura verificada em %s (skills raiz locais/modificadas=%s, oficiais/Hub=%s; profiles locais/modificadas=%s, oficiais/Hub=%s; conteúdo=%s, metadados ignorados=%s)\n' \
     "$repo_dir" "$skill_versioned_count" "$skill_managed_count" \
-    "$profile_skill_versioned_count" "$profile_skill_managed_count"
+    "$profile_skill_versioned_count" "$profile_skill_managed_count" \
+    "$skill_content_count" "$skill_metadata_count"

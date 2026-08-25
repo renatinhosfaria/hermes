@@ -25,45 +25,37 @@
 !/profiles/*/profile.yaml
 !/profiles/*/.no-bundled-skills
 
-# Profile-local runtime skills. Each path is explicit so bundled skills under
-# profiles/dev/skills remain excluded.
-!/profiles/cadastro/skills/
-!/profiles/cadastro/skills/business-operations/
-!/profiles/cadastro/skills/business-operations/fama-cadastro-runtime/
-!/profiles/cadastro/skills/business-operations/fama-cadastro-runtime/**
-!/profiles/dev/skills/
-!/profiles/dev/skills/business-operations/
-!/profiles/dev/skills/business-operations/fama-dev-runtime/
-!/profiles/dev/skills/business-operations/fama-dev-runtime/**
-!/profiles/famaagent/skills/
-!/profiles/famaagent/skills/business-operations/
-!/profiles/famaagent/skills/business-operations/fama-corretor-runtime/
-!/profiles/famaagent/skills/business-operations/fama-corretor-runtime/**
-!/profiles/porteiro/skills/
-!/profiles/porteiro/skills/business-operations/
-!/profiles/porteiro/skills/business-operations/fama-porteiro-runtime/
-!/profiles/porteiro/skills/business-operations/fama-porteiro-runtime/**
-!/profiles/reno/skills/
-!/profiles/reno/skills/business-operations/
-!/profiles/reno/skills/business-operations/fama-reno-runtime/
-!/profiles/reno/skills/business-operations/fama-reno-runtime/**
-
-# Locally authored skills and bundled skills with deliberate local changes.
-# Parent categories are opened only so Git can reach these exact directories.
+# All functional skill content: local, bundled, and Skills Hub installations,
+# including references, scripts, templates, and assets.
 !/skills/
-!/skills/autonomous-ai-agents/
-!/skills/autonomous-ai-agents/hermes-agent/
-!/skills/autonomous-ai-agents/hermes-agent/**
-!/skills/autonomous-ai-agents/hermes-kanban-operations/
-!/skills/autonomous-ai-agents/hermes-kanban-operations/**
-!/skills/autonomous-ai-agents/kanban-worker-resilience/
-!/skills/autonomous-ai-agents/kanban-worker-resilience/**
-!/skills/business-operations/
-!/skills/business-operations/fama-ceo-runtime/
-!/skills/business-operations/fama-ceo-runtime/**
-!/skills/devops/
-!/skills/devops/hermes-profile-review/
-!/skills/devops/hermes-profile-review/**
+!/skills/**
+!/profiles/*/skills/
+!/profiles/*/skills/**
+
+# Hermes bookkeeping and generated dependency/cache artifacts are not skill
+# source and remain excluded even inside the opened trees above.
+/skills/.bundled_manifest
+/skills/.usage.json
+/skills/.usage.json.lock
+/skills/.curator_state
+/skills/.curator_ledger.jsonl
+/skills/.curator_suppressed
+/skills/.hub/
+/profiles/*/skills/.bundled_manifest
+/profiles/*/skills/.usage.json
+/profiles/*/skills/.usage.json.lock
+/profiles/*/skills/.curator_state
+/profiles/*/skills/.curator_ledger.jsonl
+/profiles/*/skills/.curator_suppressed
+/profiles/*/skills/.hub/
+/skills/**/__pycache__/
+/skills/**/*.pyc
+/skills/**/node_modules/
+/skills/**/.venv/
+/profiles/*/skills/**/__pycache__/
+/profiles/*/skills/**/*.pyc
+/profiles/*/skills/**/node_modules/
+/profiles/*/skills/**/.venv/
 
 # User-authored operational documentation and automation.
 !/docs/
