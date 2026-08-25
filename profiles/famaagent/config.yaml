@@ -43,5 +43,6 @@ approvals:
 telegram:
   require_mention: false
   allow_from: 8564576789
+  group_allowed_chats: -1003696068287
 kanban:
   dispatch_in_gateway: false
