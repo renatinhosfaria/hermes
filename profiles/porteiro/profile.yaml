@@ -1,0 +1,9 @@
+description: >-
+  Verifica exclusivamente, por fonte autorizada, se um contato é corretor ativo
+  e devolve ao CEO a identidade e a evidência mínima necessárias ao roteamento;
+  não atende nem envia mensagens.
+description_auto: false
+display_name: Porteiro
+ui_meta:
+  hermes-bots:
+    title: Porteiro

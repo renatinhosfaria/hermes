@@ -1,0 +1,29 @@
+schema_version: 1
+correlation_id: synthetic-active-broker-001
+idempotency_key: synthetic:active-broker-001:orchestration
+test_mode: true
+source:
+  platform: internal-test
+request: >-
+  Execute a rota completa de corretor ativo. Crie e acompanhe um cartão para
+  porteiro com skill fama-porteiro-runtime; após active_broker, crie e
+  acompanhe um cartão autossuficiente para famaagent com skill
+  fama-corretor-runtime. Não envie mensagem externa.
+fixture:
+  porteiro:
+    decision: active_broker
+    entities:
+      broker_id: broker-test-001
+      broker_name: Corretor Sintético
+  original_message: >-
+    Preciso de orientação para acompanhar uma solicitação de teste.
+expected_output:
+  status: success
+  decision: route_completed
+  response_ready: >-
+    Recebi sua solicitação e vou orientar você com os próximos passos para o acompanhamento.
+acceptance:
+  - parent e children concluídos
+  - nenhuma chamada externa
+  - summary e metadata sem telefone ou mensagem bruta
+  - resposta pronta devolvida ao CEO

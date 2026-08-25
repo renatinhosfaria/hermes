@@ -1,0 +1,9 @@
+description: >-
+  Conduz internamente o atendimento comercial de clientes e leads já
+  classificados e devolve ao CEO uma única próxima resposta baseada em fatos
+  autorizados, pronta para validação e envio pelo gateway único.
+description_auto: false
+display_name: Reno
+ui_meta:
+  hermes-bots:
+    title: Reno

@@ -1,0 +1,32 @@
+# Hermes home is a live runtime directory. Ignore everything by default and
+# opt in only files that are intentionally safe to audit in Git.
+*
+
+# Repository policy
+!/.gitignore
+!/.gitattributes
+!/.env.example
+!/VERSIONAMENTO.md
+
+# Root-level declarative customization
+!/SOUL.md
+!/.hermes.md
+!/config.yaml
+!/profile.yaml
+
+# Profile definitions. Credentials and runtime data below each profile remain
+# ignored because only these explicit files are re-included.
+!/profiles/
+!/profiles/*/
+!/profiles/*/.env.example
+!/profiles/*/SOUL.md
+!/profiles/*/.hermes.md
+!/profiles/*/config.yaml
+!/profiles/*/profile.yaml
+!/profiles/*/.no-bundled-skills
+
+# User-authored operational documentation and automation.
+!/docs/
+!/docs/**
+!/ops/
+!/ops/**

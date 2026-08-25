@@ -1,0 +1,9 @@
+description: >-
+  Gateway único e orquestrador central da Fama. Recebe Renato no Telegram e
+  contatos externos no WhatsApp, roteia pelo Kanban e é o único agente que
+  envia respostas aos canais externos.
+description_auto: false
+display_name: CEO
+ui_meta:
+  hermes-bots:
+    title: CEO

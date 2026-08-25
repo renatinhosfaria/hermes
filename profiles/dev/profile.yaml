@@ -1,0 +1,9 @@
+description: >-
+  Mantém exclusivamente o ecossistema interno de agentes da Fama: profiles,
+  configurações, instruções, skills, integrações e automações. Investiga,
+  implementa, testa, revisa e depura somente essa camada.
+description_auto: false
+display_name: Dev
+ui_meta:
+  hermes-bots:
+    title: Dev

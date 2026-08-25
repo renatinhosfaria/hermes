@@ -1,0 +1,10 @@
+description: >-
+  Classifica contatos não corretores como cliente existente ou lead novo usando
+  somente fontes autorizadas e devolve ao CEO os fatos mínimos para o próximo
+  passo; não envia mensagens nem executa cadastro externo sem capacidade
+  aprovada.
+description_auto: false
+display_name: Cadastro
+ui_meta:
+  hermes-bots:
+    title: Cadastro

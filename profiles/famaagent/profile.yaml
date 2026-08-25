@@ -1,0 +1,9 @@
+description: >-
+  Atende exclusivamente corretores ativos e devolve ao CEO uma resposta
+  operacional ou comercial baseada em fatos autorizados, pronta para validação
+  e envio pelo gateway único.
+description_auto: false
+display_name: FamaAgent
+ui_meta:
+  hermes-bots:
+    title: FamaAgent

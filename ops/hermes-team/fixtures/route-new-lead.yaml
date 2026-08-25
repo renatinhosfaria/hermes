@@ -1,0 +1,31 @@
+schema_version: 1
+correlation_id: synthetic-new-lead-001
+idempotency_key: synthetic:new-lead-001:orchestration
+test_mode: true
+source:
+  platform: internal-test
+request: >-
+  Execute a rota completa de lead novo. Crie e acompanhe um cartão para
+  porteiro com skill fama-porteiro-runtime; após not_active, crie e acompanhe
+  cadastro com skill fama-cadastro-runtime; após new_lead, crie e acompanhe
+  reno com skill fama-reno-runtime. Não crie registro externo e não envie mensagem.
+fixture:
+  porteiro:
+    decision: not_active
+    entities: {}
+  cadastro:
+    decision: new_lead
+    entities:
+      lead_id: lead-test-001
+  original_message: >-
+    Olá, quero conhecer imóveis de teste no bairro Centro.
+expected_output:
+  status: success
+  decision: route_completed
+  response_ready: >-
+    Olá! Posso ajudar. Para começar, qual faixa de valor e quantos quartos você procura?
+acceptance:
+  - parent e três children concluídos
+  - nenhum cadastro externo
+  - summary e metadata sem telefone ou mensagem bruta
+  - resposta pronta devolvida ao CEO
