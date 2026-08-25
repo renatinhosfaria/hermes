@@ -10,7 +10,8 @@ credenciais e dados pessoais; por isso, a política é uma lista permitida no
 - `SOUL.md`, `.hermes.md`, `config.yaml` e `profile.yaml` da raiz;
 - os equivalentes de cada diretório em `profiles/`;
 - arquivos `.env.example` com valores vazios;
-- skills criadas localmente e skills bundled modificadas localmente;
+- skills criadas localmente e skills bundled modificadas localmente, tanto na
+  raiz quanto dentro dos profiles;
 - documentação em `docs/` e automações em `ops/`;
 - os arquivos que documentam e verificam esta própria política.
 
@@ -36,12 +37,12 @@ git status --short
 git diff --cached
 ```
 
-O verificador compara cada diretório de skill com os hashes registrados pelo
-Hermes em `skills/.bundled_manifest`. Skills locais ou bundled modificadas
-precisam de uma regra explícita no `.gitignore`; skills oficiais intactas e
-instalações do Skills Hub precisam continuar ignoradas. Assim, uma nova skill
-personalizada faz a auditoria falhar até ser deliberadamente adicionada à
-allowlist.
+O verificador compara cada diretório de skill da raiz e dos profiles com os
+hashes registrados pelo Hermes nos respectivos `.bundled_manifest`. Skills
+locais ou bundled modificadas precisam de uma regra explícita no `.gitignore`;
+skills oficiais intactas e instalações do Skills Hub precisam continuar
+ignoradas. Assim, uma nova skill personalizada faz a auditoria falhar até ser
+deliberadamente adicionada à allowlist.
 
 Para começar a rastrear uma nova categoria de personalização, acrescente uma
 regra explícita ao `.gitignore` e um caso correspondente ao verificador. Nunca

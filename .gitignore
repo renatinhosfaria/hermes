@@ -25,6 +25,29 @@
 !/profiles/*/profile.yaml
 !/profiles/*/.no-bundled-skills
 
+# Profile-local runtime skills. Each path is explicit so bundled skills under
+# profiles/dev/skills remain excluded.
+!/profiles/cadastro/skills/
+!/profiles/cadastro/skills/business-operations/
+!/profiles/cadastro/skills/business-operations/fama-cadastro-runtime/
+!/profiles/cadastro/skills/business-operations/fama-cadastro-runtime/**
+!/profiles/dev/skills/
+!/profiles/dev/skills/business-operations/
+!/profiles/dev/skills/business-operations/fama-dev-runtime/
+!/profiles/dev/skills/business-operations/fama-dev-runtime/**
+!/profiles/famaagent/skills/
+!/profiles/famaagent/skills/business-operations/
+!/profiles/famaagent/skills/business-operations/fama-corretor-runtime/
+!/profiles/famaagent/skills/business-operations/fama-corretor-runtime/**
+!/profiles/porteiro/skills/
+!/profiles/porteiro/skills/business-operations/
+!/profiles/porteiro/skills/business-operations/fama-porteiro-runtime/
+!/profiles/porteiro/skills/business-operations/fama-porteiro-runtime/**
+!/profiles/reno/skills/
+!/profiles/reno/skills/business-operations/
+!/profiles/reno/skills/business-operations/fama-reno-runtime/
+!/profiles/reno/skills/business-operations/fama-reno-runtime/**
+
 # Locally authored skills and bundled skills with deliberate local changes.
 # Parent categories are opened only so Git can reach these exact directories.
 !/skills/

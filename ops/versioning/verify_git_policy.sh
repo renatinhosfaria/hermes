@@ -57,6 +57,8 @@ done
 skills_root="$repo_dir/skills"
 skill_versioned_count=0
 skill_managed_count=0
+profile_skill_versioned_count=0
+profile_skill_managed_count=0
 if [ -d "$skills_root" ]; then
     command -v python3 >/dev/null 2>&1 \
         || fail "python3 é necessário para classificar as skills"
@@ -148,6 +150,112 @@ PY
     done
 fi
 
+# Apply the same classification independently to every named profile. Profiles
+# created with --no-skills legitimately have no bundled manifest; in those
+# trees, any skill not recorded by the Skills Hub is local by definition.
+if [ -d "$repo_dir/profiles" ]; then
+    while IFS=$'\t' read -r kind path; do
+        [ -z "$kind" ] && continue
+        case "$kind" in
+            versioned)
+                if git check-ignore -q -- "$path"; then
+                    fail "skill personalizada ou modificada de profile está ignorada: $path"
+                fi
+                profile_skill_versioned_count=$((profile_skill_versioned_count + 1))
+                ;;
+            managed)
+                git check-ignore -q -- "$path" \
+                    || fail "skill gerenciada de profile foi liberada indevidamente: $path"
+                profile_skill_managed_count=$((profile_skill_managed_count + 1))
+                ;;
+            *) fail "classificação de skill de profile desconhecida: $kind" ;;
+        esac
+    done < <(PROFILES_ROOT="$repo_dir/profiles" python3 - <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import os
+import re
+
+profiles_root = Path(os.environ["PROFILES_ROOT"])
+
+def read_manifest(root):
+    result = {}
+    path = root / ".bundled_manifest"
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if ":" in line:
+                name, digest = line.rsplit(":", 1)
+                result[name.strip()] = digest.strip()
+    return result
+
+def read_hub_names(root):
+    result = set()
+    path = root / ".hub" / "lock.json"
+    if not path.is_file():
+        return result
+
+    def collect(value):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key in {"name", "skill_name", "slug"} and isinstance(child, str):
+                    result.add(child)
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(json.loads(path.read_text(encoding="utf-8")))
+    return result
+
+def read_name(skill_md):
+    text = skill_md.read_text(encoding="utf-8", errors="replace")[:4000]
+    match = re.search(r"(?ms)^---\s*$.*?^name:\s*[\"']?([^\n\"']+)", text)
+    return match.group(1).strip() if match else skill_md.parent.name
+
+def directory_hash(directory):
+    digest = hashlib.md5()
+    for path in sorted(directory.rglob("*")):
+        if path.is_file():
+            digest.update(str(path.relative_to(directory)).encode("utf-8"))
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+for profile in sorted(path for path in profiles_root.iterdir() if path.is_dir()):
+    root = profile / "skills"
+    if not root.is_dir():
+        continue
+    manifest = read_manifest(root)
+    hub_names = read_hub_names(root)
+    for skill_md in sorted(root.rglob("SKILL.md")):
+        name = read_name(skill_md)
+        relative = skill_md.relative_to(profiles_root.parent).as_posix()
+        if name in manifest:
+            kind = "managed" if directory_hash(skill_md.parent) == manifest[name] else "versioned"
+        elif name in hub_names:
+            kind = "managed"
+        else:
+            kind = "versioned"
+        print(f"{kind}\t{relative}")
+PY
+    )
+
+    for profile_dir in "$repo_dir"/profiles/*; do
+        [ -d "$profile_dir/skills" ] || continue
+        relative_profile="profiles/${profile_dir##*/}/skills"
+        for metadata in \
+            .bundled_manifest \
+            .usage.json \
+            .usage.json.lock \
+            .curator_state \
+            .curator_ledger.jsonl \
+            .hub/lock.json; do
+            git check-ignore -q -- "$relative_profile/$metadata" \
+                || fail "metadado gerenciado de skills de profile não está ignorado: $relative_profile/$metadata"
+        done
+    done
+fi
+
 tracked_paths="$(git ls-files)"
 while IFS= read -r path; do
     [ -z "$path" ] && continue
@@ -189,5 +297,6 @@ if [ -n "$tracked_paths" ]; then
         || fail "padrão de credencial encontrado em arquivo rastreado: $leaked_files"
 fi
 
-printf 'OK: política Git segura verificada em %s (skills versionadas=%s, gerenciadas=%s)\n' \
-    "$repo_dir" "$skill_versioned_count" "$skill_managed_count"
+printf 'OK: política Git segura verificada em %s (skills raiz versionadas=%s, gerenciadas=%s; profiles versionadas=%s, gerenciadas=%s)\n' \
+    "$repo_dir" "$skill_versioned_count" "$skill_managed_count" \
+    "$profile_skill_versioned_count" "$profile_skill_managed_count"
