@@ -25,6 +25,23 @@
 !/profiles/*/profile.yaml
 !/profiles/*/.no-bundled-skills
 
+# Locally authored skills and bundled skills with deliberate local changes.
+# Parent categories are opened only so Git can reach these exact directories.
+!/skills/
+!/skills/autonomous-ai-agents/
+!/skills/autonomous-ai-agents/hermes-agent/
+!/skills/autonomous-ai-agents/hermes-agent/**
+!/skills/autonomous-ai-agents/hermes-kanban-operations/
+!/skills/autonomous-ai-agents/hermes-kanban-operations/**
+!/skills/autonomous-ai-agents/kanban-worker-resilience/
+!/skills/autonomous-ai-agents/kanban-worker-resilience/**
+!/skills/business-operations/
+!/skills/business-operations/fama-ceo-runtime/
+!/skills/business-operations/fama-ceo-runtime/**
+!/skills/devops/
+!/skills/devops/hermes-profile-review/
+!/skills/devops/hermes-profile-review/**
+
 # User-authored operational documentation and automation.
 !/docs/
 !/docs/**
