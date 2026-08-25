@@ -26,8 +26,10 @@ Use para alterar ou diagnosticar:
 - Testes, validações e depuração diretamente relacionados a essa camada.
 
 Não use para atendimento comercial, decisões de negócio, dados reais de
-clientes, infraestrutura geral do VPS ou alterações em
-`/usr/local/lib/hermes-agent`, salvo autorização explícita.
+clientes, infraestrutura geral do VPS ou qualquer alteração na instalação do
+Hermes Agent. A instalação é somente leitura, sem exceção — alterá-la gera
+conflito nos updates futuros. Ler o código instalado para confirmar
+comportamento é esperado e continua permitido.
 
 ## Pré-requisitos
 
@@ -45,7 +47,7 @@ clientes, infraestrutura geral do VPS ou alterações em
 - Valores resolvidos: `hermes -p dev config get <chave>`.
 - Topologia: `/root/.hermes/ops/hermes-team/verify_team.py core`.
 - Kanban: `hermes kanban show <task_id> --json` e `hermes kanban runs <task_id>`.
-- Alterações textuais: use `apply_patch` e preserve mudanças não relacionadas.
+- Alterações textuais: use `patch` e preserve mudanças não relacionadas.
 
 ## Procedimento
 
@@ -65,18 +67,27 @@ clientes, infraestrutura geral do VPS ou alterações em
    existente e limites dos Profiles. Não introduza skill, ferramenta,
    dependência ou refatoração sem necessidade demonstrada.
 
-5. **Aplique a alteração.** Use `apply_patch` para texto. Não altere credenciais,
-   permissões, dados de clientes, produção ou a instalação Hermes sem alvo e
-   autorização explícitos.
+5. **Aplique a alteração.** Use `patch` para texto. Não altere credenciais,
+   permissões, dados de clientes, produção ou a instalação do Hermes Agent.
 
 6. **Verifique o resultado.** Valide YAML e valores resolvidos, execute o
    `config check` do profile e rode testes, inferências ou diagnósticos
    proporcionais ao risco. Para uma falha, corrija a causa e repita a
-   verificação; não masque o sintoma.
+   verificação; não masque o sintoma. Quando a alteração for em um perfil que
+   NÃO é o dev, a verificação é obrigatória e nesta ordem: (a) hermes -p
+   <alvo> config check; (b) uma inferência curta e específica no perfil
+   alterado, confirmando o comportamento que a mudança pretendia; (c) o
+   guarda de integridade da instalação. Se qualquer uma falhar, reverta pelo
+   git e relate. Nunca declare sucesso por inspeção de arquivo.
 
 7. **Entregue evidência.** Relate arquivos alterados, comandos executados,
    resultados reais, limitações e trabalho restante. Não declare sucesso apenas
-   porque o arquivo parece correto.
+   porque o arquivo parece correto. /root/.hermes é repositório git. Ao
+   concluir, faça um commit por tarefa, com mensagem dizendo o que mudou e por
+   quê, e use git diff como a evidência do relatório. Nunca dê git push. O
+   remoto é público e a publicação é ato de Renato — um erro publicado fica no
+   histórico mesmo depois de corrigido. O mesmo vale para push --force, tag
+   remota e abertura de PR.
 
 ## Limites permanentes
 
@@ -107,4 +118,9 @@ Antes de encerrar, confirme:
 4. os testes e diagnósticos relevantes passaram;
 5. nenhum segredo, PII ou chamada externa indevida foi introduzido;
 6. o relatório contém evidência suficiente para outra pessoa reproduzir a
-   conclusão.
+   conclusão;
+7. a instalação do Hermes está intacta — `git -C /usr/local/lib/hermes-agent
+   status --porcelain` devolve saída vazia. Se vier suja, a tarefa não está
+   concluída: reverta o que tocou e relate;
+8. a alteração está sob controle de versão — `git -C /root/.hermes status
+   --porcelain` mostra exatamente o que você tocou, e nada além disso.
