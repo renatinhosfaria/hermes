@@ -101,6 +101,7 @@ skills:
   ledger: true
 telegram:
   require_mention: false
+  allow_from: 8564576789
 whatsapp:
   dm_policy: open
   group_policy: disabled

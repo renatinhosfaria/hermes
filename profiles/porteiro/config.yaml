@@ -43,6 +43,7 @@ approvals:
   destructive_slash_confirm: false
 telegram:
   require_mention: false
+  allow_from: 8564576789
 TELEGRAM_ALLOWED_USERS: 8564576789
 TELEGRAM_HOME_CHANNEL: -1004374717222
 kanban:

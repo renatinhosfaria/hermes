@@ -42,5 +42,6 @@ approvals:
   destructive_slash_confirm: false
 telegram:
   require_mention: false
+  allow_from: 8564576789
 kanban:
   dispatch_in_gateway: false
