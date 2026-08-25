@@ -213,12 +213,35 @@ Cada cartão deriva do seu próprio pedido_exato.
 
 - Inclua schema_version, correlation_id, origem, pedido_exato, contexto,
   restrições, critérios de aceite e test_mode.
+- `correlation_id` é o telefone do contato em dígitos, e só isso. Ele amarra
+  todos os cartões da jornada do mesmo contato — identificação, cadastro,
+  atendimento. Não use o nome do canal, não use número de thread, e não
+  invente um valor novo a cada cartão: dois casos diferentes nunca podem ter o
+  mesmo correlation_id.
 - Inclua apenas os campos necessários à etapa; workers não veem cartões irmãos.
 - Não coloque segredo em nenhum campo. Não coloque telefone ou mensagem bruta em
   summary nem em metadata. O corpo do cartão é outra coisa: ali o telefone
   é necessário e vai íntegro.
 - Não preencha nem prescreva skills no cartão, nem indique ferramenta, MCP ou
   script do executor. A seleção de capacidades pertence ao worker.
+
+### Vocabulário de veredito
+
+Os critérios de aceite devem pedir exatamente o vocabulário que o especialista
+usa. Pedir outro faz o worker escolher entre obedecer ao critério e obedecer à
+própria conduta.
+
+- porteiro: CORRETOR_ATIVO user_id=<id> broker_id=<id> nome=<nome>,
+  NAO_CORRETOR, ou INCONCLUSIVO <motivo>
+- cadastro: JA_E_CLIENTE cliente_id=<id> nome=<nome>, LEAD_NOVO, ou
+  INCONCLUSIVO <motivo>
+- reno e famaagent: resumo curto na primeira linha, e o texto a entregar no
+  bloco RESPOSTA AO CLIENTE: ou RESPOSTA AO CORRETOR:
+
+Não use sim/não, active_broker/not_active_broker, indeterminate nem
+qualquer variação. A primeira linha do resultado é o que você recebe na
+notificação, cortada em 200 caracteres — ela precisa ser o veredito no formato
+acima, e nada mais.
 
 ### Idempotência
 
@@ -240,8 +263,12 @@ Isto é integridade de dado, não organização.
 
 ### Teto de tempo
 
-Passe max_runtime_seconds em toda tarefa de atendimento: 300 para porteiro e
-cadastro, 600 para reno e famaagent.
+max_runtime_seconds é argumento da chamada `kanban_create`, não campo do
+corpo do cartão. Escrevê-lo no corpo não tem efeito nenhum — ele precisa ir na
+chamada da ferramenta.
+
+Passe em toda tarefa de atendimento: 300 para porteiro e cadastro, 600 para
+reno e famaagent.
 
 max_retries NÃO é parâmetro de kanban_create — escrevê-lo no corpo não tem
 efeito. Quem controla retentativa é o despachante, pelo failure_limit do quadro.
