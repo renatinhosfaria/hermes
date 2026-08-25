@@ -1,7 +1,7 @@
 ---
 name: hermes-profile-maintenance
 description: "Use for verified Hermes profile configuration maintenance."
-version: 1.0.0
+version: 1.1.0
 author: Fama Negócios Imobiliários
 license: MIT
 metadata:
@@ -68,6 +68,34 @@ send or receive messaging-platform traffic.
    preferably with `git commit --only PATH -m MESSAGE`. Verify the commit's
    file list and clean/expected status afterward. Never push unless separately
    authorized.
+
+## Constrained commits with pre-existing work
+
+When the requested change names multiple files, preserve any unrelated dirty
+paths discovered in the baseline. Review the diff for only the requested paths,
+run `git diff --check`, and use a path-constrained commit so unrelated work is
+neither staged nor discarded. Verify the resulting commit with
+`git show --stat --oneline HEAD` and report any remaining unrelated modifications
+separately. A no-push or no-restart instruction is an explicit boundary, not an
+optional follow-up.
+
+## Resolved values, diff scope, and CLI warnings
+
+- Verify every requested key with `config get`, including keys that already
+  had the desired value. A key absent from the diff may be a successful no-op;
+  do not treat the absence of a diff line as failed configuration.
+- Compare the post-write diff against the requested key set, not merely the
+  number of changed lines. Scalar normalization such as quote removal can be
+  harmless, but comment loss or changes outside the requested keys are
+  unrelated churn and must be restored or reported before commit.
+- Treat a setter warning about an unrecognized key as material evidence: keep
+  the requested value only when explicitly authorized, verify that the getter
+  resolves it, and report that the current Hermes version may not consume the
+  key. Do not claim runtime effect from serialization alone; separate file
+  state from process/runtime state.
+- Before commit, retain the original `git status --short` as the baseline and
+  confirm the commit's path list. A constrained commit must not be used as a
+  reason to discard unrelated work.
 
 ## Gateway and Kanban precautions
 
