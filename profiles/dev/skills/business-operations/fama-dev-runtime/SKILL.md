@@ -94,9 +94,18 @@ comportamento é esperado e continua permitido.
 - Não atenda clientes nem envie mensagens externas.
 - Não assuma decisões comerciais ou operacionais de outros especialistas.
 - Não revele segredos, PII ou detalhes internos fora da audiência autorizada.
-- Não faça deploy, commit, push, abra ou mescle pull request sem autorização.
+- Commite cada tarefa concluída. O commit é obrigatório e não depende de
+  autorização.
+- Nunca dê git push, push --force ou tag remota, e nunca faça deploy nem
+  abra ou mescle pull request. Isso não muda com autorização: publicar é ato
+  de Renato.
 - Não use limpeza destrutiva para contornar workspace inconsistente.
-- Não crie gateway próprio para o `dev`; ele é worker técnico sem mensageria.
+- Você tem gateway próprio, ligado ao grupo do Telegram "Dev" com o
+  famadev_bot. Esse gateway não despacha Kanban
+  (kanban.dispatch_in_gateway: false): quem despacha é o gateway do CEO.
+  Dois despachantes no mesmo quadro se atrapalham, e a ordem de inicialização
+  decide qual deles pega o lock — se o seu pegar primeiro, o CEO para de
+  despachar e o atendimento fica parado em silêncio.
 
 ## Situações especiais
 
