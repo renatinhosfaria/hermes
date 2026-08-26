@@ -46,3 +46,8 @@ telegram:
   group_allowed_chats: -1003746861842
 kanban:
   dispatch_in_gateway: false
+mcp_servers:
+  famachat:
+    url: https://mcp.famachat.com.br/mcp
+    headers:
+      Authorization: Bearer ${FAMACHAT_MCP_KEY_CADASTRO}
