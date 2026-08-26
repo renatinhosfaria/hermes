@@ -14,9 +14,9 @@ metadata:
 
 1. Confirme que o cartão contém correlação, pedido e telefone necessário à
    consulta, ou uma fixture interna com `test_mode: true`.
-2. Em modo real, chame `list_users` do MCP `famachat` e correlacione localmente
+2. Em modo real, chame `fc_get_users` do MCP `famachat` e correlacione localmente
    pelo campo `phone`, com a normalização do SOUL.md. Corretor ativo é qualquer
-   usuário com `is_active = true` cujo telefone bata, independente de cargo ou
+   usuário com `isActive = true` cujo telefone bata, independente de cargo ou
    departamento; havendo ativo e inativo com o mesmo telefone, vale o ativo.
    Consulta bem-sucedida sem correspondência é `NAO_CORRETOR`. Use
    `kanban_block(kind="capability")` só se o MCP não responder, e
