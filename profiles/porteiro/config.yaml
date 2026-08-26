@@ -50,13 +50,13 @@ TELEGRAM_ALLOWED_USERS: 8564576789
 TELEGRAM_HOME_CHANNEL: -1004374717222
 kanban:
   dispatch_in_gateway: false
-mcp_servers:
-  famachat:
-    url: https://mcp-famachat-postgres.famachat.com.br/mcp
-    headers:
-      Authorization: Bearer ${FAMACHAT_MCP_KEY_PORTEIRO}
 platform_toolsets:
   telegram:
     - clarify
   cli:
     - clarify
+mcp_servers:
+  famachat:
+    url: https://mcp.famachat.com.br/mcp
+    headers:
+      Authorization: Bearer ${FAMACHAT_MCP_KEY_PORTEIRO}
