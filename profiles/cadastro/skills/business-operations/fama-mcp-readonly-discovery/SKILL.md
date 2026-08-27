@@ -50,6 +50,11 @@ classificação comercial, cadastro, alteração ou exclusão.
   credencial nem prova que o gateway recarregou a configuração. Relate esses
   fatos separadamente e rotule a evidência como arquivo cru, apresentação do
   CLI, `.env` ou estado do Git.
+- Quando o solicitante pedir as saídas reais sem resumo, reproduza cada comando
+  em um bloco separado, preserve exatamente seu stdout e informe o código de
+  saída. Não troque a transcrição por uma conclusão. Se houver segredo na
+  saída, sanitize apenas o segredo, sem reproduzir seu valor nem fragmentos, e
+  declare que houve sanitização.
 
 ## Procedimento
 
