@@ -24,7 +24,8 @@ group_sessions_per_user: true
 skills:
   guard_agent_created: true
   write_approval: false
-toolsets: []
+toolsets:
+  - clarify
 platforms:
   telegram:
     enabled: true
@@ -51,3 +52,8 @@ mcp_servers:
     url: https://mcp.famachat.com.br/mcp
     headers:
       Authorization: Bearer ${FAMACHAT_MCP_KEY_CADASTRO}
+platform_toolsets:
+  telegram:
+    - clarify
+  cli:
+    - clarify
