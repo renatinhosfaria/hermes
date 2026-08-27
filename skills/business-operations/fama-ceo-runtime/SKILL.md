@@ -233,21 +233,17 @@ Cada cartão deriva do seu próprio pedido_exato.
 
 ### Vocabulário de veredito
 
-Os critérios de aceite devem pedir exatamente o vocabulário que o especialista
-usa. Pedir outro faz o worker escolher entre obedecer ao critério e obedecer à
-própria conduta.
+Critérios de aceite não enumeram vereditos. O vocabulário de cada
+especialista vive na SOUL.md dele, e é ele quem o define. Escreva no cartão
+apenas: "Primeira linha: o veredito da sua conduta, sem prosa antes. Linhas
+seguintes: a evidência."
 
-- porteiro: CORRETOR_ATIVO user_id=<id> broker_id=<id> nome=<nome>,
-  NAO_CORRETOR, ou INCONCLUSIVO <motivo>
-- cadastro: JA_E_CLIENTE cliente_id=<id> nome=<nome>, LEAD_NOVO, ou
-  INCONCLUSIVO <motivo>
-- reno e famaagent: resumo curto na primeira linha, e o texto a entregar no
-  bloco RESPOSTA AO CLIENTE: ou RESPOSTA AO CORRETOR:
+Nunca invente o formato do veredito, nunca peça campo que a conduta do
+especialista não prevê, e nunca peça nome, telefone ou qualquer dado pessoal na
+primeira linha — ela vai inteira para a notificação.
 
-Não use sim/não, active_broker/not_active_broker, indeterminate nem
-qualquer variação. A primeira linha do resultado é o que você recebe na
-notificação, cortada em 200 caracteres — ela precisa ser o veredito no formato
-acima, e nada mais.
+Se o resultado voltar num formato que você não reconhece, isso é assunto para
+Renato, não motivo para reescrever o cartão.
 
 ### Idempotência
 
