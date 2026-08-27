@@ -118,6 +118,26 @@ making an absolute statement that a skill is inaccessible.
 The installed source notes and line-level evidence for this distinction are in
 `references/skill-injection-and-toolset-gating.md`.
 
+## Remediation pattern: critical conduct behind a disabled skill surface
+
+When source tracing and `tools list --platform` prove that the target platform
+omits the `skills` toolset, do not leave runtime-critical conduct only in a
+skill that the normal prompt cannot index or load.
+
+1. Move the complete mandatory conduct into the profile's always-loaded
+   instruction layer (`SOUL.md` for identity, behavior, and permanent limits;
+   project context for operational environment rules).
+2. Replace any instruction that tells the agent to load the unavailable skill
+   with an explicit statement that the always-loaded file contains the complete
+   conduct and that the skill is not the runtime source of truth.
+3. Preserve the skill as documentation unless the task separately authorizes
+   changing it; do not duplicate contradictory requirements across layers.
+4. Verify both text-level acceptance checks and a short, behavior-specific
+   inference in a fresh invocation of the target profile. A successful config
+   check alone does not prove that the migrated conduct reached the prompt.
+5. Respect explicit operational constraints such as no restart, no push, and a
+   commit limited to the authorized file.
+
 ## Pitfalls
 
 - **Config-only conclusion:** `toolsets:` or `platform_toolsets:` in YAML is
