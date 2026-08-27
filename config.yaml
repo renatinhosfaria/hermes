@@ -143,8 +143,10 @@ platform_toolsets:
   discord:
     - hermes-discord
   whatsapp:
-    - hermes-whatsapp
     - kanban
+    - clarify
+    - skills
+    - vision
   slack:
     - hermes-slack
   signal:
