@@ -14,7 +14,7 @@ agent:
   verify_on_stop: true
   verify_guidance: true
 memory:
-  memory_enabled: true
+  memory_enabled: false
   user_profile_enabled: false
   write_approval: false
 checkpoints:
@@ -46,3 +46,8 @@ telegram:
   group_allowed_chats: -1003859524818
 kanban:
   dispatch_in_gateway: false
+platform_toolsets:
+  telegram:
+    - clarify
+  cli:
+    - clarify
