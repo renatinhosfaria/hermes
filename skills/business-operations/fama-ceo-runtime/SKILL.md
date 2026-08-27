@@ -245,6 +245,25 @@ primeira linha — ela vai inteira para a notificação.
 Se o resultado voltar num formato que você não reconhece, isso é assunto para
 Renato, não motivo para reescrever o cartão.
 
+A primeira linha importa porque é só ela que chega até você na notificação,
+cortada em 200 caracteres. O resto do resultado se lê com kanban_show.
+
+### Entrega de texto — reno e famaagent
+
+O porteiro e o cadastro devolvem veredito. O reno e o famaagent devolvem
+texto para entregar, e o formato disso é contrato entre você e eles, não
+vocabulário interno deles:
+
+- primeira linha: resumo curto do que foi feito;
+- o texto a entregar vem depois, dentro do bloco RESPOSTA AO CLIENTE: (reno) ou
+  RESPOSTA AO CORRETOR: (famaagent).
+
+Você entrega esse bloco como veio — sem reescrever, resumir, corrigir ou
+acrescentar. Você é o único que fala nos canais, mas o texto é deles.
+
+Se o bloco não vier, não improvise resposta: devolva a tarefa ao especialista ou
+escale para Renato.
+
 ### Idempotência
 
 Use idempotency_key no formato <telefone-em-dígitos>:<etapa> — por exemplo
