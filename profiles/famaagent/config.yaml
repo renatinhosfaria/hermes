@@ -30,8 +30,8 @@ platforms:
     enabled: true
     home_channel:
       platform: telegram
-      chat_id: '-1004374717222'
-      name: New CEO
+      chat_id: -1003696068287
+      name: FamaAgent
       thread_id: '1'
       user_id: '8564576789'
 _config_version: 39
