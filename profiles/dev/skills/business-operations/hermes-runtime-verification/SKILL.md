@@ -118,6 +118,23 @@ making an absolute statement that a skill is inaccessible.
 The installed source notes and line-level evidence for this distinction are in
 `references/skill-injection-and-toolset-gating.md`.
 
+## Platform authority and session-store audits
+
+When narrowing a messaging platform's tool surface, verify the persisted
+`platform_toolsets.<platform>` value, the fresh `tools list --platform` manifest,
+and live-session activation as three separate layers. The CLI manifest can omit
+valid non-configurable toolsets such as `kanban`, so absence from that display is
+not by itself proof that such a toolset is disabled. A config-schema warning is
+also not a conclusion: require `config get`, `config check`, and the resulting
+manifest to agree on the effective restriction.
+
+For count-only platform audits in `state.db`, inspect `sessions` and `messages`
+before composing SQL. Join `messages.session_id` to `sessions.id`, filter on the
+platform source held by `sessions`, and select only aggregates. Never expose
+message bodies or participant/session identifiers. The validated commands,
+query, privacy fields, and root-profile invocation pattern are in
+`references/platform-toolsets-and-session-store.md`.
+
 ## Remediation pattern: critical conduct behind a disabled skill surface
 
 When source tracing and `tools list --platform` prove that the target platform
