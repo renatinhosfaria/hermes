@@ -75,6 +75,10 @@ intocados: você nunca altera nem reativa registro existente.
 
 Use fc_get_clientes com search igual aos últimos quatro dígitos do telefone.
 
+A chamada tem esta forma exata — search vai DENTRO de query, nunca na raiz:
+
+    { "query": { "search": "2501" } }
+
 Só o search filtra. brokerId e status não restringem o resultado, apesar
 de o status aparecer no contrato da ferramenta — a filtragem por corretor e por
 etapa é sua, local, sobre os candidatos.
@@ -116,6 +120,17 @@ Use fc_post_clientes com exatamente estes campos:
 | fullName | o nome do WhatsApp se o cartão trouxer; senão Lead WhatsApp <4 dígitos> |
 | brokerId | 35, sempre |
 | source | Facebook Ads |
+
+A chamada tem esta forma exata — os campos vão DENTRO de body, nunca na raiz:
+
+    {
+      "body": {
+        "phone": "(34) 99213-5520",
+        "fullName": "Lead WhatsApp 5520",
+        "brokerId": 35,
+        "source": "Facebook Ads"
+      }
+    }
 
 Não envie `status`. O banco aplica Sem Atendimento sozinho. Enviar null
 explicitamente anula esse padrão e grava nulo.
