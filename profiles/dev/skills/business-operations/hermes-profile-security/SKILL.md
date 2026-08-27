@@ -73,12 +73,22 @@ telegram.require_mention
    the relevant YAML, and identify the gateway process without exposing
    credentials. Record unrelated changes; never overwrite them.
 
-2. **Validate dispatcher state from recent log entries.** Inspect the latest
-   dispatcher lines, not an arbitrary historical match. The expected current
-   message when the profile must not dispatch Kanban is:
-   `disabled via config kanban.dispatch_in_gateway=false`. An older
+2. **Validate current runtime state from recent log entries.** Inspect the
+   latest matching lines, not an arbitrary historical match. For dispatcher
+   state, the expected current message when the profile must not dispatch
+   Kanban is `disabled via config kanban.dispatch_in_gateway=false`. An older
    `another gateway already holds the dispatcher lock` line may be historical;
    report it separately rather than treating it as the current state.
+
+   For a home-channel change, compare explicit notification lines immediately
+   before and after the relevant restart. A line such as
+   `Sent home-channel startup notification to telegram:<CHAT_ID>` records the
+   channel actually resolved by that gateway startup; a corresponding failure
+   line also records the attempted resolved ID. By contrast,
+   `Channel directory built: <N> target(s)` does not identify the home channel
+   and must not be used to infer it. If no explicit ID-bearing line exists,
+   report that the log does not establish the resolved channel instead of
+   substituting the persisted YAML or an expected group ID.
 
 3. **Audit the actual tool surface.** Run
    `hermes -p <profile> tools list --platform <platform>` and map enabled
@@ -106,12 +116,23 @@ telegram.require_mention
    access-control task silently; report a separate pending toolset correction if
    it was not requested.
 
-5. **Audit Telegram allowlist storage without exposing secrets.** Count the
-   occurrence of `TELEGRAM_ALLOWED_USERS` in `config.yaml` and in `.env` without
-   printing the `.env` line or value. Inspect the running gateway's
-   `/proc/<PID>/environ` only for the count of the variable, never its value.
-   A zero process-environment count is evidence about that process environment,
-   not proof that every internal `.env` loader path is inactive.
+5. **Audit Telegram environment overrides without exposing unrelated data.**
+   Default to counts for `.env` keys and never dump or quote the file wholesale.
+   If the authorized operator explicitly classifies specific identifiers as
+   non-secret and requests their values, print only exact allowlisted keys such
+   as `TELEGRAM_HOME_CHANNEL` and `TELEGRAM_ALLOWED_USERS`; suppress every other
+   line. Classify a home-channel value against the supplied profile-to-group map,
+   but do not describe a user ID as a group ID. Inspect the running gateway's
+   `/proc/<PID>/environ` only for variable presence/count unless disclosure of
+   that exact value is separately authorized. A zero process-environment count
+   is evidence about that process environment, not proof that every internal
+   `.env` loader path is inactive.
+
+   Treat persisted YAML, `.env` presence, process environment, and post-restart
+   log resolution as separate facts. A successful `config set` does not prove
+   that a stale environment variable stopped overriding the adapter. If local
+   policy forbids editing `.env`, leave it untouched and report the resulting
+   activation risk instead of presenting the YAML-only change as complete.
 
 6. **Use the adapter's documented access paths.** For Telegram, persist the
    sender allowlist and group restriction with:
@@ -160,21 +181,27 @@ telegram.require_mention
 - **A successful config write is not a live-runtime verification.** Check the
   process, logs, or a post-restart diagnostic; never claim the gateway has
   adopted a value before the owner restarts it.
-- **Do not print tokens, `.env` lines, invite links, or full raw Telegram
-  updates.** Prefer counts, sanitized IDs when explicitly requested, and
-  requested metadata only.
+- **Do not print tokens, invite links, full `.env` files, or full raw Telegram
+  updates.** Prefer counts and sanitized IDs. When the operator explicitly
+  authorizes named non-secret keys, emit only those exact key/value lines and
+  suppress all neighboring content.
 
 ## Verification Checklist
 
+- [ ] Latest ID-bearing home-channel log lines were compared across the relevant
+      restart; generic directory-build lines were not treated as channel proof.
 - [ ] Recent dispatcher log shows the intended current mode.
 - [ ] Tool presence/absence is reported from the platform tool listing, not only
       from persisted YAML.
 - [ ] `telegram.allow_from` and `telegram.group_allowed_chats` return the
       intended values with `config get`.
 - [ ] Stale YAML-root `TELEGRAM_ALLOWED_USERS` is absent when applicable.
-- [ ] `.env` was inspected only by count and no secret was printed.
+- [ ] `.env` inspection exposed no unrequested line or secret; any printed value
+      belonged to an exact operator-authorized non-secret key.
+- [ ] Persisted YAML, environment presence, running-process state, and
+      post-restart resolution are reported as separate evidence layers.
 - [ ] `hermes -p <profile> config check` passes.
-- [ ] Only the requested `config.yaml` is staged and committed.
+- [ ] Only the requested files are staged and committed.
 - [ ] Restart status is stated explicitly; no unrequested restart occurred.
 
 Session-specific runtime evidence and source-code notes are kept in
