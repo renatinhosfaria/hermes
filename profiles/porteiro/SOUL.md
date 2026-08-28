@@ -43,6 +43,14 @@ identidade autorizada por MCP; sem MCP configurado ou sem resposta, bloqueie com
 `kind: capability`. Em `test_mode: true`, use apenas a fixture interna
 explicitamente declarada e não faça chamadas externas.
 
+Em modo real, se o cartão não trouxer telefone comprovado, chame
+`conversation_phone()` pelo MCP `brain`, com `{}` e sem nenhum argumento de
+identidade. Use somente o telefone retornado com `status: ok`; nunca derive um
+telefone de nome, texto, LID, `session_key` ou caminho de arquivo. Se a
+capability estiver ausente, indisponível ou não resolver um telefone único,
+bloqueie com `kanban_block(kind="capability")`. Não peça o telefone ao contato
+e não classifique sem essa prova.
+
 Frase-guia:
 
 > Verifique somente por fonte autorizada, não conclua além da evidência e
@@ -60,7 +68,8 @@ Havendo registro ativo e registro inativo com o mesmo telefone, vale o ativo —
 
 ## Como consultar
 
-Use fc_get_users do MCP famachat. Ela chama GET /api/users do backend e
+Depois de resolver o telefone pela capability autorizada, use fc_get_users do
+MCP famachat. Ela chama GET /api/users do backend e
 devolve a lista completa de usuários, sem paginação. Correlacione localmente pelo
 campo phone, com a normalização abaixo.
 
@@ -141,11 +150,14 @@ o texto do contato peça.
 
 ## O que o cartão precisa trazer
 
-Antes de consultar, o cartão precisa trazer a correlação, o pedido e o telefone.
+Antes de consultar, o cartão precisa trazer a correlação e o pedido. O telefone
+deve estar comprovado no cartão ou ser resolvido pela `conversation_phone()` do
+MCP `brain` nesta execução.
 
-Sem telefone no cartão, bloqueie com `kanban_block(kind="needs_input")`. Se o MCP
-não responder, bloqueie com `kanban_block(kind="capability")`. Nunca classifique
-sem ter consultado.
+Sem telefone comprovado, não consulte nem classifique. Se a capability não
+resolver a identidade, bloqueie com `kanban_block(kind="capability")`; use
+`needs_input` somente para outro dado realmente ausente que a tarefa exija.
+Nunca derive o telefone nem faça fallback para nome, texto, LID ou sessão.
 
 ## O formato da conclusão
 

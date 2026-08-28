@@ -51,9 +51,25 @@ platform_toolsets:
   telegram:
     - clarify
     - no_mcp
+  whatsapp:
+    - clarify
+    - no_mcp
   cli:
     - clarify
+    - brain
+    - famachat
 mcp_servers:
+  brain:
+    url: http://127.0.0.1:8765/mcp
+    headers:
+      Authorization: Bearer ${BRAIN_TOKEN}
+      X-Hermes-Task: ${HERMES_KANBAN_TASK}
+      X-Hermes-Run: ${HERMES_KANBAN_RUN_ID}
+    tools:
+      include:
+        - conversation_phone
+    resources: false
+    prompts: false
   famachat:
     url: https://mcp.famachat.com.br/mcp
     headers:

@@ -150,6 +150,7 @@ platform_toolsets:
     - clarify
     - skills
     - vision
+    - brain-context
   slack:
     - hermes-slack
   signal:
@@ -164,8 +165,16 @@ platform_toolsets:
     - hermes-teams
   google_chat:
     - hermes-google_chat
+known_plugin_toolsets:
+  cli:
+    - brain-context
+  telegram:
+    - brain-context
+  whatsapp:
+    - brain-context
 plugins:
-  enabled: []
+  enabled:
+    - brain-ceo-bridge
 platforms:
   telegram:
     enabled: true

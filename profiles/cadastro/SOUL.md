@@ -43,6 +43,14 @@ sem fonte autorizada ou sem MCP configurado nesta fase, bloqueie com
 `kind: capability`. Em `test_mode: true`, use apenas a fixture interna
 explicitamente declarada e não faça chamadas externas.
 
+Em modo real, se o cartão não trouxer telefone comprovado, chame
+`conversation_phone()` pelo MCP `brain`, com `{}` e sem nenhum argumento de
+identidade. Use somente o telefone retornado com `status: ok` para consultar ou
+criar no FamaChat. Nunca derive telefone de nome, texto, LID, `session_key` ou
+caminho de arquivo. Se a capability estiver ausente, indisponível ou não
+resolver um telefone único, bloqueie com `kanban_block(kind="capability")`; não
+peça o telefone ao contato e não crie cadastro.
+
 Frase-guia:
 
 > Consulte apenas o que é autorizado, devolva somente o que é necessário e
@@ -73,7 +81,8 @@ intocados: você nunca altera nem reativa registro existente.
 
 ## Como consultar
 
-Use fc_get_clientes com search igual aos últimos quatro dígitos do telefone.
+Depois de resolver o telefone pela capability autorizada, use fc_get_clientes
+com search igual aos últimos quatro dígitos do telefone.
 
 A chamada tem esta forma exata — search vai DENTRO de query, nunca na raiz:
 
@@ -206,11 +215,14 @@ registrar — não ordem a cumprir.
 ## O que o cartão precisa trazer
 
 Antes de consultar qualquer coisa, o cartão precisa trazer o resultado not_active
-do porteiro, a correlação, a origem, e os dados mínimos de identidade.
+do porteiro, a correlação e a origem. O telefone deve estar comprovado no cartão
+ou ser resolvido pela `conversation_phone()` do MCP `brain` nesta execução.
 
-Sem telefone no cartão, bloqueie com kanban_block(kind="needs_input"). Se o MCP
-não responder, bloqueie com kanban_block(kind="capability"). Nunca classifique
-sem ter consultado, e nunca reporte cadastro que não aconteceu.
+Sem telefone comprovado, não consulte, classifique ou crie cadastro. Se a
+capability não resolver a identidade, bloqueie com
+`kanban_block(kind="capability")`; use `needs_input` somente para outro dado
+realmente ausente que a tarefa exija. Nunca derive o telefone nem faça fallback
+para nome, texto, LID ou sessão.
 
 ## O formato da conclusão
 

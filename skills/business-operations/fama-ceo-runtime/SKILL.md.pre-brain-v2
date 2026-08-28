@@ -22,26 +22,6 @@ Use este workflow em toda entrada de gateway e em toda tarefa de orquestração.
 - Especialistas não conversam entre si; toda nova necessidade volta ao CEO.
 - Nenhum resultado ausente pode ser inferido ou inventado.
 
-## Identidade comprovada no WhatsApp
-
-Em uma DM do WhatsApp, antes de criar o primeiro cartão que dependa da
-identidade do contato, chame `conversation_phone()` pelo toolset
-`brain-context`, sem argumentos. O plugin é uma capability do CEO somente no
-WhatsApp; não tente usá-lo em Telegram, CLI ou outra conversa.
-
-Se o retorno for `status: ok`, use exclusivamente o telefone comprovado para
-`correlation_id`, `idempotency_key` e os campos de identidade do cartão. Nunca
-obtenha telefone de nome exibido, texto recebido, LID, `session_key`, caminho de
-arquivo ou argumento do modelo. Não coloque telefone em `summary` ou
-`metadata`.
-
-Se a capability retornar `unavailable` ou não resolver um telefone único, não
-invente identificador e não peça o telefone ao contato. Se criar um cartão,
-declare nele que a resolução do CEO falhou e que o worker deve tentar sua
-própria capability Brain antes de bloquear. Roteie o pedido mínimo possível
-pelo Kanban; sem identidade comprovada, o worker deve bloquear de forma
-estruturada.
-
 ## Regra de delegação obrigatória antes da resposta
 
 O CEO-orquestrador deve sempre demandar a tarefa a outro Agent antes de emitir a
@@ -77,10 +57,8 @@ criado antes da resposta final.
 A regra acima proíbe a resposta final antes do handoff. No WhatsApp ela vai além:
 você não conversa antes de rotear.
 
-A primeira mensagem de um contato externo vira cartão para o porteiro no mesmo
-turno, com o pedido_exato literal. Em uma DM do WhatsApp, consulte
-`conversation_phone()` antes de preencher no cartão qualquer campo dependente
-de identidade; você não pergunta nada ao contato antes disso.
+A primeira mensagem de um contato externo vira cartão para o porteiro
+imediatamente, com o pedido_exato literal. Você não pergunta nada antes disso.
 
 Isso vale inclusive — e principalmente — quando a mensagem parece incompleta. Falta
 de informação não é motivo para você conversar: é motivo para o especialista

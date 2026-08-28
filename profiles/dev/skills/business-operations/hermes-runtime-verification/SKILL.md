@@ -54,8 +54,14 @@ sessions, or production systems.
 - Confirming the effective toolset surface for a specific platform.
 - Checking whether an MCP server appears in the resolved tool listing without
   exposing its authorization value.
-- Explaining whether a profile skill directory is scanned, indexed, injected,
-  or reachable through explicit invocation.
+- Explaining whether a profile skill directory is scanned, indexed, injected, or
+  reachable through explicit invocation.
+- Auditing STT language resolution, provider selection, and whether inbound audio
+  can leave the host through an automatic cloud fallback.
+- Auditing gateway-session reset semantics, reset banners, home-channel notices,
+  per-platform display resolution, transcript preservation, caller isolation,
+  WhatsApp LID/phone identity flow, and privacy-safe platform/Kanban inventories;
+  use `references/gateway-session-reset-and-privacy.md`.
 - Resolving apparent conflicts between `config.yaml`, CLI listings, source code,
   and an already-running gateway.
 
@@ -106,7 +112,9 @@ sessions, or production systems.
    or `agent/skill_commands.py`. For session history, profile plugin discovery,
    handler kwargs, symlink behavior, profile-owned plugin state, and per-platform
    plugin toolsets, use the audit map in
-   `references/session-plugin-contracts.md`. Cite absolute file paths and line
+   `references/session-plugin-contracts.md`. For STT language validation, provider
+   autodetection, lazy-install side effects, and audio-egress claims, use
+   `references/stt-language-provider-egress.md`. Cite absolute file paths and line
    ranges from the installed tree, and re-check all version-sensitive details
    against the current installation rather than copying old line numbers.
 
@@ -139,6 +147,18 @@ sessions, or production systems.
    `PYTHONDONTWRITEBYTECODE=1` so importing project modules does not leave an
    untracked `__pycache__`; otherwise remove only the cache created by the probe.
    Confirm both the temporary path and repository status are clean afterward.
+
+## Post-update dependent validation
+
+When read-only Git evidence confirms that the installed Hermes checkout moved,
+do not stop at version and repository integrity checks. Run every canonical
+compatibility or smoke suite required by the dependent system's runbook, quote
+its real exit code, and preserve exact failure text without attempting an
+unauthorized repair. Keep the source-update timestamp distinct from later
+systemd unit rewrites: the latter explains a service-definition message but does
+not establish when the code changed. The validated timeline probes, Fama Brain
+commands, pipeline-status caveat, and reporting format are in
+`references/post-update-dependent-smoke.md`.
 
 ## Runtime semantics: toolsets and skills
 
@@ -213,6 +233,12 @@ skill that the normal prompt cannot index or load.
 - **Secret leakage through “real output”:** real output does not require
   reproducing a token. Report its safe shape and explicitly state that the
   value was omitted.
+- **Session-list preview leakage:** `hermes sessions list` prints titles and
+  message previews. For privacy-constrained platform inventories, query
+  `state.db` with `mode=ro` and select only the fields explicitly authorized.
+- **Reset wording mistaken for deletion:** a fresh context can preserve the old
+  transcript. Trace the reset handler through its DB writes and distinguish
+  routing rotation from message deletion before concluding either way.
 - **Overstating “inaccessible”:** disabled automatic indexing is not identical
   to disabling every explicit preload or slash-command path.
 - **Profile leakage:** resolve the agent's own profile home before interpreting
