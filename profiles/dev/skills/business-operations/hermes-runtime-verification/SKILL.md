@@ -212,6 +212,8 @@ skill that the normal prompt cannot index or load.
 
 - [ ] Target profile, platform, and effective log path are explicit.
 - [ ] `config check` completed and its exit code is recorded.
+- [ ] Literal placeholders were verified from parsed raw configuration rather
+      than inferred from potentially redacted display output, when applicable.
 - [ ] Built-in/plugin presence came from `tools list --platform`; MCP presence or
       absence came from `_get_platform_tools(..., include_default_mcp_servers=True)`
       under the target profile scope, without exposing authorization values.
