@@ -36,7 +36,7 @@ EXPECTED_PLATFORM_TOOLSETS = {
     },
     "reno": {
         "telegram": ["clarify", "no_mcp"],
-        "cli": ["clarify", "brain"],
+        "cli": ["clarify", "brain", "famachat"],
     },
     "dev": {
         "telegram": [
@@ -86,7 +86,7 @@ EXPECTED_CONFIGURED_MCP = {
     "porteiro": {"famachat"},
     "cadastro": {"famachat"},
     "famaagent": {"brain"},
-    "reno": {"brain"},
+    "reno": {"brain", "famachat"},
     "dev": set(),
 }
 EXPECTED_MCP_EXPOSURE = {
@@ -94,7 +94,7 @@ EXPECTED_MCP_EXPOSURE = {
     "porteiro": {"cli": {"famachat"}, "telegram": set()},
     "cadastro": {"cli": {"famachat"}, "telegram": set()},
     "famaagent": {"cli": {"brain"}, "telegram": set()},
-    "reno": {"cli": {"brain"}, "telegram": set()},
+    "reno": {"cli": {"brain", "famachat"}, "telegram": set()},
     "dev": {"cli": set(), "telegram": set()},
 }
 
