@@ -79,6 +79,8 @@ display:
   platforms:
     whatsapp:
       tool_progress: false
+      long_running_notifications: false
+      interim_assistant_messages: false
 stt:
   enabled: false
   language: en
