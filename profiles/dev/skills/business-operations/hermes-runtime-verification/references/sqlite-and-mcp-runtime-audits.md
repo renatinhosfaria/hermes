@@ -52,7 +52,7 @@ When the claim concerns a running gateway:
 The absence of a `-wal` or `-shm` file is a snapshot fact, not proof that the
 database never uses WAL.
 
-## Compaction-summary provenance
+## Compaction-summary provenance and display deduplication
 
 To assess whether a marker column reliably identifies compaction summaries,
 trace both ends:
@@ -65,7 +65,31 @@ State the boundary honestly: current generated-and-persisted summaries can be
 reliably marked while pre-migration rows with a new column defaulting to zero are
 not retroactively classified unless a semantic backfill exists. A database
 column enforced only by application code is provenance metadata, not a SQLite
-authenticity constraint.
+authenticity constraint. A marked row can also be a merged carrier containing
+both preserved human content and a synthetic summary; the marker means
+"contains a summary", not necessarily "the whole row is synthetic".
+
+For `SessionDB.get_messages(include_compacted=True)`, reproduce the installed
+algorithm rather than deduping on `content` alone:
+
+1. select rows with `active = 1 OR compacted = 1` for the session;
+2. form the logical key `(role, dedupe_content, timestamp, tool_call_id,
+   tool_calls, tool_name)`;
+3. for a composite `user` summary carrier, project its human-authored live view
+   and use that encoded content as `dedupe_content`; otherwise use stored
+   `content`;
+4. within each key, prefer maximum `(active, id)` — any live row beats every
+   archived copy, then the newest id wins within equal active state;
+5. sort winners by id, then apply offset/limit. For latest paging, select from
+   newest first but return the selected page chronologically.
+
+A SQL `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY active DESC, id DESC)` is
+exact only after `dedupe_content` has been computed. Pure `content` partitioning
+misses composite-carrier versus original-human copies. Exact external parity
+requires reimplementing the user-carrier projection (or exposing it as a SQL
+UDF); do not substitute a textual prefix check. `compacted=1` marks archive
+provenance, not synthetic-summary identity; `display_kind='hidden'` is auxiliary
+and non-universal. No separate compaction-generation id is persisted.
 
 ## MCP platform semantics
 
@@ -82,11 +106,23 @@ layers:
 
 1. `hermes -p <profile> config get platform_toolsets`;
 2. `hermes -p <profile> tools list --platform <platform>`;
-3. installed-source tracing with current line ranges.
+3. direct `_get_platform_tools(config, platform)` resolution and installed-source
+   tracing with current line ranges.
 
-A server can be CLI-only through `platform_toolsets` only when other platforms
-use `no_mcp` or an explicit MCP allowlist that excludes it. Do not generalize a
-fresh CLI manifest to schemas already cached in a live conversation.
+Do not treat the MCP section of `hermes tools list --platform` as standalone
+proof of platform exposure. The command resolves native toolsets with
+`include_default_mcp_servers=False`, while `_print_tools_list` enumerates every
+configured MCP server and reports its per-server include/exclude filters without
+checking membership in the platform's resolved set. Use the default-true
+resolver path used by the gateway to prove effective exposure.
+
+A server can be CLI-only through `platform_toolsets` when other platforms use
+`no_mcp` or an explicit MCP allowlist that excludes it. This is enforced before
+the server: the omitted toolset does not contribute schemas, model-emitted names
+are checked against `agent.valid_tool_names`, and the tool-search bridge checks
+its scoped catalog. Server-side auth/policy remains defense in depth, not the
+only containment. Do not generalize a fresh resolver result to schemas already
+cached in a live conversation.
 
 ## Closeout
 

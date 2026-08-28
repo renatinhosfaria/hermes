@@ -101,9 +101,14 @@ sessions, or production systems.
      load.
 
 6. **Close the audit.** Re-run the relevant Git status check and confirm the
-   installed tree remains unchanged. A read-only audit must not create a commit,
-   mutate configuration, restart a gateway, alter credentials, or touch live
-   state. If the user explicitly requested no commit, report that no commit was
+   installed tree remains unchanged. A read-only audit must not deliberately
+   create or edit code, configuration, commits, units, credentials, permissions,
+   platform sessions, or live state, and must not restart a gateway. Automatic
+   terminal capture/cache artifacts produced by the tool backend for long output
+   are operational artifacts rather than deliberate audit writes: avoid them by
+   counting or paging large listings, but do not abort solely because the backend
+   created one unless the user's constraint explicitly includes tool-generated
+   caches. If the user explicitly requested no commit, report that no commit was
    created even if the inspected repository is clean.
 
 ## Runtime semantics: toolsets and skills
@@ -124,13 +129,17 @@ The installed source notes and line-level evidence for this distinction are in
 
 ## Platform authority and session-store audits
 
-When narrowing a messaging platform's tool surface, verify the persisted
-`platform_toolsets.<platform>` value, the fresh `tools list --platform` manifest,
-and live-session activation as three separate layers. The CLI manifest can omit
-valid non-configurable toolsets such as `kanban`, so absence from that display is
-not by itself proof that such a toolset is disabled. A config-schema warning is
-also not a conclusion: require `config get`, `config check`, and the resulting
-manifest to agree on the effective restriction.
+When narrowing a messaging platform's tool surface, verify persisted
+`platform_toolsets.<platform>`, the surface resolved for a fresh agent, and
+live-session activation as separate layers. `tools list --platform` is useful for
+configurable built-in/plugin toolsets, but it is **not authoritative for MCP**:
+its MCP section enumerates configured servers independently of platform
+membership. For MCP, call the installed `_get_platform_tools(config, platform)`
+with `include_default_mcp_servers=True` (the gateway default) under the target
+profile's Hermes home. The resolver also exposes non-configurable toolsets such
+as `kanban` that the CLI manifest may omit. A config-schema warning is not a
+conclusion: require `config get`, `config check`, and the correct resolver for
+the capability being audited.
 
 For count-only platform audits in `state.db`, inspect `sessions` and `messages`
 before composing SQL. Join `messages.session_id` to `sessions.id`, filter on the
@@ -187,8 +196,9 @@ skill that the normal prompt cannot index or load.
 
 - [ ] Target profile, platform, and effective log path are explicit.
 - [ ] `config check` completed and its exit code is recorded.
-- [ ] Tool presence/absence came from `tools list --platform`.
-- [ ] MCP presence was confirmed without exposing authorization values.
+- [ ] Built-in/plugin presence came from `tools list --platform`; MCP presence or
+      absence came from `_get_platform_tools(..., include_default_mcp_servers=True)`
+      under the target profile scope, without exposing authorization values.
 - [ ] Latest relevant log entries were selected.
 - [ ] Source file and line ranges support each non-obvious conclusion.
 - [ ] Automatic prompt injection and explicit skill loading were distinguished.
