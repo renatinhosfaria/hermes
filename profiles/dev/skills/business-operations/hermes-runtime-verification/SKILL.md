@@ -82,8 +82,12 @@ sessions, or production systems.
    follow the actual data path. For tool access, inspect `model_tools.py` and
    the tool registration's `toolset` field. For prompt assembly, inspect
    `agent/system_prompt.py`, then the helper it calls in `agent/prompt_builder.py`
-   or `agent/skill_commands.py`. Cite absolute file paths and line ranges from
-   the installed tree.
+   or `agent/skill_commands.py`. For session history, profile plugin discovery,
+   handler kwargs, symlink behavior, profile-owned plugin state, and per-platform
+   plugin toolsets, use the audit map in
+   `references/session-plugin-contracts.md`. Cite absolute file paths and line
+   ranges from the installed tree, and re-check all version-sensitive details
+   against the current installation rather than copying old line numbers.
 
 5. **Distinguish automatic from explicit skill loading.** Do not answer a
    question about the `skills` toolset using only the existence of files under
@@ -134,6 +138,12 @@ platform source held by `sessions`, and select only aggregates. Never expose
 message bodies or participant/session identifiers. The validated commands,
 query, privacy fields, and root-profile invocation pattern are in
 `references/platform-toolsets-and-session-store.md`.
+
+For read-only SQLite schema/permission probes and MCP default-inclusion audits,
+use `references/sqlite-and-mcp-runtime-audits.md`. In particular, do not infer
+that an explicit platform list excludes an MCP server merely because its name is
+absent: trace `include_default_mcp_servers`, explicit MCP allowlists, and the
+`no_mcp` sentinel in the installed `_get_platform_tools` implementation.
 
 ## Remediation pattern: critical conduct behind a disabled skill surface
 
