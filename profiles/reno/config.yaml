@@ -59,6 +59,10 @@ mcp_servers:
         - conversation_search
     resources: false
     prompts: false
+  famachat:
+    url: https://mcp.famachat.com.br/mcp
+    headers:
+      Authorization: Bearer ${FAMACHAT_MCP_KEY_RENO}
 platform_toolsets:
   telegram:
     - clarify
@@ -66,6 +70,7 @@ platform_toolsets:
   cli:
     - clarify
     - brain
+    - famachat
   whatsapp:
     - clarify
     - no_mcp
