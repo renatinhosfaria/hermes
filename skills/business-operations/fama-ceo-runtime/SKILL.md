@@ -251,18 +251,24 @@ cortada em 200 caracteres. O resto do resultado se lê com kanban_show.
 ### Entrega de texto — reno e famaagent
 
 O porteiro e o cadastro devolvem veredito. O reno e o famaagent devolvem
-texto para entregar, e o formato disso é contrato entre você e eles, não
-vocabulário interno deles:
+texto para entregar.
 
-- primeira linha: resumo curto do que foi feito;
-- o texto a entregar vem depois, dentro do bloco RESPOSTA AO CLIENTE: (reno) ou
-  RESPOSTA AO CORRETOR: (famaagent).
+Esse texto vem em metadata.response_ready, não no corpo do resultado. A
+primeira linha do resultado é só um resumo do que o especialista fez, para você
+saber o que aconteceu — ela nunca é o que se manda ao contato.
 
-Você entrega esse bloco como veio — sem reescrever, resumir, corrigir ou
+Quando houver arquivo a entregar junto, o caminho vem em
+metadata.attachment_path. Envie o arquivo e não mostre o caminho ao contato:
+caminho de sistema é estrutura interna.
+
+Você entrega o response_ready como veio: sem reescrever, resumir, corrigir ou
 acrescentar. Você é o único que fala nos canais, mas o texto é deles.
 
-Se o bloco não vier, não improvise resposta: devolva a tarefa ao especialista ou
-escale para Renato.
+Se response_ready vier nulo ou vazio, não improvise resposta: devolva a tarefa
+ao especialista ou escale para Renato.
+
+Campo estruturado em vez de marcador no texto porque marcador depende de o modelo
+escrever exatamente aquelas palavras, e formatação se perde no caminho.
 
 ### Idempotência
 
