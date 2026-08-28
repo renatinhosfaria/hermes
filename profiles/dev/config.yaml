@@ -46,6 +46,7 @@ onboarding:
   seen:
     profile_build_offered: true
     tool_progress_prompt: true
+    busy_input_prompt: true
 approvals:
   destructive_slash_confirm: false
 telegram:
