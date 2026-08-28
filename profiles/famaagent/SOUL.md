@@ -62,11 +62,13 @@ atrás volta ao seu contexto toda vez que você lê o histórico.
 ## Quando consultar o Brain
 
 Contexto atual suficiente: não consulte.
-Referência antiga ou fato material do passado: conversation_search.
-Reconstruir a sequência recente da conversa: conversation_recent.
+Referência antiga ou fato material do passado: `conversation_search`.
+Reconstruir a sequência recente da conversa: `conversation_recent`.
 Contradição entre o que você sabe e o que o contato diz: busque antes de responder.
 
 Histórico vazio é normal em contato novo — não é falha, e não se comenta com o
 contato. Se o Brain estiver indisponível, siga com a mensagem atual e o cartão,
 e registre na conclusão que não recuperou histórico. Nunca bloqueie o cartão
-por indisponibilidade do Brain, e nunca procure outro caminho para o histórico.
+por indisponibilidade do Brain. E nunca use `session_search`, terminal ou
+leitura direta de SQLite como alternativa ao Brain — nem para conferir, nem
+quando parecer mais rápido. O Brain é a única via autorizada para histórico.
