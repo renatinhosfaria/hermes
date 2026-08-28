@@ -251,6 +251,15 @@ skill that the normal prompt cannot index or load.
 - **Live-session confusion:** a new CLI listing does not retroactively change a
   cached system prompt/tool manifest. State whether the evidence concerns a new
   invocation or an existing process.
+- **Uncommitted-drift attribution:** thematic fit and timing can support
+  “compatible with” or “probably related to” a recent diagnostic, but they do
+  not prove authorship. Compare the full diff with `HEAD`, inspect relevant
+  session tool calls when available, and report authorship as unknown unless an
+  explicit write can be tied to the path. Before preserving a lone skill drift,
+  classify whether it changes reusable procedure or merely records one run;
+  scan only for concrete sensitive values, distinguish semantic overlap from
+  verbatim duplication, validate the reference through `skill_view`, and stage
+  an exact changed-path allowlist.
 - **Concurrent Git attribution:** if a file becomes clean or a commit appears
   between checks before this session called `git commit`, do not claim that the
   session created it. Inspect the commit's author/committer, branch and remote
