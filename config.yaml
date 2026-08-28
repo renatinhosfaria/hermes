@@ -175,6 +175,7 @@ known_plugin_toolsets:
 plugins:
   enabled:
     - brain-ceo-bridge
+    - fama-kanban-channel-policy
 platforms:
   telegram:
     enabled: true

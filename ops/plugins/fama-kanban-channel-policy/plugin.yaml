@@ -1,0 +1,6 @@
+name: fama-kanban-channel-policy
+version: 1.0.0
+description: "Enforce wake-only Kanban delivery for WhatsApp subscriptions."
+author: Fama Negócios Imobiliários
+provides_hooks:
+  - kanban_task_claimed
