@@ -46,8 +46,26 @@ telegram:
   group_allowed_chats: -1003859524818
 kanban:
   dispatch_in_gateway: false
+mcp_servers:
+  brain:
+    url: http://127.0.0.1:8765/mcp
+    headers:
+      Authorization: Bearer ${BRAIN_TOKEN}
+      X-Hermes-Task: ${HERMES_KANBAN_TASK}
+      X-Hermes-Run: ${HERMES_KANBAN_RUN_ID}
+    tools:
+      include:
+        - conversation_recent
+        - conversation_search
+    resources: false
+    prompts: false
 platform_toolsets:
   telegram:
     - clarify
+    - no_mcp
   cli:
     - clarify
+    - brain
+  whatsapp:
+    - clarify
+    - no_mcp

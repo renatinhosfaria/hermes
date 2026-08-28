@@ -124,6 +124,28 @@ its scoped catalog. Server-side auth/policy remains defense in depth, not the
 only containment. Do not generalize a fresh resolver result to schemas already
 cached in a live conversation.
 
+### Multi-profile topology verifiers
+
+When turning an audit into a deterministic team verifier:
+
+1. Enter each profile's Hermes-home scope before calling `_get_platform_tools`;
+   ambient `HERMES_HOME` can otherwise resolve the wrong profile.
+2. Assert the required `platform_toolsets.<platform>` entries individually unless
+   the contract explicitly forbids additional platform entries. Comparing the
+   whole mapping can reject legitimate unrelated surfaces such as WhatsApp or
+   Discord on the default profile.
+3. Call `_get_platform_tools(config, platform,
+   include_default_mcp_servers=True)` for every profile/platform pair. Intersect
+   the resolved set with the known configured MCP-server universe, then assert
+   and print both `present` and `absent` sets. This catches accidental exposure
+   and makes a passing report auditable.
+4. Keep configured-server assertions separate from exposure assertions: a server
+   can be configured globally yet intentionally absent from one platform.
+5. After changing the verifier, run it normally and then run a focused temporary
+   checker from an OS-generated path such as `/tmp/hermes-verify-*.py`. The
+   checker should assert exit code zero, every expected MCP line, no `FAIL:` line,
+   and the final `PASS`; remove it immediately afterward and label it ad hoc.
+
 ## Closeout
 
 Re-run Git status for both `/root/.hermes` and the installed Hermes tree. A
