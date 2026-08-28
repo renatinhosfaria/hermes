@@ -29,14 +29,17 @@ identidade do contato, chame `conversation_phone()` pelo toolset
 `brain-context`, sem argumentos. O plugin é uma capability do CEO somente no
 WhatsApp; não tente usá-lo em Telegram, CLI ou outra conversa.
 
-Se o retorno for `status: ok`, use exclusivamente o telefone comprovado para
-`correlation_id`, `idempotency_key` e os campos de identidade do cartão. Nunca
-obtenha telefone de nome exibido, texto recebido, LID, `session_key`, caminho de
-arquivo ou argumento do modelo. Não coloque telefone em `summary` ou
-`metadata`.
+Se o retorno for `status: ok`, use o telefone comprovado somente nos campos de
+identidade do contato necessários à execução autorizada, como
+`contact.phone_e164`. Ele pode seguir no corpo do cartão para o worker que
+precisa dele. Nunca obtenha telefone de nome exibido, texto recebido, LID,
+`session_key`, caminho de arquivo ou argumento do modelo. Não coloque telefone
+em `summary` ou `metadata`, nem o use como `correlation_id` ou
+`idempotency_key`.
 
 Se a capability retornar `unavailable` ou não resolver um telefone único, não
-invente identificador e não peça o telefone ao contato. Se criar um cartão,
+invente a identidade do contato e não peça o telefone ao contato. Se criar um
+cartão,
 declare nele que a resolução do CEO falhou e que o worker deve tentar sua
 própria capability Brain antes de bloquear. Roteie o pedido mínimo possível
 pelo Kanban; sem identidade comprovada, o worker deve bloquear de forma
@@ -233,41 +236,46 @@ bloqueio, e não se instala recurso arbitrário por iniciativa do dispatcher.
 ### O pedido é copiado, não reescrito
 
 `pedido_exato` é obrigatório e literal. Carrega a mensagem do solicitante
-exatamente como chegou: sem reformular, resumir, corrigir ou traduzir. É o campo
-de onde todo o resto do cartão deriva.
+exatamente como chegou: sem reformular, resumir, corrigir ou traduzir. Ele
+descreve o pedido, mas nunca escolhe `correlation_id`, `idempotency_key` nem a
+identidade do contato.
 
-Identificador se copia, nunca se escreve de memória. Telefone, id, chave,
-código: quando um deles precisar aparecer em outro campo do corpo, ele é copiado
-caractere por caractere a partir de pedido_exato — nunca reconstruído a partir
-do que você lembra do turno.
+Identificadores vêm de fontes técnicas confiáveis, nunca da memória ou do
+conteúdo da mensagem. O telefone vem de `conversation_phone()` e, quando
+necessário no cartão, é copiado exatamente para o campo de identidade do
+contato. `correlation_id` é gerado para o fluxo; canal, `chat_id` e `message_id`
+vêm do contexto confiável do evento.
 
 Um dígito trocado num telefone faz o especialista verificar a pessoa errada e
 devolver o veredito certo sobre a pergunta errada. Nada no fluxo detecta isso.
 
 Antes de chamar `kanban_create`, confira as três coisas:
 
-1. cada identificador do corpo bate dígito a dígito com pedido_exato;
-2. `correlation_id` é o telefone do contato em dígitos;
+1. cada identificador veio da fonte técnica autorizada e foi preservado sem
+   reconstrução;
+2. `correlation_id` é o UUID técnico do fluxo, sem PII;
 3. o argumento `max_runtime_seconds` está na chamada — 300 para porteiro e
    cadastro, 600 para reno e famaagent. Não é campo do corpo; se não estiver
    na chamada, a tarefa não tem teto e uma travada espera quatro horas.
 
-Se algum identificador divergir, corrija a partir de pedido_exato — nunca a
-partir da sua memória do turno nem de um cartão anterior.
+Se algum identificador divergir, corrija a partir da fonte técnica autorizada —
+nunca a partir de `pedido_exato`, da sua memória do turno nem de um cartão
+anterior.
 
 Cartões anteriores da mesma conversa não são fonte. Havendo mais de um caso
 em andamento no mesmo chat, os dados de um não completam nem corrigem o outro.
-Cada cartão deriva do seu próprio pedido_exato.
+Cada cartão registra o seu próprio pedido_exato.
 
 ### Campos
 
 - Inclua schema_version, correlation_id, origem, pedido_exato, contexto,
   restrições, critérios de aceite e test_mode.
-- `correlation_id` é o telefone do contato em dígitos, e só isso. Ele amarra
-  todos os cartões da jornada do mesmo contato — identificação, cadastro,
-  atendimento. Não use o nome do canal, não use número de thread, e não
-  invente um valor novo a cada cartão: dois casos diferentes nunca podem ter o
-  mesmo correlation_id.
+- `correlation_id` é um UUID técnico gerado uma vez para o fluxo/operação. Ele
+  amarra os cartões do mesmo fluxo, não contém PII e não é derivado do telefone,
+  do nome nem do conteúdo da mensagem. Uma nova operação recebe outro UUID.
+- Quando a execução autorizada exigir telefone, inclua o valor comprovado pelo
+  Brain no campo `contact.phone_e164`; não o use como identidade técnica do
+  evento.
 - Inclua apenas os campos necessários à etapa; workers não veem cartões irmãos.
 - Não coloque segredo em nenhum campo. Não coloque telefone ou mensagem bruta em
   summary nem em metadata. O corpo do cartão é outra coisa: ali o telefone
@@ -316,18 +324,20 @@ escrever exatamente aquelas palavras, e formatação se perde no caminho.
 
 ### Idempotência
 
-Use idempotency_key no formato <telefone-em-dígitos>:<etapa> — por exemplo
-5534992135520:identificacao. Etapas: identificacao, cadastro, atendimento.
+Use `idempotency_key` no formato
+`<canal>:<chat_id>:<message_id>:<etapa>`. Canal, `chat_id` e `message_id` vêm do
+contexto confiável do evento; a etapa identifica o trabalho, como
+`identificacao`, `cadastro` ou `atendimento`.
 
-O formato anterior desta skill era <canal>:<chat_id>:<message_id>:<etapa>. Ele
-não funciona no Telegram: o message_id existe no runtime, mas não é exposto ao
-agente — a injeção por turno existe só para Discord. Sem ele, a chave era
-improvisada e mudava entre sessões, e a proteção contra duplicata nunca existiu.
+Nunca derive a chave do telefone, do nome ou do conteúdo da mensagem. O telefone
+não substitui `chat_id` nem `message_id`. Assim, mensagens diferentes do mesmo
+contato têm chaves diferentes, e etapas diferentes da mesma mensagem também têm
+chaves diferentes. Se algum componente técnico não estiver disponível no
+runtime, não improvise a partir de PII ou texto recebido.
 
-Com a chave por telefone, uma rajada de mensagens do mesmo contato não cria
-cartões duplicados: o quadro devolve o id do que já existe. Quando isso acontecer,
-não crie nada — acrescente o texto novo como comentário com kanban_comment e
-siga esperando.
+Quando o quadro devolver uma tarefa já existente para a mesma chave técnica, não
+crie outra tarefa para aquela etapa do evento; acrescente apenas o contexto
+necessário com `kanban_comment` e siga esperando.
 
 Cliente duplicado no FamaChat corrompe a estrutura v3 de que o reno depende.
 Isto é integridade de dado, não organização.

@@ -36,14 +36,22 @@ identidade do contato, chame `conversation_phone()` pelo toolset
 `brain-context`, sem argumentos. Essa capability é exclusiva do WhatsApp do
 CEO; não tente usá-la em Telegram, CLI ou outra conversa.
 
-Quando o retorno for `status: ok`, use somente o telefone comprovado pelo Brain
-para `correlation_id`, `idempotency_key` e campos de identidade do cartão. Não
-derive telefone de nome exibido, texto recebido, LID, `session_key`, caminho de
-arquivo ou argumento fornecido pelo modelo. O telefone não deve aparecer em
-`summary` ou `metadata`.
+Quando o retorno for `status: ok`, use o telefone comprovado pelo Brain somente
+nos campos de identidade do contato necessários à execução autorizada, como
+`contact.phone_e164`. Ele pode seguir no corpo do cartão para o worker que
+precisa dele, mas não deve aparecer em `summary` ou `metadata`. Não derive
+telefone de nome exibido, texto recebido, LID, `session_key`, caminho de arquivo
+ou argumento fornecido pelo modelo.
+
+`correlation_id` é um UUID técnico gerado para o fluxo/operação e não contém
+PII. `idempotency_key` identifica tecnicamente canal, conversa, mensagem e etapa
+no formato `<canal>:<chat_id>:<message_id>:<etapa>`. Nunca derive nenhum dos dois
+do telefone, do nome ou do conteúdo da mensagem; telefone não substitui
+`chat_id` nem `message_id`.
 
 Se a capability estiver indisponível ou não resolver um telefone único, não
-invente um identificador e não peça o telefone ao contato. Se criar um cartão,
+invente a identidade do contato e não peça o telefone ao contato. Se criar um
+cartão,
 declare nele que a resolução do CEO falhou e que o worker deve tentar sua
 própria capability Brain antes de bloquear. Faça o roteamento mínimo pelo
 Kanban; se ainda não houver identidade comprovada, o worker deve bloquear com o
