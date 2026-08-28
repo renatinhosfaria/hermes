@@ -32,8 +32,12 @@ sessions, or production systems.
 - Treat `/usr/local/lib/hermes-agent` as read-only source code. Never patch,
   install into, or otherwise modify it.
 - Never print credentials, `.env` contents, bearer tokens, cookies, auth files,
-  or raw platform updates. For a secret-bearing `config get`, report only that
-  the field is masked or a placeholder and omit the value, including fragments.
+  or raw platform updates. **Never run `hermes config get` on a subtree that may
+  contain secret placeholders**: the command resolves `${VAR}` before printing,
+  and any masking observed may come from the session backend rather than the CLI.
+  Verify placeholder preservation by reading the raw file with a focused parser
+  that emits only counts or pass/fail assertions. For non-secret scalar keys,
+  `config get` remains suitable.
 - Report facts, inferences, and unknowns separately. Include command exit codes
   and real output relevant to the acceptance criterion.
 - Preserve exact identifiers and config keys. Do not normalize a value merely
@@ -62,10 +66,14 @@ sessions, or production systems.
    ```text
    hermes -p <profile> config check
    hermes -p <profile> tools list --platform <platform>
-   hermes -p <profile> config get <key>
+   hermes -p <profile> config get <non-secret-scalar-key>
    git -C /root/.hermes status --porcelain
    git -C /root/.hermes log --oneline -8
    ```
+
+   Omit `config get` whenever the requested key or subtree can contain a token,
+   authorization header, API key, password, cookie, or `${VAR}` placeholder.
+   Read the raw configuration instead and print only safe structural assertions.
 
    For gateway state, inspect the profile's runtime log and select the latest
    matching entries, not an arbitrary historical match. The platform listing is
@@ -154,8 +162,9 @@ membership. For MCP, call the installed `_get_platform_tools(config, platform)`
 with `include_default_mcp_servers=True` (the gateway default) under the target
 profile's Hermes home. The resolver also exposes non-configurable toolsets such
 as `kanban` that the CLI manifest may omit. A config-schema warning is not a
-conclusion: require `config get`, `config check`, and the correct resolver for
-the capability being audited.
+conclusion: require `config check`, a safe raw-file assertion for secret-bearing
+subtrees (or `config get` only for non-secret scalar keys), and the correct
+resolver for the capability being audited.
 
 For count-only platform audits in `state.db`, inspect `sessions` and `messages`
 before composing SQL. Join `messages.session_id` to `sessions.id`, filter on the
