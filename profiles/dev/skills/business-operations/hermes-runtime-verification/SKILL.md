@@ -40,6 +40,11 @@ sessions, or production systems.
   `config get` remains suitable.
 - Report facts, inferences, and unknowns separately. Include command exit codes
   and real output relevant to the acceptance criterion.
+- Scope stop-on-divergence instructions to the acceptance criteria explicitly
+  enumerated for the verifier. Incidental repository state—such as another
+  requested change already having been committed—should be reported, but must
+  not block an otherwise valid verifier update unless it actually invalidates a
+  listed criterion or makes the authorized commit unsafe.
 - Preserve exact identifiers and config keys. Do not normalize a value merely
   because it looks unusual.
 
@@ -216,6 +221,15 @@ skill that the normal prompt cannot index or load.
 - **Live-session confusion:** a new CLI listing does not retroactively change a
   cached system prompt/tool manifest. State whether the evidence concerns a new
   invocation or an existing process.
+- **Concurrent Git attribution:** if a file becomes clean or a commit appears
+  between checks before this session called `git commit`, do not claim that the
+  session created it. Inspect the commit's author/committer, branch and remote
+  reachability, and the session's actual terminal calls. Report the concurrent
+  commit as externally observed; author identity alone does not prove which
+  process created it or which environment variables that process inherited.
+  To establish the current commit environment, capture safe Git-related
+  variables in the same terminal subprocess and use `git config --show-origin`
+  plus `git var GIT_AUTHOR_IDENT`/`GIT_COMMITTER_IDENT` before committing.
 
 ## Verification checklist
 
