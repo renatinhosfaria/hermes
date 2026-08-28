@@ -78,6 +78,14 @@ sessions, or production systems.
    report; state that the command returned a masked/secret-bearing field and
    provide only the safe structure.
 
+   Treat redaction as a presentation layer, not as file evidence. A file reader
+   or config command may display a literal secret placeholder such as
+   `Bearer ${TOKEN}` as `Bearer ***`; do not conclude that the masked text is
+   stored on disk and do not rewrite the config from that display. When literal
+   placeholder preservation is an acceptance criterion, parse the raw YAML in a
+   focused check, compare the complete expected structure with assertions, and
+   print only a safe pass/fail summary.
+
 4. **Trace behavior in source.** Start at the CLI or gateway entry point and
    follow the actual data path. For tool access, inspect `model_tools.py` and
    the tool registration's `toolset` field. For prompt assembly, inspect
@@ -110,6 +118,14 @@ sessions, or production systems.
    created one unless the user's constraint explicitly includes tool-generated
    caches. If the user explicitly requested no commit, report that no commit was
    created even if the inspected repository is clean.
+
+   When a changed verifier has no narrow canonical test, create a focused probe
+   under `/tmp` with an OS-safe temporary path, execute the real changed verifier
+   plus explicit assertions for the acceptance criteria, and remove the probe
+   before finalizing. Run Python probes with `-B` or set
+   `PYTHONDONTWRITEBYTECODE=1` so importing project modules does not leave an
+   untracked `__pycache__`; otherwise remove only the cache created by the probe.
+   Confirm both the temporary path and repository status are clean afterward.
 
 ## Runtime semantics: toolsets and skills
 
