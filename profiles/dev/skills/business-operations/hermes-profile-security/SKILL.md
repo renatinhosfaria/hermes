@@ -96,9 +96,14 @@ telegram.require_mention
    interactive terminal; the `tools list --platform` form is suitable for a
    non-interactive diagnostic.
 
-   Treat the tool manifest as authoritative. If a requested reduction says
-   browser, delegation, code execution, computer control, TTS, or vision should
-   be absent but the platform listing still enables those toolsets, report the
+   Treat the manifest as authoritative for native toolsets. It is **not**
+   authoritative for MCP servers: the command enumerates every configured
+   `mcp_servers` entry without consulting per-platform resolution, so it can show
+   a server that the platform does not expose. The only proof of MCP exposure is
+   `_get_platform_tools(config, platform, include_default_mcp_servers=True)`, the
+   same default used by the gateway. If a requested reduction says browser,
+   delegation, code execution, computer control, TTS, or vision should be absent
+   but the platform listing still enables those native toolsets, report the
    mismatch; do not claim success from the YAML alone.
 
    For the currently running conversation, the actual function namespace is a
@@ -191,8 +196,9 @@ telegram.require_mention
 - [ ] Latest ID-bearing home-channel log lines were compared across the relevant
       restart; generic directory-build lines were not treated as channel proof.
 - [ ] Recent dispatcher log shows the intended current mode.
-- [ ] Tool presence/absence is reported from the platform tool listing, not only
-      from persisted YAML.
+- [ ] Native-toolset presence/absence is reported from the platform tool listing;
+      MCP presence/absence comes from the default-true `_get_platform_tools`
+      resolver, not from that listing or persisted YAML alone.
 - [ ] `telegram.allow_from` and `telegram.group_allowed_chats` return the
       intended values with `config get`.
 - [ ] Stale YAML-root `TELEGRAM_ALLOWED_USERS` is absent when applicable.

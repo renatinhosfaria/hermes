@@ -18,18 +18,25 @@ silently alter control channels or CLI authority.
 
 ## Verifying a platform-toolset reduction
 
-Use all three evidence layers:
+Use three evidence layers:
 
-1. `config get platform_toolsets.<platform>` proves the persisted selection.
-2. `tools list --platform <platform>` proves the surface resolved by a fresh CLI
-   invocation.
-3. The existing gateway/session remains a separate fact because its schemas may
-   be cached until reset or restart.
+1. `config get platform_toolsets.<platform>` proves persisted selection.
+2. Resolve the fresh-agent surface with the installed
+   `_get_platform_tools(config, platform, include_default_mcp_servers=True)`
+   under the target profile's Hermes home.
+3. Treat an existing gateway/session separately because its schemas may be
+   cached until the next agent rebuild/reset/restart.
+
+For native toolsets, `hermes tools list --platform <platform>` is valid evidence.
+For MCP servers, it is **not**: the command enumerates every configured
+`mcp_servers` entry without consulting per-platform resolution, so it can show a
+server that the platform does not expose. The only proof of MCP exposure is the
+default-true resolver above, which uses the same default as the gateway.
 
 A `config set platform_toolsets.<platform> ...` invocation may warn that the key
 is not recognized by the config schema even when the installed runtime reads it.
 Do not dismiss the warning or assume failure. Check the persisted value, run
-`config check`, and require the post-change platform manifest to demonstrate the
+`config check`, and require the correct post-change resolver to demonstrate the
 intended enable/disable result.
 
 `hermes tools list` prints configurable built-in and plugin toolsets. It can omit

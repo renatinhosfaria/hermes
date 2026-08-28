@@ -103,11 +103,15 @@ When restricting tools for a profile, distinguish three layers: the root
 `toolsets` value, per-platform `platform_toolsets.<platform>` values, and MCP
 server tools. Apply and resolve every requested layer, including the CLI
 platform when a dispatcher launches `hermes ... chat -q`; configuring only the
-messaging platform is incomplete. Use `hermes -p PROFILE tools list --platform
-PLATFORM` as the runtime-facing check: it should show the intended built-in
-toolsets disabled while explicitly allowed MCP servers remain listed. A
-successful `config get` proves serialization/resolution only, not that a
-running gateway has reloaded the setting. If Hermes warns that a custom
+messaging platform is incomplete. For native toolsets, `hermes -p PROFILE tools
+list --platform PLATFORM` is valid evidence. It is **not** evidence for MCP
+servers: the command enumerates every configured `mcp_servers` entry without
+consulting per-platform resolution, so it can display a server that the platform
+does not expose. Prove MCP exposure only with the installed
+`_get_platform_tools(config, platform, include_default_mcp_servers=True)`, the
+same default used by the gateway. A successful `config get` proves
+serialization/resolution only, not that a running gateway has reloaded the
+setting. If Hermes warns that a custom
 `platform_toolsets.*` key is unrecognized, report that warning and separate
 file state from runtime effect rather than silently claiming enforcement.
 

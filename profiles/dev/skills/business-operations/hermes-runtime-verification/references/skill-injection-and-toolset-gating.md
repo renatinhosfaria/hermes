@@ -65,9 +65,13 @@ profile leakage, verify this agent-home resolution rather than trusting ambient
 For a read-only profile audit:
 
 1. Run `hermes -p <profile> config check` and record the exit code.
-2. Run `hermes -p <profile> tools list --platform <platform>`; treat the
-   resolved listing as evidence for a new invocation, not an existing cached
-   session.
+2. For native toolsets, run `hermes -p <profile> tools list --platform
+   <platform>` and treat it as evidence for a new invocation, not an existing
+   cached session. For MCP servers, that command is not evidence: it enumerates
+   every configured `mcp_servers` entry without consulting per-platform
+   resolution. Prove MCP exposure with
+   `_get_platform_tools(config, platform, include_default_mcp_servers=True)`, the
+   same default used by the gateway.
 3. For a secret-bearing `config get`, retain only safe structure (server name,
    URL, header key) and replace the value with `[valor omitido]`.
 4. Select the latest matching gateway log entries, not merely the first match.

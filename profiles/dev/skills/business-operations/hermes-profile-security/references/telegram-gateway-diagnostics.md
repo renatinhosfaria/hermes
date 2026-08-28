@@ -24,12 +24,16 @@ profile-specific values.
 
 1. A top-level `toolsets` list can look correct in `config.yaml` while the
    Telegram gateway still exposes the default/full platform toolsets.
-2. Use `hermes -p <profile> tools list --platform telegram` to inspect the
-   effective platform listing.
-3. If the listing contradicts the requested least-privilege set, report the
-   mismatch and correct the platform-specific configuration through the
-   documented Hermes tools workflow rather than claiming the top-level list
-   worked.
+2. For native toolsets, use `hermes -p <profile> tools list --platform telegram`
+   as evidence. For MCP servers, do **not** use it: the command enumerates every
+   configured `mcp_servers` entry without consulting per-platform resolution, so
+   it can show a server that Telegram does not expose.
+3. Prove MCP exposure only with
+   `_get_platform_tools(config, "telegram", include_default_mcp_servers=True)`,
+   the same default used by the gateway.
+4. If the applicable check contradicts the requested least-privilege set,
+   report the mismatch and correct the platform-specific configuration rather
+   than claiming the top-level list worked.
 
 The non-interactive command form is important: bare `hermes tools` opens an
 interactive configuration UI and may fail when run without a TTY.
