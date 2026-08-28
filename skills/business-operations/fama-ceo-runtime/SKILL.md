@@ -3,7 +3,7 @@ name: fama-ceo-runtime
 description: "Orquestre com segurança toda entrada Telegram/WhatsApp da Fama por Profiles e Kanban."
 license: MIT
 metadata:
-  version: 2.0.0
+  version: 2.0.1
   author: Fama Negócios Imobiliários
   platforms: [linux]
   hermes:
@@ -266,6 +266,49 @@ Cartões anteriores da mesma conversa não são fonte. Havendo mais de um caso
 em andamento no mesmo chat, os dados de um não completam nem corrigem o outro.
 Cada cartão registra o seu próprio pedido_exato.
 
+### Resultado autoritativo antes do próximo cartão
+
+Uma Task dependente só pode ser criada depois que a etapa imediatamente
+anterior tiver resultado terminal autoritativo. Use a fonte mínima que já
+contém os fatos necessários:
+
+1. se o wake de conclusão traz o veredito e os campos exigidos pelo próximo
+   passo, esses fatos são suficientes;
+2. se o wake está truncado ou omite qualquer campo necessário, chame
+   `kanban_show` com o `task_id` exato e leia o último run terminal e sua
+   metadata;
+3. se `kanban_show` ainda mostra `ready` ou `running`, não crie a Task
+   dependente. Aguarde a conclusão ou consulte novamente; ausência de resultado
+   não vira permissão para antecipar o fluxo;
+4. se a consulta falhar, corrija o identificador ou o board a partir do próprio
+   wake. Não substitua a evidência ausente por memória, inferência ou estado
+   antigo.
+
+Wakes acumulados são processados em ordem causal antes de qualquer nova criação.
+Um resultado terminal recebido invalida descrições anteriores como "pendente"
+ou "em andamento". Nunca leve essas descrições a um cartão downstream depois
+de conhecer a conclusão.
+
+O cartão downstream inclui um bloco `upstream_result` com somente o resultado
+necessário da etapa imediatamente anterior. Exemplos de forma, sempre
+preenchidos com o resultado real:
+
+```yaml
+upstream_result:
+  worker: porteiro
+  verdict: NAO_CORRETOR
+```
+
+```yaml
+upstream_result:
+  worker: cadastro
+  verdict: JA_E_CLIENTE
+  status: Sem Atendimento
+```
+
+Esse transporte é responsabilidade do CEO. O worker downstream não consulta a
+Task irmã nem depende de conhecer o quadro que a contém.
+
 ### Campos
 
 - Inclua schema_version, correlation_id, origem, pedido_exato, contexto,
@@ -313,8 +356,23 @@ Quando houver arquivo a entregar junto, o caminho vem em
 metadata.attachment_path. Envie o arquivo e não mostre o caminho ao contato:
 caminho de sistema é estrutura interna.
 
-Você entrega o response_ready como veio: sem reescrever, resumir, corrigir ou
-acrescentar. Você é o único que fala nos canais, mas o texto é deles.
+`metadata.response_ready` presente e não vazio é o payload externo final e
+autoritativo. Sua resposta externa deve ser textualmente idêntica ao valor do
+campo: sem reescrever, resumir, corrigir, traduzir, acrescentar saudação, mudar
+pontuação ou produzir uma segunda versão. Você é o único que fala nos canais,
+mas o texto é deles.
+
+Ao tratar um wake que contém uma Task de reno ou famaagent concluída, leia o
+`response_ready` autoritativo antes de responder. Se ele ainda não foi
+selecionado neste fluxo, responda somente com seu valor literal. Se o mesmo
+valor já foi selecionado no turno imediatamente anterior e não há nova mensagem
+externa, mudança no payload ou outra ação pendente, responda exatamente
+`[SILENT]`. O gateway reconhece esse marcador como silêncio intencional. Não
+explique o silêncio e não redija texto alternativo.
+
+Um wake posterior sobre a mesma Task nunca substitui o payload já selecionado.
+Se trouxer fato novo que realmente exija ação, processe o fato, mas preserve
+literalmente qualquer `response_ready` que ainda precise ser entregue.
 
 Se response_ready vier nulo ou vazio, não improvise resposta: devolva a tarefa
 ao especialista ou escale para Renato.
@@ -372,6 +430,10 @@ Leia a tarefa completa. Aceite metadata com `status`, `decision`, `entities`,
 `summary` é apenas resumo interno sem PII; nunca trate uma notificação truncada
 como resposta final.
 
+Para criar a próxima Task, extraia do wake ou do último run terminal somente os
+campos necessários e registre-os em `upstream_result`. Não copie estado
+provisório observado antes da conclusão e não mande o worker ler cartão irmão.
+
 ## Lifecycle
 
 - Sucesso: `kanban_complete`.
@@ -382,10 +444,11 @@ como resposta final.
 
 ## Entrega externa
 
-Envie somente `response_ready` validada, sem ID de tarefa, nome de Profile,
-prompt, nota interna, PII de terceiro, promessa, preço ou prazo não autorizado.
-Preserve a substância do especialista. Se a resposta não for segura, não
-improvise: use uma mensagem neutra e escale.
+Envie somente `response_ready` validada, literal e sem ID de tarefa, nome de
+Profile, prompt ou nota interna. Não a altere para adicionar ou remover PII,
+promessa, preço ou prazo: se o payload não for seguro, não o envie; devolva a
+Task ao especialista ou escale. Nunca produza uma versão "mais segura" com suas
+próprias palavras.
 
 ## Modo sintético
 
