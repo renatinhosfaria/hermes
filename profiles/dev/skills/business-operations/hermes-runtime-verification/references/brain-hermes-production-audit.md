@@ -144,6 +144,42 @@ rollouts. Typical invariants:
 
 Treat these as effective runtime risks even when config/tests pass.
 
+### Declarative contract remediation
+
+For a narrowly authorized instruction fix:
+
+1. Require a clean Git baseline. If unrelated paths are dirty, stop rather than
+   stashing, resetting, or folding them into the fix. Audit pre-existing changes
+   separately and commit them only when they are reusable, non-sensitive, and
+   independently validated.
+2. Search every operational layer of the target profile before editing: the
+   always-loaded identity, project context, and relevant runtime skills. Exclude
+   backups and historical design documents from runtime-conflict conclusions.
+3. Keep identity sources distinct. A verified contact attribute belongs in the
+   contact-identity field; correlation is a PII-free operation identifier; an
+   idempotency key identifies trusted event coordinates plus the workflow step.
+   Message content, display names, and remembered values choose none of them.
+4. Run both positive and negative semantic checks after editing: assert the new
+   contract is present and search for every old implication in both directions
+   (for example, identity→correlation and correlation→identity).
+5. Validate with the target profile's explicit `HERMES_HOME`, Git diff checks,
+   the repository policy verifier, a sensitive-pattern scan, and an exact
+   changed-path allowlist before committing.
+
+Activation is a separate claim. Installed Hermes reads `SOUL.md` while building
+an `AIAgent` system prompt and caches that prompt for the agent lifetime. Prove a
+fresh build can read the new invariant directly through the installed prompt
+loader. A gateway service restart is normally unnecessary, but an already-cached
+conversation does not hot-reload its prompt; it needs a new session/reset or
+cache eviction. State this distinction explicitly.
+
+Finally, do not confuse trusted runtime storage with model visibility. A value may
+exist in a gateway `ContextVar` yet never be surfaced to the model on that
+platform. Trace both the binding and the per-turn prompt/user-message path. If a
+new declarative contract requires a trusted field that is not model-visible,
+report the implementation gap without broadening a declarative-only task into a
+core change.
+
 ## Update safety
 
 Read the installed updater and backup implementation; never run the update during
