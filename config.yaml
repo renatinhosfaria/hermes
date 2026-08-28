@@ -80,7 +80,7 @@ display:
     whatsapp:
       tool_progress: false
 stt:
-  enabled: true
+  enabled: false
   language: en
   local:
     model: base
