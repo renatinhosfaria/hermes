@@ -31,12 +31,12 @@ EXPECTED_PLATFORM_TOOLSETS = {
         "cli": ["clarify"],
     },
     "famaagent": {
-        "telegram": ["clarify"],
-        "cli": ["clarify"],
+        "telegram": ["clarify", "no_mcp"],
+        "cli": ["clarify", "brain"],
     },
     "reno": {
-        "telegram": ["clarify"],
-        "cli": ["clarify"],
+        "telegram": ["clarify", "no_mcp"],
+        "cli": ["clarify", "brain"],
     },
     "dev": {
         "telegram": [
@@ -80,21 +80,21 @@ GATEWAY_UNITS = {
     "dev": "hermes-gateway-dev.service",
 }
 
-KNOWN_MCP_SERVERS = {"famachat"}
+KNOWN_MCP_SERVERS = {"brain", "famachat"}
 EXPECTED_CONFIGURED_MCP = {
     "default": set(),
     "porteiro": {"famachat"},
     "cadastro": {"famachat"},
-    "famaagent": set(),
-    "reno": set(),
+    "famaagent": {"brain"},
+    "reno": {"brain"},
     "dev": set(),
 }
 EXPECTED_MCP_EXPOSURE = {
     "default": {"cli": set(), "telegram": set(), "whatsapp": set()},
     "porteiro": {"cli": {"famachat"}, "telegram": set()},
     "cadastro": {"cli": {"famachat"}, "telegram": set()},
-    "famaagent": {"cli": set(), "telegram": set()},
-    "reno": {"cli": set(), "telegram": set()},
+    "famaagent": {"cli": {"brain"}, "telegram": set()},
+    "reno": {"cli": {"brain"}, "telegram": set()},
     "dev": {"cli": set(), "telegram": set()},
 }
 
