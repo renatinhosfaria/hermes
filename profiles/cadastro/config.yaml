@@ -54,5 +54,6 @@ mcp_servers:
 platform_toolsets:
   telegram:
     - clarify
+    - no_mcp
   cli:
     - clarify

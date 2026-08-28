@@ -50,6 +50,7 @@ kanban:
 platform_toolsets:
   telegram:
     - clarify
+    - no_mcp
   cli:
     - clarify
 mcp_servers:
