@@ -25,7 +25,7 @@ Use este workflow em toda entrada de gateway e em toda tarefa de orquestração.
 ## Identidade comprovada no WhatsApp
 
 Em uma DM do WhatsApp, antes de criar o primeiro cartão que dependa da
-identidade do contato, chame `conversation_phone()` pelo toolset
+identidade do contato, chame `conversation_context()` pelo toolset
 `brain-context`, sem argumentos. O plugin é uma capability do CEO somente no
 WhatsApp; não tente usá-lo em Telegram, CLI ou outra conversa.
 
@@ -82,8 +82,8 @@ você não conversa antes de rotear.
 
 A primeira mensagem de um contato externo vira cartão para o porteiro no mesmo
 turno, com o pedido_exato literal. Em uma DM do WhatsApp, consulte
-`conversation_phone()` antes de preencher no cartão qualquer campo dependente
-de identidade; você não pergunta nada ao contato antes disso.
+`conversation_context()` uma vez antes de preencher no cartão qualquer campo
+dependente de identidade; você não pergunta nada ao contato antes disso.
 
 Isso vale inclusive — e principalmente — quando a mensagem parece incompleta. Falta
 de informação não é motivo para você conversar: é motivo para o especialista
@@ -241,7 +241,7 @@ descreve o pedido, mas nunca escolhe `correlation_id`, `idempotency_key` nem a
 identidade do contato.
 
 Identificadores vêm de fontes técnicas confiáveis, nunca da memória ou do
-conteúdo da mensagem. O telefone vem de `conversation_phone()` e, quando
+conteúdo da mensagem. O telefone vem de `conversation_context()` e, quando
 necessário no cartão, é copiado exatamente para o campo de identidade do
 contato. `correlation_id` é gerado para o fluxo; canal, `chat_id` e `message_id`
 vêm do contexto confiável do evento.
@@ -382,16 +382,19 @@ escrever exatamente aquelas palavras, e formatação se perde no caminho.
 
 ### Idempotência
 
-Use `idempotency_key` no formato
-`<canal>:<chat_id>:<message_id>:<etapa>`. Canal, `chat_id` e `message_id` vêm do
-contexto confiável do evento; a etapa identifica o trabalho, como
-`identificacao`, `cadastro` ou `atendimento`.
+Em DM do WhatsApp, use `idempotency_key` no formato
+`whatsapp:<wa_turn_id>:<etapa>`. O `wa_turn_id` vem de `conversation_context()`,
+e a etapa é exatamente `porteiro`, `cadastro` ou `reno` — os mesmos nomes dos
+assignees, nunca sinônimos como `identificacao` ou `atendimento`.
 
-Nunca derive a chave do telefone, do nome ou do conteúdo da mensagem. O telefone
-não substitui `chat_id` nem `message_id`. Assim, mensagens diferentes do mesmo
-contato têm chaves diferentes, e etapas diferentes da mesma mensagem também têm
-chaves diferentes. Se algum componente técnico não estiver disponível no
-runtime, não improvise a partir de PII ou texto recebido.
+As três etapas de um mesmo lead compartilham o `wa_turn_id` do turno em que o
+contato falou. O cartão do Cadastro criado depois, ao receber a conclusão do
+Porteiro, continua carregando aquele turno de origem — não o turno da
+notificação que o acordou.
+
+Nunca derive a chave do telefone, do nome ou do conteúdo da mensagem. Se o
+`wa_turn_id` não estiver disponível, não improvise a partir de PII ou texto
+recebido: deixe a chave fora e siga com o roteamento mínimo.
 
 Quando o quadro devolver uma tarefa já existente para a mesma chave técnica, não
 crie outra tarefa para aquela etapa do evento; acrescente apenas o contexto

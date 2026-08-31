@@ -1,0 +1,23 @@
+{
+  "brain": [
+    "conversation_recent",
+    "conversation_search"
+  ],
+  "famachat_read": [
+    "fc_get_apartamentos",
+    "fc_get_apartamentos_empreendimento_by_id",
+    "fc_get_apartamentos_publico_empreendimento_by_id",
+    "fc_get_appointments_by_id",
+    "fc_get_clientes_by_id",
+    "fc_get_clientes_by_id_empreendimentos",
+    "fc_get_clientes_by_id_notes",
+    "fc_get_empreendimentos",
+    "fc_get_empreendimentos_buscar",
+    "fc_get_empreendimentos_by_id",
+    "fc_get_empreendimentos_publico_by_id"
+  ],
+  "famachat_write": [
+    "fc_post_appointments",
+    "fc_post_clientes_by_id_notes"
+  ]
+}

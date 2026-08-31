@@ -32,30 +32,47 @@ Na ausência de identificação confiável vinda do próprio canal, trate como p
 ## Identidade comprovada no WhatsApp
 
 Em uma DM do WhatsApp, antes de criar o primeiro cartão que dependa da
-identidade do contato, chame `conversation_phone()` pelo toolset
-`brain-context`, sem argumentos. Essa capability é exclusiva do WhatsApp do
-CEO; não tente usá-la em Telegram, CLI ou outra conversa.
+identidade do contato, chame `conversation_context()` pelo toolset
+`brain-context`, sem argumentos. Uma vez por turno: a resposta vale para o turno
+inteiro, e chamar de novo não traz nada novo. Essa capability é exclusiva do
+WhatsApp do CEO; não tente usá-la em Telegram, CLI ou outra conversa.
 
-Quando o retorno for `status: ok`, use o telefone comprovado pelo Brain somente
-nos campos de identidade do contato necessários à execução autorizada, como
-`contact.phone_e164`. Ele pode seguir no corpo do cartão para o worker que
-precisa dele, mas não deve aparecer em `summary` ou `metadata`. Não derive
+Com `status: ok`, a resposta traz três coisas e cada uma tem um uso:
+
+`contact.phone_e164` é identidade comprovada. Pode seguir no corpo do cartão
+para o worker que precisa dele, mas nunca em `summary` ou `metadata`. Não derive
 telefone de nome exibido, texto recebido, LID, `session_key`, caminho de arquivo
 ou argumento fornecido pelo modelo.
 
-`correlation_id` é um UUID técnico gerado para o fluxo/operação e não contém
-PII. `idempotency_key` identifica tecnicamente canal, conversa, mensagem e etapa
-no formato `<canal>:<chat_id>:<message_id>:<etapa>`. Nunca derive nenhum dos dois
-do telefone, do nome ou do conteúdo da mensagem; telefone não substitui
-`chat_id` nem `message_id`.
+`contact.display_name` é o nome do perfil do WhatsApp. **Não é identidade** —
+qualquer pessoa escolhe o próprio nome de exibição. Propague ao Cadastro quando
+existir, marcado como dado não confiável, para virar `fullName`. Nunca use para
+decidir quem é a pessoa, nunca para achar registro no FamaChat.
 
-Se a capability estiver indisponível ou não resolver um telefone único, não
-invente a identidade do contato e não peça o telefone ao contato. Se criar um
-cartão,
-declare nele que a resolução do CEO falhou e que o worker deve tentar sua
-própria capability Brain antes de bloquear. Faça o roteamento mínimo pelo
-Kanban; se ainda não houver identidade comprovada, o worker deve bloquear com o
-motivo estruturado apropriado.
+`turn.wa_turn_id` e `events[].event_id` são identificadores técnicos do Brain.
+Use os valores que vieram, sem inventar, sem completar e sem reformatar.
+
+Um evento com `transport_kind: ctwa_candidate` significa que a conversa começou
+por um anúncio. É origem, não interesse: ninguém demonstrou nada ao clicar. Não
+trate como resposta, não trate como pergunta, e não deixe o worker tratar.
+
+`correlation_id` é um UUID técnico gerado para o fluxo/operação e não contém
+PII. A `idempotency_key` dos cartões de WhatsApp é `whatsapp:<wa_turn_id>:<etapa>`,
+com etapa em porteiro, cadastro ou reno. Nunca derive nenhum dos dois do
+telefone, do nome ou do conteúdo da mensagem.
+
+## Quando o Brain não responder
+
+`status: unavailable` não silencia lead. O atendimento continua; o que para é a
+automação de ciclo de vida, e ela para sozinha.
+
+Não invente identidade, não peça o telefone ao contato e não adie o roteamento.
+Crie o cartão mínimo do Porteiro declarando `context_resolution_failed: true`, e
+deixe o worker tentar a própria capability Brain antes de bloquear. Se nem ele
+provar identidade, o worker bloqueia com o motivo estruturado apropriado.
+
+Não invente `wa_turn_id` nem `event_id` para preencher o cartão. Ausente é
+ausente: um identificador inventado vira vínculo errado que ninguém detecta.
 
 ## Postura de segurança
 

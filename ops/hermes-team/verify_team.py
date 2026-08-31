@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import stat
+import unicodedata
 import subprocess
 import sys
 from pathlib import Path
@@ -24,11 +25,11 @@ EXPECTED_PLATFORM_TOOLSETS = {
     },
     "porteiro": {
         "telegram": ["clarify", "no_mcp"],
-        "cli": ["clarify"],
+        "cli": ["clarify", "brain", "famachat"],
     },
     "cadastro": {
         "telegram": ["clarify", "no_mcp"],
-        "cli": ["clarify"],
+        "cli": ["clarify", "brain", "famachat"],
     },
     "famaagent": {
         "telegram": ["clarify", "no_mcp"],
@@ -83,20 +84,129 @@ GATEWAY_UNITS = {
 KNOWN_MCP_SERVERS = {"brain", "famachat"}
 EXPECTED_CONFIGURED_MCP = {
     "default": set(),
-    "porteiro": {"famachat"},
-    "cadastro": {"famachat"},
+    "porteiro": {"brain", "famachat"},
+    "cadastro": {"brain", "famachat"},
     "famaagent": {"brain"},
     "reno": {"brain", "famachat"},
     "dev": set(),
 }
+# Allowlists exatas da secao 12 da spec. Um servidor MCP sem entrada aqui e
+# erro: nenhum profile pode expor um servidor sem contrato declarado.
+EXPECTED_MCP_TOOLS = {
+    ("porteiro", "brain"): ["conversation_phone"],
+    ("porteiro", "famachat"): ["fc_get_users"],
+    ("cadastro", "brain"): ["conversation_phone"],
+    ("cadastro", "famachat"): [
+        "fc_get_clientes",
+        "fc_get_clientes_by_id",
+        "fc_post_clientes",
+    ],
+    ("reno", "brain"): ["conversation_recent", "conversation_search"],
+    ("reno", "famachat"): [
+        "fc_get_apartamentos",
+        "fc_get_apartamentos_empreendimento_by_id",
+        "fc_get_apartamentos_publico_empreendimento_by_id",
+        "fc_get_appointments_by_id",
+        "fc_get_clientes_by_id",
+        "fc_get_clientes_by_id_empreendimentos",
+        "fc_get_clientes_by_id_notes",
+        "fc_get_empreendimentos",
+        "fc_get_empreendimentos_buscar",
+        "fc_get_empreendimentos_by_id",
+        "fc_get_empreendimentos_publico_by_id",
+        "fc_post_appointments",
+        "fc_post_clientes_by_id_notes",
+    ],
+    ("famaagent", "brain"): ["conversation_recent", "conversation_search"],
+}
+# Vazio: todo servidor MCP exposto tem contrato declarado. Uma entrada aqui
+# marca allowlist ainda nao gerada, reportada como pendencia e nao como erro,
+# para o verificador seguir util enquanto a geracao nao roda.
+PENDING_MCP_ALLOWLIST: set[tuple[str, str]] = set()
+FORBIDDEN_TOOL_PREFIXES = ("fc_patch_", "fc_put_", "fc_delete_", "fc_del_", "db_")
+
+# Trechos que precisam existir no prompt de cada profile. Sao contratos de
+# comportamento: nao da para provar por teste automatico como codigo, entao o
+# minimo e garantir que o texto que os define nao suma sem ninguem notar.
+REQUIRED_PROMPT_MARKERS = {
+    "default": [
+        ("SOUL.md", "conversation_context()", "capability atual do CEO"),
+        ("SOUL.md", "whatsapp:<wa_turn_id>:<etapa>", "formato de idempotencia"),
+        ("SOUL.md", "nao e identidade", "display name como dado nao confiavel"),
+        ("SOUL.md", "context_resolution_failed", "politica de falha do Brain"),
+        (
+            "skills/business-operations/fama-ceo-runtime/SKILL.md",
+            "whatsapp:<wa_turn_id>:<etapa>",
+            "skill alinhada ao formato de idempotencia",
+        ),
+    ],
+    "reno": [
+        ("SOUL.md", "uma vez, e exatamente uma", "conversation_recent unico no primeiro cartao"),
+        ("SOUL.md", "LEAD_NOVO_CADASTRADO", "gatilho do primeiro cartao"),
+        (
+            "skills/business-operations/fama-reno-runtime/SKILL.md",
+            "conversation_recent",
+            "skill alinhada a regra de primeiro cartao",
+        ),
+    ],
+    "cadastro": [
+        ("SOUL.md", "fc_get_clientes_by_id", "readback por leitura independente"),
+        ("SOUL.md", "Sem Atendimento", "status exigido no readback"),
+        ("SOUL.md", "no maximo uma vez", "POST unico"),
+        (
+            "skills/business-operations/fama-cadastro-runtime/SKILL.md",
+            "fc_get_clientes_by_id",
+            "skill alinhada ao readback do SOUL",
+        ),
+    ],
+}
+FORBIDDEN_PROMPT_MARKERS = {
+    "default": [
+        ("SOUL.md", "conversation_phone()", "capability que o CEO nao possui mais"),
+        (
+            "skills/business-operations/fama-ceo-runtime/SKILL.md",
+            "conversation_phone()",
+            "capability que o CEO nao possui mais",
+        ),
+        (
+            "skills/business-operations/fama-ceo-runtime/SKILL.md",
+            "<canal>:<chat_id>:<message_id>",
+            "formato de idempotencia superado",
+        ),
+    ],
+    "porteiro": [
+        ("SOUL.md", "277 ferramentas", "contagem de ferramentas desatualizada"),
+        ("SOUL.md", "db_query", "nome de ferramenta bloqueada citado no prompt"),
+    ],
+    "reno": [
+        ("SOUL.md", "comeca com fc_get_", "wildcard de ferramenta proibido pela spec 12.3"),
+    ],
+    "cadastro": [
+        ("SOUL.md", "277 ferramentas", "contagem de ferramentas desatualizada"),
+        ("SOUL.md", "exatamente duas", "contagem que contradiz o readback"),
+        (
+            "skills/business-operations/fama-cadastro-runtime/SKILL.md",
+            "brokerId == 35 no retorno",
+            "readback antigo pela resposta do POST",
+        ),
+    ],
+}
+
 EXPECTED_MCP_EXPOSURE = {
     "default": {"cli": set(), "telegram": set(), "whatsapp": set()},
-    "porteiro": {"cli": {"famachat"}, "telegram": set()},
-    "cadastro": {"cli": {"famachat"}, "telegram": set()},
+    "porteiro": {"cli": {"brain", "famachat"}, "telegram": set()},
+    "cadastro": {"cli": {"brain", "famachat"}, "telegram": set()},
     "famaagent": {"cli": {"brain"}, "telegram": set()},
     "reno": {"cli": {"brain", "famachat"}, "telegram": set()},
     "dev": {"cli": set(), "telegram": set()},
 }
+
+
+def _normalize(text: str) -> str:
+    """Compare prompt text without tripping on accents or spacing."""
+    folded = unicodedata.normalize("NFKD", text)
+    stripped = "".join(c for c in folded if not unicodedata.combining(c))
+    return " ".join(stripped.lower().split())
 
 
 def home(name: str) -> Path:
@@ -157,6 +267,7 @@ def main() -> int:
     args = parser.parse_args()
     errors: list[str] = []
     mcp_report: list[str] = []
+    pending: list[str] = []
 
     named = {p.name for p in (ROOT / "profiles").iterdir() if p.is_dir()}
     check(named == EXPECTED_NAMED, f"Profiles nomeados: {sorted(named)}", errors)
@@ -244,6 +355,71 @@ def main() -> int:
             f"{name}: mcp_servers habilitados incorretos: {sorted(configured_mcp)}",
             errors,
         )
+        for relative, needle, purpose in REQUIRED_PROMPT_MARKERS.get(name, ()):
+            document = profile_home / relative
+            body = (
+                document.read_text(encoding="utf-8", errors="replace")
+                if document.is_file()
+                else ""
+            )
+            check(
+                _normalize(needle) in _normalize(body),
+                f"{name}/{relative}: falta contrato '{purpose}'",
+                errors,
+            )
+        for relative, needle, purpose in FORBIDDEN_PROMPT_MARKERS.get(name, ()):
+            document = profile_home / relative
+            body = (
+                document.read_text(encoding="utf-8", errors="replace")
+                if document.is_file()
+                else ""
+            )
+            check(
+                _normalize(needle) not in _normalize(body),
+                f"{name}/{relative}: contrato superado presente '{purpose}'",
+                errors,
+            )
+
+        for server, server_config in sorted((config.get("mcp_servers") or {}).items()):
+            server_config = server_config or {}
+            include = (server_config.get("tools") or {}).get("include")
+            if (name, server) in PENDING_MCP_ALLOWLIST:
+                pending.append(
+                    f"{name}/{server}: allowlist FamaChat pendente "
+                    f"(gerar do tools/list ao vivo)"
+                )
+                continue
+            expected_tools = EXPECTED_MCP_TOOLS.get((name, server))
+            check(
+                expected_tools is not None,
+                f"{name}/{server}: servidor MCP sem contrato declarado",
+                errors,
+            )
+            if expected_tools is None:
+                continue
+            check(
+                include == expected_tools,
+                f"{name}/{server}: tools.include {include!r}, "
+                f"esperado {expected_tools!r}",
+                errors,
+            )
+            check(
+                server_config.get("resources") is False,
+                f"{name}/{server}: resources deve ser false",
+                errors,
+            )
+            check(
+                server_config.get("prompts") is False,
+                f"{name}/{server}: prompts deve ser false",
+                errors,
+            )
+            for tool in include or []:
+                check(
+                    not tool.startswith(FORBIDDEN_TOOL_PREFIXES),
+                    f"{name}/{server}: ferramenta proibida no allowlist: {tool}",
+                    errors,
+                )
+
         for platform, expected_present in EXPECTED_MCP_EXPOSURE[name].items():
             resolved = resolve_platform(config, name, platform)
             actual_present = resolved & KNOWN_MCP_SERVERS
@@ -304,6 +480,8 @@ def main() -> int:
 
     for line in mcp_report:
         print(line)
+    for line in pending:
+        print(f"PENDENTE: {line}")
     if errors:
         for error in errors:
             print(f"FAIL: {error}")

@@ -28,15 +28,20 @@ metadata:
    para decidir, independente de quantos arquivados existam ao lado.
 5. Se nenhum candidato satisfizer o critério, crie o cliente com
    fc_post_clientes — phone, fullName, brokerId: 35, source: "Facebook Ads",
-   sem status. Confira brokerId == 35 no retorno antes de reportar sucesso.
+   sem status. O POST acontece no máximo uma vez.
+6. Releia o registro com fc_get_clientes_by_id usando o id devolvido: imediato,
+   depois ~1s, depois ~1s. Sucesso exige id exato, brokerId 35 e status
+   Sem Atendimento juntos. A resposta do POST não serve como prova. Três
+   leituras sem prova é INCONCLUSIVO com o id na frase — não repita o POST e
+   não mande para o reno.
 
    Use kanban_block(kind="capability") só se o MCP não responder, e
    `kind="needs_input"` somente para outro dado realmente ausente que a tarefa
    exija. Nunca classifique sem consulta, e nunca reporte cadastro que não
    aconteceu.
-6. Em modo sintético, aceite apenas `existing_client`, `new_lead` ou
+7. Em modo sintético, aceite apenas `existing_client`, `new_lead` ou
    `indeterminate` em `fixture.decision`; copie apenas IDs sintéticos declarados.
-7. Conclua com summary sem PII e metadata com `status`, `decision`, `entities`,
+8. Conclua com summary sem PII e metadata com `status`, `decision`, `entities`,
    `evidence`, `reason`, `response_ready: null` e
    `requested_next_action: return_to_ceo`.
 

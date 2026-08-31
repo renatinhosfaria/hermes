@@ -62,6 +62,13 @@ mcp_servers:
     url: https://mcp.famachat.com.br/mcp
     headers:
       Authorization: Bearer ${FAMACHAT_MCP_KEY_CADASTRO}
+    tools:
+      include:
+        - fc_get_clientes
+        - fc_get_clientes_by_id
+        - fc_post_clientes
+    resources: false
+    prompts: false
 platform_toolsets:
   telegram:
     - clarify

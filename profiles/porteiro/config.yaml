@@ -74,3 +74,8 @@ mcp_servers:
     url: https://mcp.famachat.com.br/mcp
     headers:
       Authorization: Bearer ${FAMACHAT_MCP_KEY_PORTEIRO}
+    tools:
+      include:
+        - fc_get_users
+    resources: false
+    prompts: false
