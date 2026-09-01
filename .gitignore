@@ -66,3 +66,12 @@
 !/docs/**
 !/ops/
 !/ops/**
+
+# Scripts de fonte para jobs de cron. O Hermes exige que --monitor-script e
+# --script vivam sob <HERMES_HOME>/scripts/ (hermes_cli/cron.py:564, validado
+# com path.relative_to), então a automação não pode morar em ops/. Entram no
+# repositório pelo mesmo motivo que ops/: são automação escrita por nós.
+!/scripts/
+!/scripts/**
+!/profiles/*/scripts/
+!/profiles/*/scripts/**

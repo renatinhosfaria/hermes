@@ -43,6 +43,7 @@ must_be_allowed=(
     profiles/famaagent/config.yaml
     profiles/famaagent/profile.yaml
     ops/versioning/verify_git_policy.sh
+    profiles/dev/scripts/fleet_state.sh
 )
 
 for path in "${must_be_allowed[@]}"; do
@@ -288,7 +289,7 @@ if [ "${#skill_trees[@]}" -gt 0 ]; then
         esac
 
         case "$tree_relative" in
-            .bundled_manifest|.usage.json|.usage.json.lock|.curator_state|.curator_ledger.jsonl|.curator_suppressed|.hub/*|*/__pycache__/*|*.pyc|*/node_modules/*|*/.venv/*)
+            .bundled_manifest|.usage.json|.usage.json.lock|.curator_state|.curator_ledger.jsonl|.curator_suppressed|.curator_backups/*|.hub/*|*/__pycache__/*|*.pyc|*/node_modules/*|*/.venv/*)
                 [ "${ignored_skill_files[$relative_path]:-}" = 1 ] \
                     || fail "metadado ou artefato gerado de skill não está ignorado: $relative_path"
                 skill_metadata_count=$((skill_metadata_count + 1))
