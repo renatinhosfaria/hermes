@@ -17,6 +17,7 @@ agent:
   max_turns: 500
   verbose: false
   personalities: {}
+  reasoning_effort: high
 terminal:
   backend: local
   cwd: .

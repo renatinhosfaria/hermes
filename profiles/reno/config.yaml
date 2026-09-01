@@ -1,8 +1,8 @@
 model:
-  default: gpt-5.6-luna-900k
+  default: gpt-5.6-sol-900k
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
-  reasoning_effort: xhigh
+  reasoning_effort: high
   context_length: 900000
 terminal:
   backend: local
@@ -10,7 +10,7 @@ terminal:
   timeout: 300
   home_mode: auto
 agent:
-  reasoning_effort: xhigh
+  reasoning_effort: high
   verify_on_stop: true
   verify_guidance: true
 memory:

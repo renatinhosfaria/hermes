@@ -12,6 +12,7 @@ terminal:
 agent:
   verify_on_stop: true
   verify_guidance: true
+  reasoning_effort: high
 skills:
   guard_agent_created: true
   write_approval: true
