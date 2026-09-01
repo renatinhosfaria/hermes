@@ -64,10 +64,15 @@ curl --fail --silent --max-time 5 http://127.0.0.1:3000/health 2>/dev/null \
   2>/dev/null || echo "unreachable"
 
 echo "## git_worktree"
+# BINARIO de proposito: clean|dirty, sem a lista de arquivos. A lista muda a
+# cada arquivo tocado, e num tick de 15min isso acordaria o agente varias vezes
+# por sessao de trabalho, afogando o sinal de saude da frota no ruido de
+# desenvolvimento. O agente roda `git status` sozinho quando acorda; o detalhe
+# nao precisa estar nos bytes comparados.
 if [ -z "$(git -C /root/.hermes status --porcelain 2>/dev/null)" ]; then
   echo "clean"
 else
-  git -C /root/.hermes status --porcelain 2>/dev/null | sort
+  echo "dirty"
 fi
 
 echo "## hermes_version"
