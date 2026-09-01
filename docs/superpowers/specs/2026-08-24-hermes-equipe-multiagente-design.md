@@ -1,5 +1,10 @@
 # Desenho técnico — Equipe multiagente Hermes no VPS
 
+> **Documento histórico.** Este arquivo registra a arquitetura da primeira
+> implantação em 24/08/2026. Gateways individuais, Brain, FamaChat e o
+> Amendment 2 o supersederam. O contrato vigente está em
+> `2026-09-01-hermes-equipe-multiagente-as-built-design.md`.
+
 Data: 2026-08-24  
 Status: aprovado para planejamento de implementação
 

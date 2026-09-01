@@ -1,5 +1,9 @@
 # Hermes Multiagent Team Implementation Plan
 
+> **Plano histórico concluído.** Este checklist registra a implantação inicial
+> de 24/08/2026 e não descreve a topologia atual. Para o contrato vigente, veja
+> `../specs/2026-09-01-hermes-equipe-multiagente-as-built-design.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Provisionar no VPS os seis agentes `default/CEO`, `porteiro`, `cadastro`, `famaagent`, `reno` e `dev`, consolidar o gateway no `default`, validar o barramento Kanban Manual e parear o WhatsApp Web via Baileys.
