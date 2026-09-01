@@ -92,3 +92,12 @@ platform_toolsets:
   whatsapp:
     - clarify
     - no_mcp
+security:
+  protected_instruction_files: true
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md
+mcp:
+  auto_reload_on_config_change: false

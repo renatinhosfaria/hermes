@@ -80,3 +80,12 @@ mcp_servers:
         - fc_get_users
     resources: false
     prompts: false
+security:
+  protected_instruction_files: true
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md
+mcp:
+  auto_reload_on_config_change: false

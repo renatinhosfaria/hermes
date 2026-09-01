@@ -122,6 +122,11 @@ kanban:
   failure_limit: 2
   max_in_progress: 4
   max_spawn: 2
+  max_in_progress_per_profile: 2
+  dispatch_stale_timeout_seconds: 3600
+  default_assignee: dev
+  worker_log_rotate_bytes: 8388608
+  worker_log_backup_count: 3
 code_execution:
   timeout: 300
   max_tool_calls: 50
@@ -192,3 +197,10 @@ approvals:
   destructive_slash_confirm: false
 toolsets:
   - kanban
+security:
+  protected_instruction_files: true
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md

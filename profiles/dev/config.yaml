@@ -75,3 +75,10 @@ platform_toolsets:
     - session_search
     - clarify
     - cronjob
+security:
+  protected_instruction_files: true
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md

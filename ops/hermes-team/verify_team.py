@@ -232,6 +232,36 @@ EXPECTED_MCP_EXPOSURE = {
     "dev": {"cli": set(), "telegram": set()},
 }
 
+# Hermes 0.21.0. security.protected_instruction_files ja e default True; fixar
+# no config impede que uma mudanca futura de default afrouxe em silencio. Os
+# extra_patterns estendem a protecao a superficie de instrucao desta
+# instalacao, que o Hermes nao conhece. Sao fnmatch sobre o BASENAME.
+# Limite conhecido: a guarda vive em write_file/patch (tools/file_tools.py),
+# entao terminal (`sed -i`) contorna. Protege o caminho padrao, nao o disco.
+EXPECTED_PROTECTED_PATTERNS = ["SKILL.md", "profile.yaml", "config.yaml", ".hermes.md"]
+
+# O reload automatico de MCP reconstroi a superficie de ferramentas e invalida
+# o prompt cache. Com context_length 900000 e reasoning_effort xhigh isso e
+# caro, e a postura do projeto ja e mudanca deliberada (/reload-mcp).
+EXPECTED_MCP_AUTORELOAD_OFF = {"porteiro", "cadastro", "famaagent", "reno"}
+
+# Resiliencia do dispatcher (secao 10 da spec + itens 0.21.0). Valores exatos:
+# um drift aqui muda o comportamento de recuperacao sem ninguem perceber.
+EXPECTED_KANBAN_DISPATCH = {
+    "max_in_progress_per_profile": 2,
+    "dispatch_stale_timeout_seconds": 3600,
+    "default_assignee": "dev",
+    "worker_log_rotate_bytes": 8388608,
+    "worker_log_backup_count": 3,
+}
+
+# Contencao do Bot Mode. A spec (secao 8.1) e os quatro SOULs de especialista
+# proibem comunicacao direta entre Profiles: o Kanban e o unico barramento.
+# `hermes peer add` grava alvos em config.yaml sob `bot_peers`, e message_agent
+# so e injetado na sessao canonica "Bot Chat". Nenhum dos dois pode aparecer.
+FORBIDDEN_CONFIG_KEYS = ("bot_peers",)
+FORBIDDEN_TOOLS = ("message_agent",)
+
 
 def _normalize(text: str) -> str:
     """Compare prompt text without tripping on accents or spacing."""
@@ -316,6 +346,41 @@ def main() -> int:
 
         config = read_yaml(profile_home / "config.yaml")
         configs[name] = config
+
+        # Hermes 0.21.0 — protecao de arquivos de instrucao, fixada e estendida.
+        security_cfg = config.get("security") or {}
+        check(
+            security_cfg.get("protected_instruction_files") is True,
+            f"{name}: security.protected_instruction_files deve ser true "
+            f"(esta {security_cfg.get('protected_instruction_files')!r})",
+            errors,
+        )
+        check(
+            security_cfg.get("protected_instruction_extra_patterns")
+            == EXPECTED_PROTECTED_PATTERNS,
+            f"{name}: security.protected_instruction_extra_patterns incorreto: "
+            f"{security_cfg.get('protected_instruction_extra_patterns')!r}",
+            errors,
+        )
+
+        # Reload automatico de MCP desligado onde ha MCP (custo de prompt cache).
+        mcp_cfg = config.get("mcp") or {}
+        if name in EXPECTED_MCP_AUTORELOAD_OFF:
+            check(
+                mcp_cfg.get("auto_reload_on_config_change") is False,
+                f"{name}: mcp.auto_reload_on_config_change deve ser false "
+                f"(esta {mcp_cfg.get('auto_reload_on_config_change')!r})",
+                errors,
+            )
+
+        # Contencao do Bot Mode: nenhum profile registra peers.
+        for forbidden_key in FORBIDDEN_CONFIG_KEYS:
+            check(
+                forbidden_key not in config,
+                f"{name}: chave proibida '{forbidden_key}' presente — "
+                f"comunicacao direta entre Profiles viola a secao 8.1",
+                errors,
+            )
 
         meta_path = profile_home / "profile.yaml"
         if meta_path.is_file():
@@ -469,6 +534,20 @@ def main() -> int:
                 f"esperado {sorted(expected_absent)}",
                 errors,
             )
+            # Contencao do Bot Mode no conjunto RESOLVIDO: message_agent hoje
+            # nao pertence a toolset nenhum (e injetado so na sessao canonica
+            # "Bot Chat"), entao esta checagem passa por construcao. Ela existe
+            # para que uma regressao futura — Bot Mode ligado, ou o tool
+            # promovido a toolset — falhe aqui em vez de abrir DM direto entre
+            # especialistas, que a secao 8.1 proibe.
+            for forbidden_tool in FORBIDDEN_TOOLS:
+                check(
+                    forbidden_tool not in resolved,
+                    f"{name}/{platform}: ferramenta proibida exposta: "
+                    f"{forbidden_tool} — Profiles nao se comunicam fora do Kanban",
+                    errors,
+                )
+
             mcp_report.append(
                 f"MCP {name}/{platform}: presentes={sorted(actual_present)} "
                 f"ausentes={sorted(actual_absent)}"
@@ -485,6 +564,17 @@ def main() -> int:
     check(kanban.get("orchestrator_profile") == "default", "orchestrator_profile != default", errors)
     check(kanban.get("dispatch_in_gateway") is True, "dispatch_in_gateway != true", errors)
     check(kanban.get("auto_decompose") is False, "auto_decompose != false", errors)
+
+    # Resiliencia do dispatcher. Sem essas chaves o Hermes usa defaults que nao
+    # servem a um fluxo de lead: stale timeout de 4h (cartao travado so volta a
+    # ready depois disso) e default_assignee vazio (cartao com assignee
+    # desconhecido cai no CEO, que por contrato nao executa).
+    for key, expected_value in EXPECTED_KANBAN_DISPATCH.items():
+        check(
+            kanban.get(key) == expected_value,
+            f"kanban.{key} deve ser {expected_value!r} (esta {kanban.get(key)!r})",
+            errors,
+        )
 
     if args.mode == "full":
         root_env = read_env(ROOT / ".env")
