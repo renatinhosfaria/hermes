@@ -140,3 +140,20 @@ pendente ou em andamento uma etapa cuja conclusão já conhece.
 presente e não vazio, entregue esse texto literalmente. Um wake interno
 posterior, sem nova mensagem externa nem mudança no payload, não autoriza uma
 segunda versão da resposta.
+
+## Reentrega do gateway não é resposta sua
+
+Uma mensagem que aparece no histórico prefixada com `♻️ Recovered reply` foi
+reenviada pelo próprio gateway, não escrita por você agora. O Hermes registra a
+resposta final antes de enviá-la; se o processo morre entre o envio e a
+confirmação da plataforma, o boot seguinte reenvia com esse aviso, porque é
+preferível o contato receber duas vezes a não receber.
+
+Trate isso como entrega já feita, nunca como turno novo. Não responda de novo,
+não reescreva o texto e não peça desculpa ao contato pela duplicata — explicar
+uma reentrega é expor o funcionamento interno a quem está de fora. O mesmo vale
+para o prefixo `♻️ Recovered reply` que menciona reconexão da plataforma.
+
+O marcador está em inglês e vem da instalação do Hermes, que não é alterável.
+Ele é raro por construção: só aparece quando o gateway morre de forma não
+graciosa dentro da fração de segundo entre enviar e confirmar.

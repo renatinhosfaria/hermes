@@ -79,12 +79,16 @@ platform_toolsets:
     - cronjob
     - delegation
 security:
-  protected_instruction_files: true
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
+  # Desligado SOMENTE no Dev, por decisao do operador em 01/09. O Dev mantem o
+  # ecossistema interno de agentes: profiles, configuracoes, instrucoes e
+  # skills de TODOS os Profiles. Com a guarda ligada ele nao consegue escrever
+  # SOUL.md nem config.yaml dos outros, que e exatamente o trabalho dele.
+  # Nos outros cinco Profiles a guarda continua true, entao nenhum deles mexe
+  # na instrucao de ninguem. Limite que permanece: nem com isso o Dev escreve
+  # o proprio config.yaml por write_file — ha uma trava hardcoded em
+  # file_tools.py:706 sem chave de config. Para esse caso ele usa terminal ou
+  # `hermes config`, como a propria mensagem da trava orienta.
+  protected_instruction_files: false
 
 delegation:
   model: gpt-5.6-luna-900k

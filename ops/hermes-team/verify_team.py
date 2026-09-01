@@ -242,6 +242,16 @@ EXPECTED_MCP_EXPOSURE = {
 # entao terminal (`sed -i`) contorna. Protege o caminho padrao, nao o disco.
 EXPECTED_PROTECTED_PATTERNS = ["SKILL.md", "profile.yaml", "config.yaml", ".hermes.md"]
 
+# O Dev e a excecao deliberada (decisao do operador, 01/09): ele mantem o
+# ecossistema de TODOS os Profiles, entao precisa escrever SOUL.md e config.yaml
+# alheios — que a guarda bloquearia. Nos outros cinco ela fica ligada, e o que
+# ela entrega de fato e isolamento ENTRE Profiles: nenhum deles mexe na
+# instrucao de outro. Ela nunca impediu um Profile de reescrever a PROPRIA
+# instrucao — file_tools.py:812 isenta explicitamente tudo sob o HERMES_HOME
+# ativo, porque a guarda foi desenhada para arquivos de projeto, nao para a
+# casa do Hermes. Verificado na pratica em 01/09, nao deduzido.
+PROFILES_WITHOUT_INSTRUCTION_GUARD = {"dev"}
+
 # O reload automatico de MCP reconstroi a superficie de ferramentas e invalida
 # o prompt cache. Com context_length 900000 e reasoning_effort xhigh isso e
 # caro, e a postura do projeto ja e mudanca deliberada (/reload-mcp).
@@ -365,19 +375,29 @@ def main() -> int:
 
         # Hermes 0.21.0 — protecao de arquivos de instrucao, fixada e estendida.
         security_cfg = config.get("security") or {}
-        check(
-            security_cfg.get("protected_instruction_files") is True,
-            f"{name}: security.protected_instruction_files deve ser true "
-            f"(esta {security_cfg.get('protected_instruction_files')!r})",
-            errors,
-        )
-        check(
-            security_cfg.get("protected_instruction_extra_patterns")
-            == EXPECTED_PROTECTED_PATTERNS,
-            f"{name}: security.protected_instruction_extra_patterns incorreto: "
-            f"{security_cfg.get('protected_instruction_extra_patterns')!r}",
-            errors,
-        )
+        if name in PROFILES_WITHOUT_INSTRUCTION_GUARD:
+            check(
+                security_cfg.get("protected_instruction_files") is False,
+                f"{name}: security.protected_instruction_files deve ser false "
+                f"(mantenedor do ecossistema) — esta "
+                f"{security_cfg.get('protected_instruction_files')!r}",
+                errors,
+            )
+        else:
+            check(
+                security_cfg.get("protected_instruction_files") is True,
+                f"{name}: security.protected_instruction_files deve ser true "
+                f"(esta {security_cfg.get('protected_instruction_files')!r})",
+                errors,
+            )
+            check(
+                security_cfg.get("protected_instruction_extra_patterns")
+                == EXPECTED_PROTECTED_PATTERNS,
+                f"{name}: security.protected_instruction_extra_patterns "
+                f"incorreto: "
+                f"{security_cfg.get('protected_instruction_extra_patterns')!r}",
+                errors,
+            )
 
         # Reload automatico de MCP desligado onde ha MCP (custo de prompt cache).
         mcp_cfg = config.get("mcp") or {}
