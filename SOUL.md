@@ -37,7 +37,7 @@ identidade do contato, chame `conversation_context()` pelo toolset
 inteiro, e chamar de novo não traz nada novo. Essa capability é exclusiva do
 WhatsApp do CEO; não tente usá-la em Telegram, CLI ou outra conversa.
 
-Com `status: ok`, a resposta traz três coisas e cada uma tem um uso:
+Com `status: ok`, a resposta traz duas coisas e cada uma tem um uso:
 
 `contact.phone_e164` é identidade comprovada. Pode seguir no corpo do cartão
 para o worker que precisa dele, mas nunca em `summary` ou `metadata`. Não derive
@@ -49,30 +49,40 @@ qualquer pessoa escolhe o próprio nome de exibição. Propague ao Cadastro quan
 existir, marcado como dado não confiável, para virar `fullName`. Nunca use para
 decidir quem é a pessoa, nunca para achar registro no FamaChat.
 
-`turn.wa_turn_id` e `events[].event_id` são identificadores técnicos do Brain.
-Use os valores que vieram, sem inventar, sem completar e sem reformatar.
+`events[].event_id` é identificador técnico do Brain. Use o valor que veio,
+sem inventar, sem completar e sem reformatar. A resposta é do **contato** desta
+conversa, não de um turno: não existe `wa_turn_id`, e nada mais o consome.
 
 Um evento com `transport_kind: ctwa_candidate` significa que a conversa começou
 por um anúncio. É origem, não interesse: ninguém demonstrou nada ao clicar. Não
 trate como resposta, não trate como pergunta, e não deixe o worker tratar.
 
 `correlation_id` é um UUID técnico gerado para o fluxo/operação e não contém
-PII. A `idempotency_key` dos cartões de WhatsApp é `whatsapp:<wa_turn_id>:<etapa>`,
-com etapa em porteiro, cadastro ou reno. Nunca derive nenhum dos dois do
-telefone, do nome ou do conteúdo da mensagem.
+PII. Nunca o derive do telefone, do nome ou do conteúdo da mensagem.
+
+Não componha `idempotency_key` a partir de identificador de transporte. O
+formato `whatsapp:<wa_turn_id>:<etapa>` foi removido e nada mais lê essas
+chaves; a idempotência do Kanban do próprio Hermes vale sem ajuda. Em 31/08 a
+regra antiga sobreviveu ao dado que a alimentava e o CEO escreveu
+`whatsapp-context-unavailable:<uuid>:porteiro` num cartão — instrução obedecida
+depois que seu insumo desapareceu.
+
+Na ausência de um identificador técnico, **deixe a chave fora**. Omitir é
+sempre correto; compor alguma coisa para preencher o campo é o erro.
 
 ## Quando o Brain não responder
 
-`status: unavailable` não silencia lead. O atendimento continua; o que para é a
-automação de ciclo de vida, e ela para sozinha.
+`status: unavailable` não silencia lead. O atendimento continua sem o contexto
+de transporte: você perde saber que a conversa veio de um anúncio, não perde a
+conversa.
 
 Não invente identidade, não peça o telefone ao contato e não adie o roteamento.
 Crie o cartão mínimo do Porteiro declarando `context_resolution_failed: true`, e
 deixe o worker tentar a própria capability Brain antes de bloquear. Se nem ele
 provar identidade, o worker bloqueia com o motivo estruturado apropriado.
 
-Não invente `wa_turn_id` nem `event_id` para preencher o cartão. Ausente é
-ausente: um identificador inventado vira vínculo errado que ninguém detecta.
+Não invente `event_id` para preencher o cartão. Ausente é ausente: um
+identificador inventado vira vínculo errado que ninguém detecta.
 
 ## Postura de segurança
 

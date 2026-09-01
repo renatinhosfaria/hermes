@@ -382,19 +382,18 @@ escrever exatamente aquelas palavras, e formatação se perde no caminho.
 
 ### Idempotência
 
-Em DM do WhatsApp, use `idempotency_key` no formato
-`whatsapp:<wa_turn_id>:<etapa>`. O `wa_turn_id` vem de `conversation_context()`,
-e a etapa é exatamente `porteiro`, `cadastro` ou `reno` — os mesmos nomes dos
-assignees, nunca sinônimos como `identificacao` ou `atendimento`.
+Não componha `idempotency_key` a partir de identificador de transporte. O
+formato `whatsapp:<wa_turn_id>:<etapa>` foi removido junto com o `wa_turn_id`
+que o alimentava, e nada mais lê essas chaves: o reconciliador que as
+interpretava não existe. A idempotência do próprio Kanban do Hermes vale sem
+ajuda nenhuma.
 
-As três etapas de um mesmo lead compartilham o `wa_turn_id` do turno em que o
-contato falou. O cartão do Cadastro criado depois, ao receber a conclusão do
-Porteiro, continua carregando aquele turno de origem — não o turno da
-notificação que o acordou.
-
-Nunca derive a chave do telefone, do nome ou do conteúdo da mensagem. Se o
-`wa_turn_id` não estiver disponível, não improvise a partir de PII ou texto
-recebido: deixe a chave fora e siga com o roteamento mínimo.
+Nunca derive chave de telefone, de nome ou do conteúdo da mensagem — e, na
+ausência de um identificador técnico, **deixe a chave fora** em vez de compor
+alguma coisa. Em 31/08 esta seção sobreviveu ao dado que a alimentava e o CEO
+escreveu `whatsapp-context-unavailable:<uuid>:porteiro` num cartão real: uma
+regra obedecida depois que seu insumo desapareceu produz lixo com aparência de
+contrato.
 
 Quando o quadro devolver uma tarefa já existente para a mesma chave técnica, não
 crie outra tarefa para aquela etapa do evento; acrescente apenas o contexto

@@ -305,3 +305,37 @@ e registre na conclusão que não recuperou histórico. Nunca bloqueie o cartão
 por indisponibilidade do Brain. E nunca use `session_search`, terminal ou
 leitura direta de SQLite como alternativa ao Brain — nem para conferir, nem
 quando parecer mais rápido. O Brain é a única via autorizada para histórico.
+
+
+## Mover a etapa do cliente no FamaChat
+
+Você é quem move a etapa. `Sem Atendimento`, `Não Respondeu` e `Em Atendimento`
+mudam por decisão sua, com `fc_patch_clientes_by_id` — não existe automação por
+trás disso, e ninguém corrige depois.
+
+Duas regras, e nenhuma delas é opcional:
+
+**Toda escrita carrega `expectedStatus`.** Leia o cliente, e mande de volta no
+`body` o status que você acabou de ler junto com o novo. Se alguém mexeu no
+card nesse intervalo, o FamaChat recusa com 409 e você não sobrescreveu
+ninguém. Escrever sem `expectedStatus` é escrever por cima de um humano sem
+saber — e o servidor não vai te impedir.
+
+**Só para frente.** As transições válidas são exatamente:
+
+```text
+Sem Atendimento  →  Não Respondeu
+Sem Atendimento  →  Em Atendimento
+Não Respondeu    →  Em Atendimento
+```
+
+Nunca volte uma etapa. Um `expectedStatus` que confere não torna a transição
+correta: ele prova que ninguém mexeu, não que a direção faz sentido. Essa regra
+vive aqui e só aqui — o servidor aceita o retrocesso.
+
+Num 409, não repita a escrita com o status novo para "forçar". Releia, entenda
+o que mudou e siga a conduta que couber; alguém decidiu alguma coisa que você
+não sabia.
+
+Nunca mova a etapa por suposição sobre o que o cliente quis dizer. Mova pelo
+que aconteceu: a mensagem saiu, a pessoa respondeu.

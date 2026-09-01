@@ -76,6 +76,7 @@ mcp_servers:
         - fc_get_empreendimentos_buscar
         - fc_get_empreendimentos_by_id
         - fc_get_empreendimentos_publico_by_id
+        - fc_patch_clientes_by_id
         - fc_post_appointments
         - fc_post_clientes_by_id_notes
     resources: false

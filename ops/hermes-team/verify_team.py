@@ -114,6 +114,7 @@ EXPECTED_MCP_TOOLS = {
         "fc_get_empreendimentos_buscar",
         "fc_get_empreendimentos_by_id",
         "fc_get_empreendimentos_publico_by_id",
+        "fc_patch_clientes_by_id",
         "fc_post_appointments",
         "fc_post_clientes_by_id_notes",
     ],
@@ -125,22 +126,36 @@ EXPECTED_MCP_TOOLS = {
 PENDING_MCP_ALLOWLIST: set[tuple[str, str]] = set()
 FORBIDDEN_TOOL_PREFIXES = ("fc_patch_", "fc_put_", "fc_delete_", "fc_del_", "db_")
 
+# A Amendment 2 entregou as transicoes de etapa ao Reno, entao exatamente uma
+# ferramenta sob prefixo proibido esta autorizada, para exatamente um profile.
+# A excecao e nominal de proposito: afrouxar o prefixo autorizaria fc_patch_*
+# inteiro, e uma excecao que vira prefixo deixa de ser excecao.
+AUTHORIZED_FORBIDDEN_PREFIX_TOOLS = frozenset(
+    {("reno", "fc_patch_clientes_by_id")}
+)
+
 # Trechos que precisam existir no prompt de cada profile. Sao contratos de
 # comportamento: nao da para provar por teste automatico como codigo, entao o
 # minimo e garantir que o texto que os define nao suma sem ninguem notar.
 REQUIRED_PROMPT_MARKERS = {
     "default": [
         ("SOUL.md", "conversation_context()", "capability atual do CEO"),
-        ("SOUL.md", "whatsapp:<wa_turn_id>:<etapa>", "formato de idempotencia"),
         ("SOUL.md", "nao e identidade", "display name como dado nao confiavel"),
         ("SOUL.md", "context_resolution_failed", "politica de falha do Brain"),
         (
+            "SOUL.md",
+            "deixe a chave fora",
+            "sem identificador tecnico a chave e omitida, nao improvisada",
+        ),
+        (
             "skills/business-operations/fama-ceo-runtime/SKILL.md",
-            "whatsapp:<wa_turn_id>:<etapa>",
-            "skill alinhada ao formato de idempotencia",
+            "deixe a chave fora",
+            "skill alinhada a omissao da chave",
         ),
     ],
     "reno": [
+        ("SOUL.md", "expectedStatus", "toda escrita de etapa carrega o predicado"),
+        ("SOUL.md", "So para frente", "transicoes apenas progressivas"),
         ("SOUL.md", "uma vez, e exatamente uma", "conversation_recent unico no primeiro cartao"),
         ("SOUL.md", "LEAD_NOVO_CADASTRADO", "gatilho do primeiro cartao"),
         (
@@ -173,6 +188,22 @@ FORBIDDEN_PROMPT_MARKERS = {
             "<canal>:<chat_id>:<message_id>",
             "formato de idempotencia superado",
         ),
+        # A Amendment 2 removeu o wa_turn_id e o reconciliador que lia essas
+        # chaves. Enquanto a regra existiu sem o dado que a alimentava, o CEO
+        # escreveu `whatsapp-context-unavailable:<uuid>:porteiro` num cartao
+        # real em 31/08. So aparece no prompt agora para ser negada, e as
+        # entradas abaixo garantem que ela nao volte como instrucao.
+        (
+            "SOUL.md",
+            "A `idempotency_key` dos cartoes de WhatsApp e",
+            "formato de idempotencia removido pela Amendment 2",
+        ),
+        (
+            "skills/business-operations/fama-ceo-runtime/SKILL.md",
+            "use `idempotency_key` no formato",
+            "formato de idempotencia removido pela Amendment 2",
+        ),
+        ("SOUL.md", "turn.wa_turn_id", "contrato de turno que nao existe mais"),
     ],
     "porteiro": [
         ("SOUL.md", "277 ferramentas", "contagem de ferramentas desatualizada"),
@@ -415,7 +446,8 @@ def main() -> int:
             )
             for tool in include or []:
                 check(
-                    not tool.startswith(FORBIDDEN_TOOL_PREFIXES),
+                    not tool.startswith(FORBIDDEN_TOOL_PREFIXES)
+                    or (name, tool) in AUTHORIZED_FORBIDDEN_PREFIX_TOOLS,
                     f"{name}/{server}: ferramenta proibida no allowlist: {tool}",
                     errors,
                 )

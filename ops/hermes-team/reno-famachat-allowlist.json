@@ -17,6 +17,7 @@
     "fc_get_empreendimentos_publico_by_id"
   ],
   "famachat_write": [
+    "fc_patch_clientes_by_id",
     "fc_post_appointments",
     "fc_post_clientes_by_id_notes"
   ]
