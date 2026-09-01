@@ -409,15 +409,33 @@ ter desenho e plano próprios.
 
 A adoção do 0.21.0 seguiu essa regra e está registrada no §3.1.
 
-### 15.1 Frente aberta
+Nenhuma frente do plano de adoção do 0.21.0 permanece aberta.
 
-- **`hooks.outbound` para o Brain** — ciclo de vida do cartão sem polling, com
-  HMAC e entrega enfileirada em thread daemon que nunca bloqueia o dispatcher.
-  É a propriedade que faltava: `pre_gateway_dispatch` está fora de
-  `_HOOK_TIMEOUT_BOUNDED_HOOKS`, então I/O ali travaria a entrada de mensagens.
-  Sem substituto no cron. Exige desenho próprio quando o Brain precisar.
+### 15.1 Frentes fechadas em 2026-09-01, sem adoção
 
-### 15.2 Frentes fechadas em 2026-09-01, sem adoção
+**`hooks.outbound` para o Brain — não adotar.** Esta especificação chegou a
+registrar a frente como aberta, com a justificativa de dar ao Brain o ciclo de
+vida do cartão "sem polling". A verificação desmentiu a premissa: **não existe
+polling a eliminar.**
+
+O Brain lê `kanban.db`, mas não para acompanhar andamento. Lê para **autorizar**,
+de forma síncrona, a cada chamada MCP de worker (`src/brain/authorization.py`,
+`authorize_worker`): confere que a tarefa existe, que está `running`, que o
+`current_run_id` bate com o run apresentado, que o `assignee` é o principal que
+está chamando, e que existe exatamente uma inscrição WhatsApp de tipo `dm`
+ligando a tarefa a um único `chat_id`. Só então entrega o histórico do contato.
+
+Um webhook não substitui isso, e o motivo é categórico: webhook informa um
+evento passado, e uma decisão de autorização precisa do estado autoritativo no
+instante da chamada. Trocar a leitura síncrona por uma cópia de eventos
+recebidos faria o Brain decidir liberação de dado de cliente sobre estado
+possivelmente defasado — o mecanismo fraco no lugar do forte.
+
+Some-se a isso o Amendment 2 (2026-08-31), que **removeu de propósito** do Brain
+a derivação de estado a partir do Kanban: ele não correlaciona mais turnos do
+Hermes nem reconstrói vínculos, e o Reno passou a executar as transições pela
+própria superfície MCP. Alimentar o Brain com esses eventos empurraria o serviço
+de volta ao escopo que a emenda retirou.
 
 **`kanban swarm` — não adotar.** A topologia raiz → workers paralelos →
 verificador → sintetizador não encontra trabalho nesta arquitetura:
