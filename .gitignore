@@ -42,6 +42,7 @@
 /skills/.curator_state
 /skills/.curator_ledger.jsonl
 /skills/.curator_suppressed
+/skills/.curator_backups/
 /skills/.hub/
 /profiles/*/skills/.bundled_manifest
 /profiles/*/skills/.usage.json
@@ -49,6 +50,7 @@
 /profiles/*/skills/.curator_state
 /profiles/*/skills/.curator_ledger.jsonl
 /profiles/*/skills/.curator_suppressed
+/profiles/*/skills/.curator_backups/
 /profiles/*/skills/.hub/
 /skills/**/__pycache__/
 /skills/**/*.pyc
@@ -58,12 +60,6 @@
 /profiles/*/skills/**/*.pyc
 /profiles/*/skills/**/node_modules/
 /profiles/*/skills/**/.venv/
-
-# User-authored operational documentation and automation.
-!/docs/
-!/docs/**
-!/ops/
-!/ops/**
 
 # User-authored operational documentation and automation.
 !/docs/
