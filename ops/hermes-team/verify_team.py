@@ -49,6 +49,7 @@ EXPECTED_PLATFORM_TOOLSETS = {
             "session_search",
             "clarify",
             "cronjob",
+            "delegation",
         ],
         "cli": [
             "terminal",
@@ -59,6 +60,7 @@ EXPECTED_PLATFORM_TOOLSETS = {
             "session_search",
             "clarify",
             "cronjob",
+            "delegation",
         ],
     },
 }
@@ -259,6 +261,20 @@ EXPECTED_KANBAN_DISPATCH = {
 # proibem comunicacao direta entre Profiles: o Kanban e o unico barramento.
 # `hermes peer add` grava alvos em config.yaml sob `bot_peers`, e message_agent
 # so e injetado na sessao canonica "Bot Chat". Nenhum dos dois pode aparecer.
+# Delegação é exclusiva do Dev. Nos Profiles de negócio ela seria perigosa: o
+# filho herda o toolset do pai (tools/delegate_tool.py:119 — "the model has no
+# toolsets argument") mas NÃO herda o SOUL, e ferramentas MCP não estão em
+# DELEGATE_BLOCKED_TOOLS. Um filho do Reno teria fc_patch_clientes_by_id sem a
+# disciplina de expectedStatus; um do Cadastro teria fc_post_clientes sem o
+# "no máximo uma vez". O Dev é seguro porque não tem MCP nenhum.
+PROFILES_WITH_DELEGATION = {"dev"}
+
+# Filho em modelo mais leve que o pai: Luna custa uma fração de Sol em toda
+# listagem de vendor, e uma investigação que lê arquivo e roda grep não precisa
+# do modelo do pai. provider e reasoning_effort ficam vazios de propósito —
+# herdam openai-codex, as credenciais e o esforço 'medium' do Dev.
+EXPECTED_DELEGATION = {"model": "gpt-5.6-luna-900k", "max_concurrent_children": 4}
+
 FORBIDDEN_CONFIG_KEYS = ("bot_peers",)
 FORBIDDEN_TOOLS = ("message_agent",)
 
@@ -370,6 +386,34 @@ def main() -> int:
                 mcp_cfg.get("auto_reload_on_config_change") is False,
                 f"{name}: mcp.auto_reload_on_config_change deve ser false "
                 f"(esta {mcp_cfg.get('auto_reload_on_config_change')!r})",
+                errors,
+            )
+
+        # Delegação: presente só no Dev, e com o bloco de config esperado.
+        has_delegation = "delegation" in (config.get("toolsets") or [])
+        check(
+            has_delegation == (name in PROFILES_WITH_DELEGATION),
+            f"{name}: toolset 'delegation' {'ausente' if name in PROFILES_WITH_DELEGATION else 'presente'} "
+            f"— delegação é exclusiva de {sorted(PROFILES_WITH_DELEGATION)}",
+            errors,
+        )
+        delegation_cfg = config.get("delegation") or {}
+        if name in PROFILES_WITH_DELEGATION:
+            for dkey, dvalue in EXPECTED_DELEGATION.items():
+                check(
+                    delegation_cfg.get(dkey) == dvalue,
+                    f"{name}: delegation.{dkey} deve ser {dvalue!r} "
+                    f"(esta {delegation_cfg.get(dkey)!r})",
+                    errors,
+                )
+        else:
+            # Um bloco 'delegation' pode existir sem o toolset: a migração v37
+            # escreveu delegation.max_iterations: 250 em todo config. É inerte
+            # sem delegate_task. O que não pode existir é roteamento de filho.
+            check(
+                not delegation_cfg.get("model") and not delegation_cfg.get("provider"),
+                f"{name}: delegation.model/provider definidos num profile sem "
+                f"o toolset 'delegation' — roteamento de filho sem delegação",
                 errors,
             )
 

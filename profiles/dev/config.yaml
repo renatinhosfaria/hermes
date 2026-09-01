@@ -42,6 +42,7 @@ toolsets:
   - session_search
   - clarify
   - cronjob
+  - delegation
 _config_version: 39
 onboarding:
   seen:
@@ -66,6 +67,7 @@ platform_toolsets:
     - session_search
     - clarify
     - cronjob
+    - delegation
   cli:
     - terminal
     - file
@@ -75,6 +77,7 @@ platform_toolsets:
     - session_search
     - clarify
     - cronjob
+    - delegation
 security:
   protected_instruction_files: true
   protected_instruction_extra_patterns:
@@ -82,3 +85,7 @@ security:
     - profile.yaml
     - config.yaml
     - .hermes.md
+
+delegation:
+  model: gpt-5.6-luna-900k
+  max_concurrent_children: 4
