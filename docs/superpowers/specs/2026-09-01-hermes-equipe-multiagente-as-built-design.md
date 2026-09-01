@@ -407,17 +407,45 @@ Qualquer evolução funcional — novo Profile, nova ferramenta MCP, mudança de
 modelo, política de canal, alteração de handoff ou atualização do Hermes — deve
 ter desenho e plano próprios.
 
-A adoção do 0.21.0 seguiu essa regra e está registrada no §3.1. As frentes que
-permanecem abertas, cada uma exigindo desenho próprio:
+A adoção do 0.21.0 seguiu essa regra e está registrada no §3.1.
 
-- **`kanban swarm`** — topologia raiz → workers paralelos → verificador →
-  sintetizador sobre o kernel do Kanban. O papel de verificador promoveria a
-  validação de handoff, hoje interna a um turno do CEO, a cartão auditável. Não
-  é chave de configuração: o fluxo atual é cadeia sequencial com dependência de
-  dados, sem workers paralelos para o swarm paralelizar.
+### 15.1 Frente aberta
+
 - **`hooks.outbound` para o Brain** — ciclo de vida do cartão sem polling, com
-  HMAC e entrega enfileirada que nunca bloqueia o dispatcher.
-- **Curadoria de `fama-ceo-runtime`** — a skill é user-owned, então o fork de
-  background review recusa consolidá-la e registra um aviso no log a cada
-  tentativa. Manter, adotar com `hermes curator adopt`, ou desligar
-  `auxiliary.background_review` no `default`.
+  HMAC e entrega enfileirada em thread daemon que nunca bloqueia o dispatcher.
+  É a propriedade que faltava: `pre_gateway_dispatch` está fora de
+  `_HOOK_TIMEOUT_BOUNDED_HOOKS`, então I/O ali travaria a entrada de mensagens.
+  Sem substituto no cron. Exige desenho próprio quando o Brain precisar.
+
+### 15.2 Frentes fechadas em 2026-09-01, sem adoção
+
+**`kanban swarm` — não adotar.** A topologia raiz → workers paralelos →
+verificador → sintetizador não encontra trabalho nesta arquitetura:
+
+- o fluxo de lead é cadeia sequencial com dependência de dados — Porteiro prova
+  identidade, e só então Cadastro classifica, e só então Reno atende. Não há
+  workers paralelos para paralelizar;
+- o único leque plausível era o Dev auditando Profiles. Os seis cartões
+  históricos desse tipo falharam com `pid … exited with code 1` — crash de
+  processo worker, falha de infraestrutura que o swarm não corrige; a leva
+  seguinte, idêntica em forma, passou sem falha;
+- esse nicho passou a ser coberto por `delegate_task` com `output_schema`
+  (§5.1): valida a saída de cada filho contra schema, roda em modelo mais leve
+  e não gera cartões;
+- a metade restante — o verificador — acrescentaria uma rodada de agente **no
+  caminho do lead**, ou seja, latência e custo exatamente onde vale a regra
+  inegociável de não deixar ninguém esperando, para auditar algo que já
+  funciona.
+
+**Curadoria de `fama-ceo-runtime` — manter fora da curadoria.** A skill consta
+entre as 14 não gerenciadas em `hermes curator status`, o que significa que
+nunca é marcada obsoleta, nunca é arquivada automaticamente e nunca é reescrita
+pelo fork de background review. Para o contrato operacional do CEO — verificado
+marcador a marcador pelo `verify_team.py` e governado pela regra de mudança
+autorizada — esse é o estado desejado. `hermes curator adopt` faria o oposto.
+
+O aviso recorrente em `logs/errors.log` (*"Refusing background curator patch …
+the skill is not curator-managed"*) é a proteção relatando que funcionou, não um
+defeito. Desligar `auxiliary.background_review` no `default` pararia as
+tentativas, mas removeria uma capacidade que o `SOUL.md` do CEO autoriza
+explicitamente, e não existe exclusão por skill na configuração.
