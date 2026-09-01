@@ -183,6 +183,7 @@ known_plugin_toolsets:
 plugins:
   enabled:
     - brain-ceo-bridge
+    - fama-whatsapp-human-handover
     - fama-kanban-channel-policy
 platforms:
   telegram:
@@ -193,6 +194,10 @@ platforms:
       name: New CEO
       thread_id: '1'
       user_id: '8564576789'
+  whatsapp:
+    extra:
+      text_batch_delay_seconds: 30
+      text_batch_split_delay_seconds: 30
 approvals:
   destructive_slash_confirm: false
 toolsets:
