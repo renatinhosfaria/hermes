@@ -1,6 +1,6 @@
 # Arquitetura vigente — Equipe multiagente Hermes da Fama
 
-Data: 2026-09-01  
+Data: 2026-09-01 (revisado no mesmo dia, após a adoção do Hermes 0.21.0)  
 Status: as built, verificado no VPS  
 Substitui como contrato vigente: `2026-08-24-hermes-equipe-multiagente-design.md`
 
@@ -47,6 +47,42 @@ As mudanças posteriores introduziram:
 
 Consequentemente, afirmações antigas como “gateway único”, “Dev sem gateway” e
 “FamaChat não configurado” são históricas, não critérios atuais de aceite.
+
+### 3.1 Adoção do Hermes 0.21.0 (2026-09-01)
+
+A atualização para 0.21.0 já estava aplicada quando esta revisão começou; os
+seis gateways foram confirmados em `18a76be1` e `_config_version` permaneceu em
+39, sem migração pendente. O §15 desta especificação exige desenho próprio para
+qualquer evolução, e esta subseção registra o resultado dele.
+
+Entrou:
+
+- resiliência do dispatcher Kanban, com cinco chaves antes ausentes (§10);
+- guarda de escrita em arquivos de instrução, com o Dev como exceção (§11.1);
+- `mcp.auto_reload_on_config_change: false` nos quatro Profiles com MCP, para
+  não invalidar o prompt cache a cada mudança de configuração;
+- delegação interna no Dev, com filho em modelo leve (§5.1);
+- verificação automática da frota por cron em modo monitor (§14.1);
+- `scripts/` e `profiles/*/scripts/` versionados, exigência do cron.
+
+Avaliado e recusado, com a razão registrada porque o valor está em impedir que
+a ideia volte:
+
+- **`model_overrides` no lugar de `model.context_length`** — são camadas
+  distintas da cadeia de resolução, não sinônimos.
+- **`delegate_task` nos Profiles de negócio** — o filho herda o toolset do pai
+  sem herdar o SOUL, e ferramentas MCP não constam de `DELEGATE_BLOCKED_TOOLS`.
+  Um filho do Reno teria `fc_patch_clientes_by_id` sem a disciplina de
+  `expectedStatus`; um do Cadastro teria `fc_post_clientes` sem o “no máximo uma
+  vez”.
+- **Bot Mode, `message_agent` e `hermes peer`** — dariam DM direto entre
+  especialistas, contra o §8.1. `verify_team.py` passou a afirmar a contenção
+  em vez de depender de ela nunca ter sido ligada por acaso.
+- **`hooks.outbound` para alarme de cartão bloqueado** — a premissa não
+  sobreviveu: `kanban_notify_subs` mostra `last_event_id` igual ao id do evento
+  `blocked` nos três cartões, ou seja, `auto_subscribe_on_create` já notifica. O
+  que faltava era visão agregada para o operador, entregue pelo cron do §14.1.
+  `hooks.outbound` segue reservado para alimentar o Brain sem polling.
 
 ## 4. Topologia vigente
 
@@ -96,6 +132,22 @@ WhatsApp nem a assumir a orquestração.
 
 Os IDs técnicos permanecem estáveis. `CEO` é a identidade visual e funcional
 do Profile `default`; não existe `profiles/ceo`.
+
+### 5.1 Delegação interna, exclusiva do Dev
+
+O Dev é o único Profile com o toolset `delegation`, e seus filhos rodam em
+`gpt-5.6-luna-900k` com credenciais herdadas (`delegation.model` sem
+`delegation.provider`), no máximo 4 simultâneos.
+
+A exclusividade é estrutural, não preferência. O filho herda o toolset do pai e
+**não** herda o `SOUL.md`; `DELEGATE_BLOCKED_TOOLS` nega apenas `delegate_task`,
+`clarify`, `memory`, `send_message` e `cronjob`, e ferramentas MCP não estão na
+lista. O Dev é o único Profile sem MCP algum, então não há escrita externa para
+o filho herdar. Confirmado em execução real: o filho enumerou suas ferramentas e
+não possui `delegate_task`, `clarify`, `memory`, `cronjob` nem `kanban_complete`.
+
+`output_schema` valida a resposta final do filho contra um JSON Schema, com uma
+tentativa de correção, devolvendo `schema_valid` e `schema_errors`.
 
 ## 6. Canais e fronteiras de confiança
 
@@ -219,6 +271,17 @@ O `default` é o único orquestrador e o único gateway com
 `dispatch_in_gateway: true`. Nos outros cinco Profiles esse campo é
 explicitamente `false`. `auto_decompose` permanece desabilitado.
 
+Cinco chaves de resiliência, ausentes até 2026-09-01 e por isso operando em
+default:
+
+| Chave | Valor | Por quê |
+|---|---|---|
+| `dispatch_stale_timeout_seconds` | 3600 | O default de 14400 deixava cartão travado quatro horas antes de voltar a `ready`. 3600 é quatro vezes mais rápido sem descer abaixo de `DEFAULT_CLAIM_HEARTBEAT_MAX_STALE_SECONDS`, que é a definição do próprio Hermes de worker travado — um valor menor reclamaria worker que o framework ainda considera vivo |
+| `default_assignee` | `dev` | Sem isso, cartão com assignee não reconhecido cai no `default`, que por contrato não executa. O board tinha `t_e1c6c719` com assignee `pingpong` como precedente |
+| `max_in_progress_per_profile` | 2 | Um Profile podia ocupar os quatro slots globais e travar os outros |
+| `worker_log_rotate_bytes` | 8388608 | O default de 2 MiB descartava evidência de falha rápido demais |
+| `worker_log_backup_count` | 3 | idem |
+
 Cartões devem ser autossuficientes, minimizar PII e separar:
 
 - `body`: somente contexto indispensável ao trabalho;
@@ -243,13 +306,45 @@ validação do CEO.
   ou FamaChat.
 - Toda mudança de contrato deve atualizar `verify_team.py` no mesmo commit.
 
+### 11.1 Guarda de arquivos de instrução
+
+`security.protected_instruction_files` está fixado explicitamente em vez de
+depender do default do 0.21.0, e `protected_instruction_extra_patterns` estende
+a proteção a `SKILL.md`, `profile.yaml`, `config.yaml` e `.hermes.md`.
+
+**Escopo real, verificado em execução e não deduzido.** A guarda entrega
+isolamento *entre* Profiles: nenhum Profile de negócio escreve `SOUL.md`,
+`config.yaml`, `SKILL.md` ou `profile.yaml` de outro. Ela **não** impede um
+Profile de reescrever a própria instrução — `tools/file_tools.py:812` isenta
+explicitamente tudo sob o `HERMES_HOME` ativo, porque foi desenhada para
+arquivos de projeto, não para a casa do Hermes.
+
+O **Dev é exceção deliberada**, com `protected_instruction_files: false`: seu
+charter é manter profiles, configurações, instruções e skills de todos os
+Profiles, e a guarda ligada impedia exatamente isso.
+
+Duas limitações que permanecem:
+
+- a guarda vive em `write_file`/`patch`; `terminal` não passa por ela;
+- nem o Dev escreve o próprio `config.yaml` por `write_file` —
+  `tools/file_tools.py:706` recusa o config do `HERMES_HOME` ativo sem chave de
+  configuração. A saída é `terminal` ou `hermes config`.
+
 ## 12. Operação, falhas e cartões bloqueados
 
 No snapshot de 2026-09-01, o Kanban não tinha diagnóstico crítico, com 82
-cartões concluídos e dois bloqueados:
+cartões concluídos, 17 arquivados e **três** bloqueados:
 
-- `t_67fd1a55`, atribuído ao Porteiro;
-- `t_3037b094`, atribuído ao Cadastro.
+- `t_67fd1a55`, Porteiro, `block_kind: needs_input`;
+- `t_3037b094`, Cadastro, `block_kind: capability`;
+- `t_dea78e0d`, Dev, `block_kind: capability`.
+
+Os três **foram notificados**: em `kanban_notify_subs`, o `last_event_id` de
+cada um é exatamente o id do seu evento `blocked` (459, 690 e 767). O
+`auto_subscribe_on_create` funciona. A notificação vai para a conversa de
+origem, que em cartão de lead é a DM do próprio lead — acorda o CEO ali dentro
+em vez de avisar o operador. É essa lacuna, e não ausência de sinal, que o cron
+do §14.1 cobre.
 
 Esses cartões são estado operacional preexistente, não falha desta
 consolidação. Devem ser triados pelo conteúdo e histórico do cartão antes de
@@ -286,9 +381,43 @@ Esta consolidação é aceita quando:
 - o Git contém somente as mudanças documentais esperadas antes do commit;
 - nenhuma configuração, credencial, unit ou cartão foi alterado.
 
+### 14.1 Verificação automática da frota
+
+Um job de cron no Profile `dev` (`cc5de9593c71`, `*/15 * * * *`) executa
+`profiles/dev/scripts/fleet_state.sh` em modo monitor e entrega no canal
+Telegram do Dev. O script cobre units, `verify_team.py`, diagnóstico do Kanban,
+cartões bloqueados com `block_kind`, health do Baileys, estado do worktree e
+versão do Hermes.
+
+O modo monitor compara a saída **byte a byte** com a do último tick que acordou
+o agente: inalterada suprime o run inteiro — sem LLM, sem entrega, registrado
+como `no_change`; alterada injeta um diff unificado e o agente diagnostica.
+Medido: um run com mudança levou 21,2 s e produziu 2384 bytes; o run seguinte,
+sem mudança, levou 4,8 s e gravou 156 bytes.
+
+Duas consequências do “byte a byte” que o script respeita: nenhuma saída pode
+variar sozinha — não há uptime, pid ou timestamp, e tudo é ordenado — e o estado
+do Git é **binário** (`clean`/`dirty`, sem lista de arquivos), porque a lista
+mudaria a cada arquivo tocado e afogaria o sinal de saúde no ruído de
+desenvolvimento.
+
 ## 15. Próximas mudanças
 
 Qualquer evolução funcional — novo Profile, nova ferramenta MCP, mudança de
 modelo, política de canal, alteração de handoff ou atualização do Hermes — deve
-ter desenho e plano próprios. O aviso de atualização disponível do Hermes não
-autoriza atualização durante esta consolidação.
+ter desenho e plano próprios.
+
+A adoção do 0.21.0 seguiu essa regra e está registrada no §3.1. As frentes que
+permanecem abertas, cada uma exigindo desenho próprio:
+
+- **`kanban swarm`** — topologia raiz → workers paralelos → verificador →
+  sintetizador sobre o kernel do Kanban. O papel de verificador promoveria a
+  validação de handoff, hoje interna a um turno do CEO, a cartão auditável. Não
+  é chave de configuração: o fluxo atual é cadeia sequencial com dependência de
+  dados, sem workers paralelos para o swarm paralelizar.
+- **`hooks.outbound` para o Brain** — ciclo de vida do cartão sem polling, com
+  HMAC e entrega enfileirada que nunca bloqueia o dispatcher.
+- **Curadoria de `fama-ceo-runtime`** — a skill é user-owned, então o fork de
+  background review recusa consolidá-la e registra um aviso no log a cada
+  tentativa. Manter, adotar com `hermes curator adopt`, ou desligar
+  `auxiliary.background_review` no `default`.

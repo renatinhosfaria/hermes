@@ -16,6 +16,12 @@
   três falhas consecutivas e mensagem de recuperação quando o health volta.
 - MCPs: Brain/FamaChat somente nos Profiles e contextos permitidos por
   `verify_team.py`; não são expostos nos canais Telegram dos workers.
+- Delegação: somente o Dev tem o toolset `delegation`; filhos em
+  `gpt-5.6-luna-900k`, no máximo 4 simultâneos.
+- Guarda de instrução: `protected_instruction_files: true` em cinco Profiles e
+  `false` no Dev, que mantém a instrução de todos.
+- Cron: job `cc5de9593c71` a cada 15 minutos no Dev, em modo monitor, entregando
+  no Telegram do Dev apenas quando o estado da frota muda.
 
 ## Contrato vigente
 
@@ -23,7 +29,24 @@ O desenho atual está em
 `docs/superpowers/specs/2026-09-01-hermes-equipe-multiagente-as-built-design.md`.
 Os documentos de 24/08 são históricos.
 
-## Verificação diária
+## Verificação da frota
+
+Desde 2026-09-01 isso roda sozinho: o job `cc5de9593c71` executa
+`profiles/dev/scripts/fleet_state.sh` a cada 15 minutos e só fala quando algo
+muda. Silêncio é o estado saudável — não é sinal de que parou de rodar.
+
+Confirme que o job está vivo com `hermes -p dev cron list`. Para ver o estado
+agora, sem esperar o tick, rode o script direto:
+
+```bash
+/root/.hermes/profiles/dev/scripts/fleet_state.sh
+```
+
+Se editar esse script, rode-o duas vezes seguidas e compare o hash: a comparação
+do monitor é byte a byte, e qualquer valor que varie sozinho faz todo tick virar
+falso positivo.
+
+A verificação manual completa continua válida sob demanda:
 
 ```bash
 /root/.hermes/ops/hermes-team/verify_team.py full
@@ -57,6 +80,35 @@ done
 Todos devem responder `active` e `enabled`. Reinicie apenas a unit que falhou;
 um gateway de especialista não possui dispatcher Kanban.
 
+### Como reiniciar
+
+Use `hermes -p <profile> gateway restart`, e para o CEO `hermes gateway
+restart`. **Não use `systemctl restart`**: ele manda SIGTERM e mata turno em
+voo. O comando do Hermes envia SIGUSR1, que recusa turnos novos, espera o
+trabalho em voo terminar até `agent.restart_after_turn_timeout` — 1800 s aqui —
+e só então sai; o systemd sobe de volta.
+
+Três coisas observadas em 2026-09-01 que valem saber antes:
+
+- o comando **reescreve o arquivo `.service`** da unit; os drop-ins em `.d/`,
+  inclusive `git-identity.conf`, sobrevivem;
+- reiniciar o CEO **derruba o bridge do WhatsApp** por alguns segundos — a
+  sessão persistida é reusada, sem novo pareamento;
+- com conversa ativa, o restart pode levar até 30 minutos drenando. Isso é o
+  comportamento correto, não travamento.
+
+Ordem segura: especialistas primeiro, CEO por último, na janela de menor
+tráfego.
+
+```bash
+for p in porteiro cadastro famaagent reno dev; do
+  hermes -p $p gateway restart
+done
+hermes gateway restart
+```
+
+Nunca use `--all`: ela mata todos os processos de gateway antes de reiniciar.
+
 ## Falha do WhatsApp
 
 1. Verificar `journalctl -u hermes-gateway.service --since "30 minutes ago"`.
@@ -88,6 +140,13 @@ hermes kanban list --status blocked --json \
 Leia o cartão e seus runs. Não faça retry, reatribuição ou cancelamento apenas
 porque o status é `blocked`; identifique primeiro a dependência ou entrada
 ausente.
+
+Um bloqueio **já foi notificado** quando aconteceu: `auto_subscribe_on_create`
+inscreve a sessão de origem, e o `last_event_id` da inscrição avança até o
+evento `blocked`. Mas a notificação vai para a **conversa de origem** — em
+cartão de lead, a DM do próprio lead, o que acorda o CEO ali dentro sem avisar
+você. Quem te avisa é o cron do Dev, em até 15 minutos. Não conclua que o
+notificador falhou só porque a mensagem não chegou até você.
 
 ## Mudança de MCP ou contrato
 
