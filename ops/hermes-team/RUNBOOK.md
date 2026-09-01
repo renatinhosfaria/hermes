@@ -52,3 +52,29 @@ systemctl status hermes-whatsapp-healthcheck.timer --no-pager
    puder prestar o serviço e Renato autorizar o rollback temporário.
 6. Se o rollback remover o WhatsApp, desabilitar também
    `hermes-whatsapp-healthcheck.timer` para evitar alertas sem canal.
+
+
+## Por que nao existe manifesto de checksums
+
+Ate 2026-09-01 este diretorio guardava `DEPLOYED_SHA256SUMS`, um manifesto com
+o sha256 de cada arquivo operacional implantado. Ele foi removido, e o motivo
+importa mais que o arquivo.
+
+De 90 entradas, 65 falhavam e 2 apontavam para arquivos que nao existiam mais.
+Quarenta eram de arquivos volateis de runtime — `.update_check`, `cache/`,
+snapshots de prompt, contadores de uso — que mudam sozinhos entre uma execucao
+e outra. A primeira linha era o hash do proprio manifesto, capturado vazio, e
+portanto nunca poderia conferir. Nenhum script, gate ou passo de runbook o
+verificava: a unica referencia era uma captura unica num plano de 2026-08-24.
+
+Um controle que nunca pode passar nao e obedecido, e um que ninguem executa nao
+protege nada — mas quem o encontrasse suporia, com razao, que os arquivos
+implantados estavam protegidos por checksum. Essa suposicao era o unico efeito
+real que ele tinha.
+
+O que de fato registra integridade aqui e o git: `/root/.hermes` e um
+repositorio, e `git status` limpo com HEAD conhecido diz o que o manifesto
+tentava dizer, sobre o conjunto certo de arquivos. O que registra contrato e o
+`verify_team.py`, que verifica o conteudo que importa — `tools.include` exato,
+exposicao MCP por plataforma, marcadores obrigatorios e proibidos de cada SOUL
+e skill. Nenhum dos dois precisa de um terceiro registro pior.

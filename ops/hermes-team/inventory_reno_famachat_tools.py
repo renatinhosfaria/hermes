@@ -30,7 +30,18 @@ import yaml
 PROFILE = Path("/root/.hermes/profiles/reno")
 
 REQUIRED_BRAIN_TOOLS = ["conversation_recent", "conversation_search"]
-REQUIRED_WRITE_TOOLS = ["fc_post_appointments", "fc_post_clientes_by_id_notes"]
+REQUIRED_WRITE_TOOLS = [
+    "fc_patch_clientes_by_id",
+    "fc_post_appointments",
+    "fc_post_clientes_by_id_notes",
+]
+
+# A Amendment 2 entregou as transicoes de etapa ao Reno, e fc_patch_clientes_by_id
+# cai sob um prefixo proibido. A excecao e nominal: afrouxar o prefixo
+# autorizaria fc_patch_* inteiro. Precisa existir aqui e em verify_team.py com o
+# mesmo valor — se so o verificador conhecesse a excecao, regenerar o allowlist
+# removeria a ferramenta em silencio e o proximo verify passaria a falhar.
+AUTHORIZED_FORBIDDEN_PREFIX_TOOLS = frozenset({"fc_patch_clientes_by_id"})
 
 # Exact read tools, each selected from observed production use rather than
 # guessed, and each justified. Selection evidence: Reno's own message history
@@ -180,7 +191,10 @@ def main() -> int:
 
     read_tools = sorted(SELECTED_READ_TOOLS)
     for tool in read_tools + REQUIRED_WRITE_TOOLS:
-        if "*" in tool or tool.startswith(FORBIDDEN_PREFIXES):
+        if "*" in tool or (
+            tool.startswith(FORBIDDEN_PREFIXES)
+            and tool not in AUTHORIZED_FORBIDDEN_PREFIX_TOOLS
+        ):
             errors.append(f"ferramenta proibida selecionada: {tool}")
 
     if errors:
