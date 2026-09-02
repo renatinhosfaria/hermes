@@ -381,26 +381,6 @@ Esta consolidação é aceita quando:
 - o Git contém somente as mudanças documentais esperadas antes do commit;
 - nenhuma configuração, credencial, unit ou cartão foi alterado.
 
-### 14.1 Verificação automática da frota
-
-Um job de cron no Profile `dev` (`cc5de9593c71`, `*/15 * * * *`) executa
-`profiles/dev/scripts/fleet_state.sh` em modo monitor e entrega no canal
-Telegram do Dev. O script cobre units, `verify_team.py`, diagnóstico do Kanban,
-cartões bloqueados com `block_kind`, health do Baileys, estado do worktree e
-versão do Hermes.
-
-O modo monitor compara a saída **byte a byte** com a do último tick que acordou
-o agente: inalterada suprime o run inteiro — sem LLM, sem entrega, registrado
-como `no_change`; alterada injeta um diff unificado e o agente diagnostica.
-Medido: um run com mudança levou 21,2 s e produziu 2384 bytes; o run seguinte,
-sem mudança, levou 4,8 s e gravou 156 bytes.
-
-Duas consequências do “byte a byte” que o script respeita: nenhuma saída pode
-variar sozinha — não há uptime, pid ou timestamp, e tudo é ordenado — e o estado
-do Git é **binário** (`clean`/`dirty`, sem lista de arquivos), porque a lista
-mudaria a cada arquivo tocado e afogaria o sinal de saúde no ruído de
-desenvolvimento.
-
 ## 15. Próximas mudanças
 
 Qualquer evolução funcional — novo Profile, nova ferramenta MCP, mudança de

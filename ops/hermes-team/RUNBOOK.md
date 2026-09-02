@@ -20,8 +20,6 @@
   `gpt-5.6-luna-900k`, no máximo 4 simultâneos.
 - Guarda de instrução: `protected_instruction_files: true` em cinco Profiles e
   `false` no Dev, que mantém a instrução de todos.
-- Cron: job `cc5de9593c71` a cada 15 minutos no Dev, em modo monitor, entregando
-  no Telegram do Dev apenas quando o estado da frota muda.
 
 ## Contrato vigente
 
@@ -29,24 +27,9 @@ O desenho atual está em
 `docs/superpowers/specs/2026-09-01-hermes-equipe-multiagente-as-built-design.md`.
 Os documentos de 24/08 são históricos.
 
-## Verificação da frota
+## Verificação manual da frota
 
-Desde 2026-09-01 isso roda sozinho: o job `cc5de9593c71` executa
-`profiles/dev/scripts/fleet_state.sh` a cada 15 minutos e só fala quando algo
-muda. Silêncio é o estado saudável — não é sinal de que parou de rodar.
-
-Confirme que o job está vivo com `hermes -p dev cron list`. Para ver o estado
-agora, sem esperar o tick, rode o script direto:
-
-```bash
-/root/.hermes/profiles/dev/scripts/fleet_state.sh
-```
-
-Se editar esse script, rode-o duas vezes seguidas e compare o hash: a comparação
-do monitor é byte a byte, e qualquer valor que varie sozinho faz todo tick virar
-falso positivo.
-
-A verificação manual completa continua válida sob demanda:
+A verificação completa é executada sob demanda:
 
 ```bash
 /root/.hermes/ops/hermes-team/verify_team.py full

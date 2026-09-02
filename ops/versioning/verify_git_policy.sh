@@ -43,7 +43,6 @@ must_be_allowed=(
     profiles/famaagent/config.yaml
     profiles/famaagent/profile.yaml
     ops/versioning/verify_git_policy.sh
-    profiles/dev/scripts/fleet_state.sh
 )
 
 for path in "${must_be_allowed[@]}"; do
