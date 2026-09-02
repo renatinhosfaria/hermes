@@ -4,11 +4,8 @@ model:
   base_url: https://chatgpt.com/backend-api/codex
   reasoning_effort: high
   context_length: 900000
-auxiliary:
-  background_review:
-    enabled: true
-    provider: auto
-    timeout: 120
+toolsets:
+  - kanban
 database:
   journal_mode: wal
 runtime:
@@ -63,6 +60,11 @@ compression:
   idle_compact_after_seconds: 0
 prompt_caching:
   cache_ttl: 5m
+auxiliary:
+  background_review:
+    enabled: true
+    provider: auto
+    timeout: 120
 display:
   compact: false
   busy_input_mode: queue
@@ -73,15 +75,15 @@ display:
   streaming: true
   skin: default
   interim_assistant_messages: true
-  tool_progress: all
-  cleanup_progress: false
-  long_running_notifications: true
-  busy_ack_detail: true
   platforms:
     whatsapp:
       tool_progress: false
       long_running_notifications: false
       interim_assistant_messages: false
+  tool_progress: all
+  cleanup_progress: false
+  long_running_notifications: true
+  busy_ack_detail: true
 stt:
   enabled: false
   language: en
@@ -100,33 +102,47 @@ memory:
 delegation:
   max_iterations: 250
 skills:
-  creation_nudge_interval: 10
   guard_agent_created: true
   write_approval: false
   ledger: true
-telegram:
-  require_mention: false
-  allow_from: 8564576789
+  creation_nudge_interval: 10
 whatsapp:
   dm_policy: open
   group_policy: disabled
   session_path: /root/.hermes/platforms/whatsapp/session
   bridge_port: 3000
+telegram:
+  require_mention: false
+  allow_from: 8564576789
+approvals:
+  destructive_slash_confirm: false
+plugins:
+  enabled:
+    - brain-ceo-bridge
+    - fama-whatsapp-human-handover
+    - fama-kanban-channel-policy
+security:
+  protected_instruction_files: true
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md
 kanban:
-  orchestrator_profile: default
-  review_dispatch: false
-  dispatch_in_gateway: true
-  auto_decompose: false
   auto_subscribe_on_create: true
+  dispatch_in_gateway: true
+  review_dispatch: false
   dispatch_interval_seconds: 30
   failure_limit: 2
-  max_in_progress: 4
-  max_spawn: 2
-  max_in_progress_per_profile: 2
-  dispatch_stale_timeout_seconds: 3600
-  default_assignee: dev
   worker_log_rotate_bytes: 8388608
   worker_log_backup_count: 3
+  orchestrator_profile: default
+  default_assignee: dev
+  max_in_progress: 4
+  max_in_progress_per_profile: 2
+  auto_decompose: false
+  dispatch_stale_timeout_seconds: 3600
+  max_spawn: 2
 code_execution:
   timeout: 300
   max_tool_calls: 50
@@ -180,11 +196,6 @@ known_plugin_toolsets:
     - brain-context
   whatsapp:
     - brain-context
-plugins:
-  enabled:
-    - brain-ceo-bridge
-    - fama-whatsapp-human-handover
-    - fama-kanban-channel-policy
 platforms:
   telegram:
     enabled: true
@@ -195,17 +206,51 @@ platforms:
       thread_id: '1'
       user_id: '8564576789'
   whatsapp:
+    gateway_restart_notification: false
     extra:
       text_batch_delay_seconds: 30
       text_batch_split_delay_seconds: 30
-approvals:
-  destructive_slash_confirm: false
-toolsets:
-  - kanban
-security:
-  protected_instruction_files: true
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
+    enabled: true
+    home_channel:
+      platform: whatsapp
+      chat_id: 125301493366925@lid
+      name: Renato Faria
+      user_id: 125301493366925@lid
+
+# ── Security ──────────────────────────────────────────────────────────
+# Secret redaction is ON by default — strings that look like API keys,
+# tokens, and passwords are masked in tool output, logs, and chat
+# responses before the model or user ever sees them. Set redact_secrets
+# to false to disable (e.g. when developing the redactor itself).
+# tirith pre-exec scanning is enabled by default when the tirith binary
+# is available. Configure via security.tirith_* keys or env vars
+# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
+#
+# security:
+#   redact_secrets: true
+#   tirith_enabled: true
+#   tirith_path: "tirith"
+#   tirith_timeout: 5
+#   tirith_fail_open: true
+
+# ── Fallback Model ────────────────────────────────────────────────────
+# Automatic provider failover when primary is unavailable.
+# Uncomment and configure to enable. Triggers on rate limits (429),
+# overload (529), service errors (503), or connection failures.
+#
+# Supported providers:
+#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
+#   openai-codex (OAuth — hermes auth) — OpenAI Codex
+#   nous         (OAuth — hermes auth) — Nous Portal
+#   zai          (ZAI_API_KEY)         — Z.AI / GLM
+#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
+#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
+#   minimax      (MINIMAX_API_KEY)     — MiniMax
+#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
+#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
+#
+# For custom OpenAI-compatible endpoints, add base_url and key_env.
+#
+# fallback_model:
+#   provider: openrouter
+#   model: anthropic/claude-sonnet-4
