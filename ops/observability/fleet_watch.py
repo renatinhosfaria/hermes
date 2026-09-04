@@ -428,7 +428,11 @@ DEV_THREAD_ID = "1"
 INVESTIGATION_HOURLY_CAP = int(os.environ.get("FLEET_WATCH_INVESTIGATION_CAP", "3"))
 INVESTIGATION_MODEL = os.environ.get("FLEET_WATCH_MODEL", "gpt-5.6-luna-900k")
 INVESTIGATION_REASONING = os.environ.get("FLEET_WATCH_REASONING", "medium")
-INVESTIGATION_TIMEOUT = int(os.environ.get("FLEET_WATCH_INVESTIGATION_TIMEOUT", "600"))
+# 900s, nao 600: a primeira investigacao real levou 395s (66% do teto antigo).
+# Um incidente com mais sinais para correlacionar estouraria, e a mensagem
+# "nao consegui diagnosticar" e pior que esperar mais um minuto. O gasto segue
+# limitado pelo teto horario, nao pelo relogio.
+INVESTIGATION_TIMEOUT = int(os.environ.get("FLEET_WATCH_INVESTIGATION_TIMEOUT", "900"))
 HERMES_BIN = os.environ.get("FLEET_WATCH_HERMES_BIN", "/root/.local/bin/hermes")
 
 
@@ -554,11 +558,19 @@ def run_investigation(request_path: str) -> int:
         print(f"ERRO: pedido ilegivel: {e}", file=sys.stderr)
         return 1
 
+    relacionados = finding.get("related") or []
+    contexto = ""
+    if relacionados:
+        # Os irmaos do mesmo incidente entram como contexto, nao como
+        # investigacao separada: sao o mesmo evento visto de outro angulo.
+        contexto = ("outros achados da mesma area, provavelmente o mesmo "
+                    "incidente:\n" + "\n".join(f"- {m}" for m in relacionados) + "\n\n")
     prompt = (
         "O vigia da frota detectou um problema novo. Investigue e relate.\n\n"
         f"severity: {finding.get('severity')}\n"
         f"area: {finding.get('area')}\n"
         f"achado: {finding.get('message')}\n\n"
+        f"{contexto}"
         f"O relatorio completo esta em {REPORT_PATH} (ultima linha). "
         "Siga a skill fama-fleet-observer: leia o relatorio antes de rodar "
         "comandos, confirme antes de concluir, e nao altere nada. "
@@ -647,6 +659,32 @@ def run_check_ingested() -> int:
     return 0
 
 
+def group_for_investigation(to_alert: list[dict]) -> list[dict]:
+    """Um incidente costuma levantar varios achados na mesma area.
+
+    `spawn_failed` e `gave_up` sao o mesmo evento visto de dois angulos -- os
+    mesmos cartoes, a mesma causa. Acordar um agente para cada um gastava duas
+    vagas da cota horaria e devolvia duas mensagens quase iguais. Investiga-se
+    o mais severo de cada area, com os irmaos anexados como contexto; todas as
+    assinaturas do grupo sao marcadas como feitas, senao a sobra viraria uma
+    segunda investigacao na rodada seguinte.
+    """
+    ordem = {"critical": 0, "error": 1, "warning": 2}
+    por_area: dict[str, list[dict]] = {}
+    for f in to_alert:
+        por_area.setdefault(f["area"], []).append(f)
+
+    escolhidos = []
+    for achados in por_area.values():
+        achados.sort(key=lambda f: ordem.get(f["severity"], 9))
+        principal = dict(achados[0])
+        principal["_group_sigs"] = [f["sig"] for f in achados]
+        if len(achados) > 1:
+            principal["related"] = [f["message"] for f in achados[1:]]
+        escolhidos.append(principal)
+    return escolhidos
+
+
 def run_alerting(findings: list[dict]) -> None:
     """Alerta na FAILURE_STREAK-esima ocorrencia consecutiva, uma vez por
     assinatura, e avisa quando o problema some."""
@@ -682,16 +720,19 @@ def run_alerting(findings: list[dict]) -> None:
     if to_alert:
         investigations = load_state("investigations.json")
         feitas = investigations.setdefault("done", {})
-        for finding in to_alert:
-            sig = finding["sig"]
-            if sig in feitas:
+        agora = datetime.now(timezone.utc).isoformat()
+        for finding in group_for_investigation(to_alert):
+            grupo = finding.pop("_group_sigs", [finding["sig"]])
+            if all(sig in feitas for sig in grupo):
                 continue
             if investigation_slots_left(investigations) <= 0:
                 print(f"aviso: teto de {INVESTIGATION_HOURLY_CAP} investigacoes/hora "
-                      f"atingido; {sig} fica so com o alerta", file=sys.stderr)
+                      f"atingido; {finding['sig']} fica so com o alerta",
+                      file=sys.stderr)
                 break
             if request_investigation(finding):
-                feitas[sig] = datetime.now(timezone.utc).isoformat()
+                for sig in grupo:
+                    feitas[sig] = agora
                 investigations.setdefault("recent", []).append(now())
         save_state("investigations.json", investigations)
 
