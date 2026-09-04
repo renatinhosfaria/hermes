@@ -190,10 +190,13 @@ def check_kanban() -> list[dict]:
     if conn is None:
         return [finding("warning", "kanban", "kanban.db ilegivel", key="db")]
     try:
+        # started_at/ended_at sao epoch inteiro, nao texto: datetime() sobre
+        # eles nunca casa e a checagem devolvia zero em qualquer cenario --
+        # falso-negativo silencioso, que e pior do que nao ter a checagem.
         rows = conn.execute("""
             SELECT outcome, COUNT(*) AS n FROM task_runs
             WHERE outcome IN ('crashed','timed_out','gave_up','spawn_failed')
-              AND datetime(COALESCE(ended_at, started_at)) >= datetime('now','-1 day')
+              AND COALESCE(ended_at, started_at) >= strftime('%s','now') - 86400
             GROUP BY outcome
         """).fetchall()
         for r in rows:
