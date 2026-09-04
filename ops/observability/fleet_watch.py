@@ -16,6 +16,7 @@ Saida: um relatorio JSON no stdout. Exit 0 = tudo bem, 1 = ha achados.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -417,6 +418,16 @@ DEV_ENV = Path("/root/.hermes/profiles/dev/.env")
 DEV_CHAT_ID = "-1004365034436"
 DEV_THREAD_ID = "1"
 
+# Acordar o Dev custa tokens; alertar nao custa nada. Por isso o modelo so e
+# chamado para assinatura inedita, no maximo INVESTIGATION_HOURLY_CAP por hora,
+# e com o modelo leve. O monitor anterior desta frota foi removido depois de
+# queimar 3,5M de tokens em 22h justamente por acordar o agente a cada mudanca.
+INVESTIGATION_HOURLY_CAP = int(os.environ.get("FLEET_WATCH_INVESTIGATION_CAP", "3"))
+INVESTIGATION_MODEL = os.environ.get("FLEET_WATCH_MODEL", "gpt-5.6-luna-900k")
+INVESTIGATION_REASONING = os.environ.get("FLEET_WATCH_REASONING", "medium")
+INVESTIGATION_TIMEOUT = int(os.environ.get("FLEET_WATCH_INVESTIGATION_TIMEOUT", "600"))
+HERMES_BIN = os.environ.get("FLEET_WATCH_HERMES_BIN", "/root/.local/bin/hermes")
+
 
 def load_state(name: str) -> dict:
     try:
@@ -489,6 +500,150 @@ def send_telegram(text: str) -> bool:
     return ok
 
 
+def investigation_slots_left(state: dict) -> int:
+    """Quantas investigacoes ainda cabem na janela de uma hora."""
+    cutoff = now() - 3600
+    state["recent"] = [t for t in state.get("recent", []) if t > cutoff]
+    return max(0, INVESTIGATION_HOURLY_CAP - len(state["recent"]))
+
+
+def request_investigation(finding: dict) -> bool:
+    """Dispara a investigacao fora deste processo e volta na hora.
+
+    O vigia roda num oneshot com timeout curto e o timer nao pode ficar parado
+    esperando um agente. `systemd-run` cria uma unidade transitoria propria, com
+    teto de tempo e log no journal, entao a analise nao atrasa a proxima
+    varredura nem morre junto com o cgroup deste servico.
+    """
+    token = hashlib.sha256(finding["sig"].encode()).hexdigest()[:16]
+    request = STATE_DIR / f"investigate-{token}.json"
+    try:
+        STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        request.write_text(json.dumps(finding))
+        # systemd-run parte de um ambiente limpo, entao as sobrescritas
+        # FLEET_WATCH_* precisam ser repassadas explicitamente -- sem isto a
+        # investigacao ignora silenciosamente a configuracao do operador.
+        setenv = [f"--setenv={k}={v}" for k, v in os.environ.items()
+                  if k.startswith("FLEET_WATCH_")]
+        subprocess.run(
+            ["systemd-run", "--collect", "--quiet",
+             f"--unit=hermes-fleet-investigate-{token}",
+             f"--property=RuntimeMaxSec={INVESTIGATION_TIMEOUT + 60}",
+             *setenv,
+             str(Path(__file__).resolve()), "--investigate", str(request)],
+            check=True, capture_output=True, text=True, timeout=30,
+        )
+        return True
+    except Exception as e:
+        detail = getattr(e, "stderr", "") or str(e)
+        print(f"ERRO: nao consegui iniciar a investigacao: {str(detail)[:200]}",
+              file=sys.stderr)
+        request.unlink(missing_ok=True)
+        return False
+
+
+def run_investigation(request_path: str) -> int:
+    """Modo `--investigate`: pede o diagnostico ao Dev e entrega o resultado."""
+    path = Path(request_path)
+    try:
+        finding = json.loads(path.read_text())
+    except Exception as e:
+        print(f"ERRO: pedido ilegivel: {e}", file=sys.stderr)
+        return 1
+
+    prompt = (
+        "O vigia da frota detectou um problema novo. Investigue e relate.\n\n"
+        f"severity: {finding.get('severity')}\n"
+        f"area: {finding.get('area')}\n"
+        f"achado: {finding.get('message')}\n\n"
+        f"O relatorio completo esta em {REPORT_PATH} (ultima linha). "
+        "Siga a skill fama-fleet-observer: leia o relatorio antes de rodar "
+        "comandos, confirme antes de concluir, e nao altere nada. "
+        "Responda no formato de relato da skill, em pt-BR."
+    )
+    saida = ""
+    try:
+        result = subprocess.run(
+            [HERMES_BIN, "-p", "dev", "chat", "-Q", "-q", prompt,
+             "-s", "fama-fleet-observer",
+             "-m", INVESTIGATION_MODEL, "--reasoning", INVESTIGATION_REASONING],
+            capture_output=True, text=True, timeout=INVESTIGATION_TIMEOUT,
+        )
+        saida = (result.stdout or "").strip()
+    except subprocess.TimeoutExpired:
+        print("ERRO: investigacao estourou o tempo", file=sys.stderr)
+    except Exception as e:
+        print(f"ERRO: investigacao falhou: {type(e).__name__}: {e}", file=sys.stderr)
+    finally:
+        path.unlink(missing_ok=True)
+
+    # A primeira linha do -Q e o session_id, ruido para quem le no Telegram.
+    corpo = "\n".join(
+        l for l in saida.splitlines() if not l.startswith("session_id:")
+    ).strip()
+    if not corpo:
+        send_telegram(
+            f"🔎 Dev nao conseguiu diagnosticar: {finding.get('area')} — "
+            f"{finding.get('message')}\n\n"
+            "Sem saida do agente. Ver `journalctl -u hermes-fleet-investigate-*`."
+        )
+        return 1
+    # Telegram corta em 4096; a margem cobre o cabecalho.
+    send_telegram(f"🔎 Diagnostico do Dev — {finding.get('area')}\n\n{corpo[:3500]}")
+    return 0
+
+
+def run_check_ingested() -> int:
+    """Modo `--check-ingested`: a fila do observer esta presa, ou so mal varrida?
+
+    Existe como sub-rotina, e nao como receita na skill, por dois motivos: o
+    `sqlite3` de linha de comando nao esta instalado, e o scanner de seguranca
+    do Dev recusa invocacao de interpretador com codigo embutido. Alem disso a
+    licao vira ferramenta: um evento parado na fila pode ja estar gravado no
+    Brain, e confundir as duas coisas custou horas de investigacao.
+    """
+    outbox = Path(os.environ.get(
+        "FLEET_WATCH_OUTBOX_DIR", "/var/lib/brain/whatsapp-observer/outbox"))
+    files = sorted(outbox.glob("*.json"))
+    if not files:
+        print("fila vazia: nenhum evento preso")
+        return 0
+
+    conn = ro_connect(Path("/var/lib/brain/runtime/brain-runtime.db"))
+    if conn is None:
+        print("ERRO: brain-runtime.db ilegivel", file=sys.stderr)
+        return 1
+    ausentes = 0
+    try:
+        for f in files:
+            try:
+                ev = json.loads(f.read_text())["event"]
+            except Exception as e:
+                print(f"ILEGIVEL  {f.name}: {type(e).__name__}")
+                ausentes += 1
+                continue
+            n = conn.execute(
+                "SELECT COUNT(*) FROM transport_events WHERE event_id = ?",
+                (ev["event_id"],),
+            ).fetchone()[0]
+            idade = (now() - json.loads(f.read_text()).get("spooled_at", now())) / 3600
+            if not n:
+                ausentes += 1
+            print(f"{'JA SALVO ' if n else 'AUSENTE  '} {ev['event_id'][:28]}… "
+                  f"kind={ev.get('transport_kind')} ha={idade:.1f}h")
+    finally:
+        conn.close()
+
+    print()
+    if ausentes:
+        print(f"{ausentes} de {len(files)} AUSENTES no Brain: ha risco de perda, "
+              "e a fila esta de fato presa.")
+    else:
+        print(f"Todos os {len(files)} eventos ja estao no Brain: sao duplicatas, "
+              "nao ha perda de dado. A fila esta mal varrida, nao entupida.")
+    return 0
+
+
 def run_alerting(findings: list[dict]) -> None:
     """Alerta na FAILURE_STREAK-esima ocorrencia consecutiva, uma vez por
     assinatura, e avisa quando o problema some."""
@@ -519,6 +674,24 @@ def run_alerting(findings: list[dict]) -> None:
             for sig in recovered:
                 alerted.pop(sig, None)
 
+    # So investiga o que acabou de virar alerta: problema ja conhecido nao
+    # merece um agente de novo, e recorrencia nao e informacao nova.
+    if to_alert:
+        investigations = load_state("investigations.json")
+        feitas = investigations.setdefault("done", {})
+        for finding in to_alert:
+            sig = finding["sig"]
+            if sig in feitas:
+                continue
+            if investigation_slots_left(investigations) <= 0:
+                print(f"aviso: teto de {INVESTIGATION_HOURLY_CAP} investigacoes/hora "
+                      f"atingido; {sig} fica so com o alerta", file=sys.stderr)
+                break
+            if request_investigation(finding):
+                feitas[sig] = datetime.now(timezone.utc).isoformat()
+                investigations.setdefault("recent", []).append(now())
+        save_state("investigations.json", investigations)
+
     save_state("streaks.json", new_streaks)
     save_state("alerted.json", alerted)
 
@@ -530,6 +703,11 @@ REPORT_PATH = Path(os.environ.get(
 
 
 def main() -> int:
+    if "--investigate" in sys.argv:
+        return run_investigation(sys.argv[sys.argv.index("--investigate") + 1])
+    if "--check-ingested" in sys.argv:
+        return run_check_ingested()
+
     started = now()
     findings: list[dict] = []
     raw: dict = {}
