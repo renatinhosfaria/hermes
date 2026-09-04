@@ -43,6 +43,7 @@ must_be_allowed=(
     profiles/famaagent/config.yaml
     profiles/famaagent/profile.yaml
     ops/versioning/verify_git_policy.sh
+    ops/observability/fleet_watch.py
 )
 
 for path in "${must_be_allowed[@]}"; do
