@@ -43,7 +43,7 @@ toolsets:
   - clarify
   - cronjob
   - delegation
-_config_version: 40
+_config_version: 41
 onboarding:
   seen:
     profile_build_offered: true

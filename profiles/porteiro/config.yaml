@@ -35,7 +35,7 @@ platforms:
       name: Porteiro
       thread_id: '1'
       user_id: '8564576789'
-_config_version: 40
+_config_version: 41
 onboarding:
   seen:
     profile_build_offered: true
