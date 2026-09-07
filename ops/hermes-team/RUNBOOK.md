@@ -18,14 +18,46 @@
   `verify_team.py`; não são expostos nos canais Telegram dos workers.
 - Delegação: somente o Dev tem o toolset `delegation`; filhos em
   `gpt-5.6-luna-900k`, no máximo 4 simultâneos.
-- Guarda de instrução: `protected_instruction_files: true` em cinco Profiles e
-  `false` no Dev, que mantém a instrução de todos.
+- Manutenção pelo Telegram: todos os Profiles têm terminal, edição de arquivos
+  e skills para executar pedidos explícitos do operador sobre o próprio Profile.
+- Guarda de instrução: `protected_instruction_files: false` e
+  `skills.write_approval: false` nos seis Profiles, por decisão do operador em
+  07/09. As demais aprovações do runtime continuam vigentes.
+
+## Manutenção pelo bot Telegram — 07/09/2026
+
+O operador pode pedir ao bot de qualquer Profile que altere sua configuração,
+instruções, comportamento ou skills. A identidade deve vir dos metadados do
+Telegram e corresponder a `telegram.allow_from`. O Profile executa e responde
+diretamente; não exige atendimento em andamento nem encaminha ao Dev. Para a
+manutenção própria, o CEO também está dispensado de delegação e cartão Kanban.
+
+Para runtime, use `hermes -p <profile> config set <chave> <valor>` e confira com
+`config get` e `config check`; no CEO, use `hermes -p default config`. O bloqueio do core
+contra escrever o próprio `config.yaml` com `write_file`/`patch` permanece.
+Instruções e outros arquivos textuais podem ser editados com `patch`/`write_file`.
+Recusas ou aprovações das ferramentas continuam sendo respeitadas.
+
+Nos quatro especialistas, somente `platform_toolsets.telegram` ganhou
+`terminal`, `file` e `skills`. MCPs, capacidades de atendimento do CLI e do
+WhatsApp, allowlists e credenciais foram preservados. O Dev mantém seu escopo
+de manutenção dos demais Profiles quando o alvo estiver declarado na tarefa.
+Credenciais, bancos de estado, sessões de plataforma e instalação do Hermes
+não fazem parte da manutenção própria autorizada.
+
+Instruções já montadas ficam em cache por conversa e podem sobreviver ao
+reinício do gateway. Para aplicar uma mudança às conversas existentes em uma
+manutenção planejada, renove somente o snapshot de instruções das sessões
+Telegram selecionadas com a API `SessionDB.update_system_prompt(id, None)` e
+garanta que não reste agente em memória com o prompt anterior. Isso preserva
+mensagens, histórico e roteamento; não use reset nem apague sessões para isso.
 
 ## Contrato vigente
 
 O desenho atual está em
 `docs/superpowers/specs/2026-09-01-hermes-equipe-multiagente-as-built-design.md`.
 Os documentos de 24/08 são históricos.
+O modo de manutenção pelo Telegram descrito acima atualiza a política de 01/09.
 
 ## Verificação manual da frota
 

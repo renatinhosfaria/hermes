@@ -12,6 +12,7 @@ import yaml
 
 from hermes_cli.tools_config import _get_platform_tools, enabled_mcp_server_names
 from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+from toolsets import resolve_multiple_toolsets
 
 ROOT = Path("/root/.hermes")
 EXPECTED_NAMED = {"porteiro", "cadastro", "famaagent", "reno", "dev"}
@@ -24,19 +25,19 @@ EXPECTED_PLATFORM_TOOLSETS = {
         "cli": ["hermes-cli"],
     },
     "porteiro": {
-        "telegram": ["clarify", "no_mcp"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
         "cli": ["clarify", "brain", "famachat"],
     },
     "cadastro": {
-        "telegram": ["clarify", "no_mcp"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
         "cli": ["clarify", "brain", "famachat"],
     },
     "famaagent": {
-        "telegram": ["clarify", "no_mcp"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
         "cli": ["clarify", "brain"],
     },
     "reno": {
-        "telegram": ["clarify", "no_mcp"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
         "cli": ["clarify", "brain", "famachat"],
     },
     "dev": {
@@ -234,23 +235,9 @@ EXPECTED_MCP_EXPOSURE = {
     "dev": {"cli": set(), "telegram": set()},
 }
 
-# Hermes 0.21.0. security.protected_instruction_files ja e default True; fixar
-# no config impede que uma mudanca futura de default afrouxe em silencio. Os
-# extra_patterns estendem a protecao a superficie de instrucao desta
-# instalacao, que o Hermes nao conhece. Sao fnmatch sobre o BASENAME.
-# Limite conhecido: a guarda vive em write_file/patch (tools/file_tools.py),
-# entao terminal (`sed -i`) contorna. Protege o caminho padrao, nao o disco.
-EXPECTED_PROTECTED_PATTERNS = ["SKILL.md", "profile.yaml", "config.yaml", ".hermes.md"]
-
-# O Dev e a excecao deliberada (decisao do operador, 01/09): ele mantem o
-# ecossistema de TODOS os Profiles, entao precisa escrever SOUL.md e config.yaml
-# alheios — que a guarda bloquearia. Nos outros cinco ela fica ligada, e o que
-# ela entrega de fato e isolamento ENTRE Profiles: nenhum deles mexe na
-# instrucao de outro. Ela nunca impediu um Profile de reescrever a PROPRIA
-# instrucao — file_tools.py:812 isenta explicitamente tudo sob o HERMES_HOME
-# ativo, porque a guarda foi desenhada para arquivos de projeto, nao para a
-# casa do Hermes. Verificado na pratica em 01/09, nao deduzido.
-PROFILES_WITHOUT_INSTRUCTION_GUARD = {"dev"}
+# Decisao do operador em 07/09: todos mantem o proprio profile pelo Telegram.
+# config.yaml usa o CLI nativo; o bloqueio de write_file/patch continua no core.
+TELEGRAM_MAINTENANCE_TOOLS = {"terminal", "read_file", "write_file", "patch", "skill_manage"}
 
 # O reload automatico de MCP reconstroi a superficie de ferramentas e invalida
 # o prompt cache. Com context_length 900000 e reasoning_effort xhigh isso e
@@ -373,31 +360,25 @@ def main() -> int:
         config = read_yaml(profile_home / "config.yaml")
         configs[name] = config
 
-        # Hermes 0.21.0 — protecao de arquivos de instrucao, fixada e estendida.
+        # Manutencao propria autorizada pelo operador nos seis bots Telegram.
         security_cfg = config.get("security") or {}
-        if name in PROFILES_WITHOUT_INSTRUCTION_GUARD:
-            check(
-                security_cfg.get("protected_instruction_files") is False,
-                f"{name}: security.protected_instruction_files deve ser false "
-                f"(mantenedor do ecossistema) — esta "
-                f"{security_cfg.get('protected_instruction_files')!r}",
-                errors,
-            )
-        else:
-            check(
-                security_cfg.get("protected_instruction_files") is True,
-                f"{name}: security.protected_instruction_files deve ser true "
-                f"(esta {security_cfg.get('protected_instruction_files')!r})",
-                errors,
-            )
-            check(
-                security_cfg.get("protected_instruction_extra_patterns")
-                == EXPECTED_PROTECTED_PATTERNS,
-                f"{name}: security.protected_instruction_extra_patterns "
-                f"incorreto: "
-                f"{security_cfg.get('protected_instruction_extra_patterns')!r}",
-                errors,
-            )
+        check(
+            security_cfg.get("protected_instruction_files") is False,
+            f"{name}: guarda de instrucao deve permitir manutencao autorizada",
+            errors,
+        )
+        check(
+            (config.get("skills") or {}).get("write_approval") is False,
+            f"{name}: escrita de skills deve aceitar a autorizacao de manutencao",
+            errors,
+        )
+        telegram_tools = set(resolve_multiple_toolsets(list(resolve_platform(config, name, "telegram"))))
+        missing = TELEGRAM_MAINTENANCE_TOOLS - telegram_tools
+        check(not missing, f"{name}/telegram: faltam ferramentas de manutencao {sorted(missing)}", errors)
+        if name != "dev":
+            whatsapp_tools = set(resolve_multiple_toolsets(list(resolve_platform(config, name, "whatsapp"))))
+            exposed = {"terminal", "write_file", "patch"} & whatsapp_tools
+            check(not exposed, f"{name}/whatsapp: manutencao exposta indevidamente {sorted(exposed)}", errors)
 
         # Reload automatico de MCP desligado onde ha MCP (custo de prompt cache).
         mcp_cfg = config.get("mcp") or {}

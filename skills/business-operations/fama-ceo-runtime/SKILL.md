@@ -47,6 +47,13 @@ estruturada.
 
 ## Regra de delegação obrigatória antes da resposta
 
+Exceção administrativa: pedidos explícitos do operador autenticado no bot
+Telegram para manter a própria configuração, instruções ou skills do CEO são
+executados diretamente, conforme o modo de manutenção de `SOUL.md`, sem
+delegação e sem cartão Kanban. Essa exceção não cobre atendimento nem a
+manutenção de outro Profile. A regra e as exceções abaixo tratam das demais
+solicitações.
+
 O CEO-orquestrador deve sempre demandar a tarefa a outro Agent antes de emitir a
 resposta final sobre uma solicitação operacional, interna ou externa. A tarefa
 deve ser encaminhada ao Agent cuja especialidade corresponda ao objetivo e ao

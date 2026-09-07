@@ -122,7 +122,7 @@ plugins:
     - fama-whatsapp-human-handover
     - fama-kanban-channel-policy
 security:
-  protected_instruction_files: true
+  protected_instruction_files: false
   protected_instruction_extra_patterns:
     - SKILL.md
     - profile.yaml

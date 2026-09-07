@@ -86,6 +86,9 @@ platform_toolsets:
   telegram:
     - clarify
     - no_mcp
+    - terminal
+    - file
+    - skills
   cli:
     - clarify
     - brain
@@ -94,7 +97,7 @@ platform_toolsets:
     - clarify
     - no_mcp
 security:
-  protected_instruction_files: true
+  protected_instruction_files: false
   protected_instruction_extra_patterns:
     - SKILL.md
     - profile.yaml

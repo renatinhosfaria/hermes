@@ -52,6 +52,9 @@ platform_toolsets:
   telegram:
     - clarify
     - no_mcp
+    - terminal
+    - file
+    - skills
   whatsapp:
     - clarify
     - no_mcp
@@ -81,7 +84,7 @@ mcp_servers:
     resources: false
     prompts: false
 security:
-  protected_instruction_files: true
+  protected_instruction_files: false
   protected_instruction_extra_patterns:
     - SKILL.md
     - profile.yaml
