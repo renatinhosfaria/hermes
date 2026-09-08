@@ -11,6 +11,10 @@
 - [x] Alinhar SOUL e skill como referência das novas chamadas e respostas; manter limites de negócio, modo sintético e ausência de atendimento externo.
 - [x] Revisão independente de código e aplicação das instruções a cenários sintéticos.
 - [x] Validar integração usando dispatcher Hermes real e replay local de ferramentas históricas, sem chamadas de escrita externas.
-- [ ] Integrar e ativar apenas para próximos workers Cadastro; conferir plugin/configuração e registrar evidência sem PII.
+- [x] Integrar e ativar apenas para próximos workers Cadastro; conferir plugin/configuração e registrar evidência sem PII.
+
+Resultado: código integrado no commit 752f46b. Ativação e configuração confirmadas
+em 2026-09-08 às 17:20 BRT. Evidências em
+`ops/plugins/fama-cadastro-guard/VERIFICATION.md`.
 
 Critérios: país/pontuação/nono dígito permitidos; DDD e demais dígitos precisam coincidir. Um cliente Reno não arquivado impede criação; múltiplos clientes Reno exigem conferência. Busca incompleta/erro nunca prova ausência. Um POST por execução; readback exige ID, telefone, broker35 e Sem Atendimento. Handoff não depende de contagens fornecidas pelo modelo. Consulta de página cheia precisa prosseguir até página curta; pagination.total não é total da base. Sem evidência, saída INCONCLUSIVO. Não se promete impedir concorrência entre workers distintos nem falhas no carregamento de plugins do core; validar carregamento e documentar esses limites.
