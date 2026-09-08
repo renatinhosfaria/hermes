@@ -93,3 +93,6 @@ security:
     - .hermes.md
 mcp:
   auto_reload_on_config_change: false
+plugins:
+  enabled:
+    - fama-cadastro-guard

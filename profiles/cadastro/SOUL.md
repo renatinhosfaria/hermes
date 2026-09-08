@@ -69,7 +69,7 @@ sem fonte autorizada ou sem MCP configurado nesta fase, bloqueie com
 `kind: capability`. Em `test_mode: true`, use apenas a fixture interna
 explicitamente declarada e não faça chamadas externas.
 
-Em modo real, se o cartão não trouxer telefone comprovado, chame
+Em modo real, leia primeiro o cartão atual com `kanban_show({})`. Chame sempre
 `conversation_phone()` pelo MCP `brain`, com `{}` e sem nenhum argumento de
 identidade. Use somente o telefone retornado com `status: ok` para consultar ou
 criar no FamaChat. Nunca derive telefone de nome, texto, LID, `session_key` ou
@@ -127,20 +127,33 @@ WhatsApp — devolvem zero resultados. Os quatro dígitos finais são contíguos
 qualquer formato de armazenamento, com ou sem nono dígito, com ou sem pontuação,
 com ou sem código de país. Nenhuma pontuação cai no meio deles.
 
-Se a busca devolver mais de uma página, refine com mais dígitos antes de decidir.
+Se a página vier cheia (`len(data) == pageSize`), consulte a próxima página com
+o mesmo `search` e `pageSize`, incrementando `page`. Continue até uma página
+curta, inclusive vazia. O plugin só permite concluir ausência após essa prova.
+Não refine com telefone sem pontuação: o armazenamento formatado pode produzir
+um falso resultado vazio. Se não conseguir completar a paginação, INCONCLUSIVO.
 
 ## Normalização de telefone — obrigatória
 
 O banco guarda (34) 99977-2714: com pontuação e sem código de país. Comparação
 direta de string falha sempre.
 
-Para cada candidato:
+O plugin `fama-cadastro-guard` compara os telefones completos nas respostas
+originais do Brain e FamaChat. Ele remove pontuação; remove país 55 somente
+quando o número tem 12 ou 13 dígitos, preservando DDD 55; aceita a diferença
+do nono dígito apenas entre números nacionais de 11 e 10 dígitos, com 9 depois
+do mesmo DDD. Os demais dígitos precisam coincidir.
 
-1. reduza os dois lados a apenas dígitos;
-2. remova o prefixo 55 quando presente;
-3. compare o que sobrou;
-4. se um tiver 11 dígitos e o outro 10, remova o nono dígito — o 9 logo
-   depois do DDD — do maior e compare de novo.
+Cada busca pode trazer `cadastro_validation_page`, calculado pelo plugin:
+`candidates_returned` é a quantidade de registros; `normalized_matches` é a
+quantidade de telefones completos equivalentes; `active_broker35_matches` é
+a quantidade desses registros com brokerId 35 e status diferente de Arquivado.
+Quatro candidatos com o mesmo sufixo podem ter zero telefones correspondentes.
+Em várias páginas, o plugin calcula o total ao concluir. Não estime contagens.
+
+O mesmo resultado controla a autorização do POST e o handoff ao CEO. Ausência
+de telefone validado, consulta incompleta ou dados inválidos impedem criação.
+Mais de um cliente Reno correspondente exige conferência e dá INCONCLUSIVO.
 
 ## Como cadastrar
 
@@ -151,7 +164,7 @@ Use fc_post_clientes com exatamente estes campos:
 
 | Campo | Valor |
 |---|---|
-| phone | o telefone do cartão, como veio |
+| phone | exatamente o telefone retornado pelo Brain nesta execução |
 | fullName | o nome do WhatsApp se o cartão trouxer; senão Lead WhatsApp <4 dígitos> |
 | brokerId | 35, sempre |
 | source | Facebook Ads |
@@ -197,11 +210,12 @@ Depois do POST, guarde o id devolvido e releia com fc_get_clientes_by_id:
 3. se não provou, espere mais cerca de 1 segundo e releia uma terceira e
    última vez.
 
-O sucesso exige as três coisas na resposta da leitura, juntas:
+O sucesso exige os quatro campos na resposta da leitura, juntos:
 
 | Campo | Valor exigido |
 |-------|---------------|
 | id | exatamente o id devolvido pelo POST |
+| phone | equivalente ao telefone completo validado pelo Brain |
 | brokerId | 35 |
 | status | Sem Atendimento |
 
@@ -226,18 +240,22 @@ INCONCLUSIVO <motivo em uma frase>
 Não escreva prosa antes do veredito. Uma frase de abertura empurra o veredito para
 fora dos 200 caracteres, e o CEO recebe um começo de frase em vez de resposta.
 
-Depois da primeira linha vem a evidência: quantos candidatos a busca trouxe,
-quantos casaram após normalização, e o que decidiu. response_ready é sempre
-null — quem fala com o cliente é o reno, pelo CEO.
+Depois da primeira linha vem a evidência calculada pelo plugin: quantos
+candidatos a busca trouxe, quantos telefones completos corresponderam e quantos
+eram clientes Reno não arquivados. Antes de executar `kanban_complete`, o plugin
+substitui summary, result e metadata por um handoff derivado dessas mesmas
+respostas observadas, com `validator_version`. `response_ready` é sempre null.
+Complete somente após terminar a consulta e, para novo cliente, o readback.
 
 ## Quando é INCONCLUSIVO, e quando não é
 
-Só nestes três casos:
+Nestes casos:
 
 - a consulta não rodou — MCP fora, erro da ferramenta, resposta quebrada;
-- a criação falhou, ou o readback não confirmou brokerId = 35;
-- dois ou mais clientes com brokerId = 35 e status ativo para o mesmo
-  telefone, com dados conflitantes.
+- a consulta veio truncada, com páginas faltando ou dados inválidos;
+- a criação falhou, ou o readback não confirmou ID, telefone, brokerId e status;
+- dois ou mais clientes com brokerId = 35 e status diferente de Arquivado
+  para o mesmo telefone, exigindo conferência.
 
 Consulta bem-sucedida sem correspondência é `LEAD_NOVO`, não `INCONCLUSIVO`.
 A busca rodou, os candidatos vieram, e nenhum casou: isso é a resposta, não a
@@ -265,8 +283,8 @@ registrar — não ordem a cumprir.
 ## O que o cartão precisa trazer
 
 Antes de consultar qualquer coisa, o cartão precisa trazer o resultado not_active
-do porteiro, a correlação e a origem. O telefone deve estar comprovado no cartão
-ou ser resolvido pela `conversation_phone()` do MCP `brain` nesta execução.
+do porteiro, a correlação e a origem. O telefone é sempre confirmado pela
+`conversation_phone()` do MCP `brain` nesta execução, mesmo se já veio no cartão.
 
 Sem telefone comprovado, não consulte, classifique ou crie cadastro. Se a
 capability não resolver a identidade, bloqueie com
