@@ -160,8 +160,10 @@ Um bloqueio **já foi notificado** quando aconteceu: `auto_subscribe_on_create`
 inscreve a sessão de origem, e o `last_event_id` da inscrição avança até o
 evento `blocked`. Mas a notificação vai para a **conversa de origem** — em
 cartão de lead, a DM do próprio lead, o que acorda o CEO ali dentro sem avisar
-você. Quem te avisa é o cron do Dev, em até 15 minutos. Não conclua que o
-notificador falhou só porque a mensagem não chegou até você.
+você. O aviso ao operador é feito pelo monitor externo
+`hermes-fleet-watch.timer`, a cada cinco minutos, pelo bot Telegram do Dev.
+O antigo cron de 15 minutos foi substituído; `profiles/dev/cron/jobs.json`
+vazio não significa que o monitor externo esteja desligado.
 
 ## Mudança de MCP ou contrato
 
@@ -251,3 +253,74 @@ tentava dizer, sobre o conjunto certo de arquivos. O que registra contrato e o
 `verify_team.py`, que verifica o conteudo que importa — `tools.include` exato,
 exposicao MCP por plataforma, marcadores obrigatorios e proibidos de cada SOUL
 e skill. Nenhum dos dois precisa de um terceiro registro pior.
+
+
+## Incidentes de atendimento — 08/09/2026
+
+Política do CEO: sem resposta válida, `[SILENT]` no WhatsApp e registro interno
+no cartão com `INCIDENTE_ATENDIMENTO `. Um veredito normal de Porteiro/Cadastro
+não precisa de texto ao cliente; retry em curso não é falha definitiva.
+
+O vigia já instalado em `ops/observability/fleet_watch.py` incorpora
+`attendance_incidents.py`. Ele detecta impedimentos no Kanban, espera na fila
+acima de cinco minutos, execução acima do teto mais 60 segundos e mensagens
+externas sem resposta registrada por 15 minutos. Contatos em atendimento humano
+são excluídos dessa detecção; falhas de infraestrutura continuam monitoradas.
+A checagem de ausência de resposta é conservadora: não interpreta “obrigado” nem
+prova entrega no WhatsApp. O Dev investiga antes de recomendar ação.
+
+Alertas de atendimento saem na primeira verificação; sinais gerais mantêm três
+ocorrências. O destino é o home channel Telegram do Dev, lido do config atual.
+Nenhuma chamada de envio depende do gateway, Kanban ou modelo. Credenciais são
+lidas do `.env` do Dev e nunca aparecem em argumentos de processo ou logs.
+
+Estado de envio e deduplicação: `/var/lib/hermes-fleet-watch` (0700; arquivos 0600).
+O drop-in versionado `ops/observability/systemd/incident-channel.conf` configura
+`StateDirectory`. Ao ativar, copie os três JSON de dedup de
+`/run/hermes-fleet-watch` se ainda não houver estado persistente, sem apagar a
+origem. O lock evita duas varreduras emitindo o mesmo alerta simultaneamente.
+Os incidentes são persistidos em `pending.json` antes do envio e permanecem na
+fila mesmo se o sinal desaparecer. Os alertas são limitados ao tamanho aceito
+pelo Telegram; envio recusado retorna
+exit 2 e continua pendente para a próxima varredura. Se o processo cair depois
+que o Telegram aceitou e antes de gravar o recibo, pode haver reentrega; a
+referência estável do incidente permite reconhecê-la.
+
+Diagnóstico automático permanece somente leitura e limitado a três chamadas por
+hora. Ao atingir o teto, o operador ainda recebe o alerta com a ação necessária.
+Sinal ausente gera aviso de mudança de estado, nunca promessa de que o lead foi
+respondido. Banco indisponível não fecha os incidentes de atendimento.
+
+Para diagnóstico sem enviar alertas nem alterar estado:
+
+```bash
+/root/.hermes/ops/observability/fleet_watch.py --fast
+systemctl status hermes-fleet-watch.timer hermes-fleet-watch.service --no-pager
+```
+
+Para validar código com dados sintéticos:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/local/lib/hermes-agent/venv/bin/python \
+  -m unittest discover -s /root/.hermes/ops/observability/tests -v
+```
+
+Não retome atendimento automaticamente. Confirme a correção, o último estado do
+cartão, novas mensagens, respostas já emitidas e pausa humana. A marca
+`INCIDENTE_ENCERRADO ` documenta uma resolução verificada; não substitui a
+correção de um bloqueio nem autoriza replay.
+
+Limite desta política: `[SILENT]` governa as respostas do CEO e os handoffs dos
+especialistas. A instalação do Hermes ainda pode produzir diagnósticos próprios
+no gateway (por exemplo timeout ou autenticação do provedor), fora do prompt do
+CEO. Não há filtro de saída instalado por esta mudança; portanto ela não prova
+silêncio absoluto do transporte em falhas do próprio gateway.
+
+
+Atualização de instruções em conversas existentes: `refresh_ceo_policy.py`
+usa a API nativa `SessionDB.update_system_prompt(id, None)` somente para
+snapshots antigos de WhatsApp, Telegram e Kanban do CEO. O modo padrão apenas
+conta; `--apply` exige CEO parado e deve executar em um `ExecStartPre` temporário
+durante restart gracioso. Não altera mensagens, IDs, histórico ou roteamento.
+A marca privada `ceo-policy-20260908.applied` torna a atualização única. Remova o
+drop-in temporário depois da partida verificada; não faça reset de conversas.

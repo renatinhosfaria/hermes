@@ -8,7 +8,7 @@ Hermes proibe vigiar o gateway de dentro dele mesmo:
    is down, use OS-level cron"      -- guides/cron-script-only.md
   "Don't alert the gateway about itself"  -- guides/pipe-script-output.md
 
-Por isso: toda leitura e read-only, o alerta sai por curl direto na API do
+Por isso: toda leitura e read-only, o alerta sai diretamente na API do
 Telegram (nunca `hermes send`), e nenhum banco vivo e aberto para escrita.
 
 Saida: um relatorio JSON no stdout. Exit 0 = tudo bem, 1 = ha achados.
@@ -17,6 +17,7 @@ Saida: um relatorio JSON no stdout. Exit 0 = tudo bem, 1 = ha achados.
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import json
 import os
 import sqlite3
@@ -25,6 +26,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
+
+from attendance_incidents import detect as detect_attendance
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -236,7 +239,7 @@ def check_queues() -> list[dict]:
         try:
             rows = conn.execute("""
                 SELECT state, COUNT(*) AS n,
-                       MAX(strftime('%s','now') - strftime('%s', created_at)) AS age
+                       MAX(strftime('%s','now') - created_at) AS age
                 FROM delivery_obligations
                 WHERE state IN ('pending','attempting','failed','abandoned')
                 GROUP BY state
@@ -415,11 +418,10 @@ def check_integrity() -> list[dict]:
 
 # ---------------------------------------------------------------- alerta
 
-STATE_DIR = Path(os.environ.get("FLEET_WATCH_STATE_DIR", "/run/hermes-fleet-watch"))
+STATE_DIR = Path(os.environ.get("FLEET_WATCH_STATE_DIR", "/var/lib/hermes-fleet-watch"))
 FAILURE_STREAK = int(os.environ.get("FLEET_WATCH_STREAK", "3"))
 DEV_ENV = Path("/root/.hermes/profiles/dev/.env")
-DEV_CHAT_ID = "-1004365034436"
-DEV_THREAD_ID = "1"
+DEV_CONFIG = Path("/root/.hermes/profiles/dev/config.yaml")
 
 # Acordar o Dev custa tokens; alertar nao custa nada. Por isso o modelo so e
 # chamado para assinatura inedita, no maximo INVESTIGATION_HOURLY_CAP por hora,
@@ -438,19 +440,28 @@ HERMES_BIN = os.environ.get("FLEET_WATCH_HERMES_BIN", "/root/.local/bin/hermes")
 
 def load_state(name: str) -> dict:
     try:
-        return json.loads((STATE_DIR / name).read_text())
-    except Exception:
+        data = json.loads((STATE_DIR / name).read_text())
+    except FileNotFoundError:
         return {}
+    if not isinstance(data, dict):
+        raise ValueError("invalid watcher state")
+    return data
 
 
 def save_state(name: str, data: dict) -> None:
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    tmp = STATE_DIR / f".{name}.{os.getpid()}.tmp"
+    with tmp.open("w") as fh:
+        os.chmod(tmp, 0o600)
+        json.dump(data, fh)
+        fh.flush()
+        os.fsync(fh.fileno())
+    tmp.replace(STATE_DIR / name)
+    fd = os.open(STATE_DIR, os.O_DIRECTORY)
     try:
-        STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-        tmp = STATE_DIR / f".{name}.tmp"
-        tmp.write_text(json.dumps(data))
-        tmp.replace(STATE_DIR / name)
-    except Exception as e:
-        print(f"aviso: nao consegui gravar estado {name}: {e}", file=sys.stderr)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def read_bot_token() -> str | None:
@@ -465,46 +476,41 @@ def read_bot_token() -> str | None:
 
 
 def send_telegram(text: str) -> bool:
-    """Envia por curl direto na API do Telegram.
-
-    Deliberadamente NAO usa `hermes send`: a doc oficial manda usar um curl
-    minimo para watchdogs que podem disparar justamente quando o Hermes esta
-    sofrendo ("Don't alert the gateway about itself").
-    """
-    token = read_bot_token()
-    if not token:
-        print("aviso: TELEGRAM_BOT_TOKEN ausente; alerta nao enviado", file=sys.stderr)
-        return False
+    """Independent delivery through the configured Dev bot. Never expose credentials."""
     if os.environ.get("FLEET_WATCH_DRY_RUN"):
         print(f"[DRY_RUN] enviaria:\n{text}", file=sys.stderr)
-        return True
-    cmd = ["curl", "-sS", "--max-time", "15", "-X", "POST",
-           f"https://api.telegram.org/bot{token}/sendMessage",
-           "-d", f"chat_id={DEV_CHAT_ID}"]
-    # thread_id "1" e o topico General de um forum: o Telegram recusa recebe-lo
-    # explicitamente ("message thread not found"). Omitir manda para o General.
-    if DEV_THREAD_ID and DEV_THREAD_ID != "1":
-        cmd += ["-d", f"message_thread_id={DEV_THREAD_ID}"]
-    cmd += ["--data-urlencode", f"text={text}"]
-
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    except Exception as e:
-        print(f"ERRO: envio do alerta falhou: {type(e).__name__}: {e}",
-              file=sys.stderr)
+        return False  # a preview is never a delivery receipt
+    token = read_bot_token()
+    if not token:
+        print("ERRO: token Telegram do Dev ausente", file=sys.stderr)
         return False
-
-    # Um vigia que nao consegue alertar precisa gritar, nunca falhar calado:
-    # sem isto o alerta some e o systemd continua reportando sucesso.
-    ok = False
     try:
-        ok = bool(json.loads(r.stdout).get("ok"))
-    except Exception:
-        pass
-    if not ok:
-        print(f"ERRO: Telegram recusou o alerta (rc={r.returncode}): "
-              f"{(r.stdout or r.stderr).strip()[:300]}", file=sys.stderr)
-    return ok
+        import yaml
+        config = yaml.safe_load(DEV_CONFIG.read_text())
+        telegram = config["platforms"]["telegram"]
+        channel = telegram["home_channel"]
+        if not telegram.get("enabled") or channel.get("platform") != "telegram":
+            raise ValueError("Dev Telegram disabled")
+        chat_id = str(channel["chat_id"])
+        if not chat_id.lstrip("-").isdigit():
+            raise ValueError("invalid destination")
+        body = {"chat_id": chat_id, "text": text}
+        thread = str(channel.get("thread_id") or "")
+        # General (1) rejects explicit thread IDs on this configured forum.
+        if thread and thread != "1":
+            body["message_thread_id"] = int(thread)
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read())
+        if result.get("ok") is True:
+            return True
+        print("ERRO: Telegram recusou alerta", file=sys.stderr)
+    except Exception as exc:
+        # Exception messages may contain the request URL and its bot token.
+        print(f"ERRO: envio Telegram falhou ({type(exc).__name__})", file=sys.stderr)
+    return False
 
 
 def investigation_slots_left(state: dict) -> int:
@@ -685,59 +691,99 @@ def group_for_investigation(to_alert: list[dict]) -> list[dict]:
     return escolhidos
 
 
-def run_alerting(findings: list[dict]) -> None:
-    """Alerta na FAILURE_STREAK-esima ocorrencia consecutiva, uma vez por
-    assinatura, e avisa quando o problema some."""
+def alert_batches(findings, header):
+    """Bound by Telegram's UTF-16 limit, keeping each incident with its receipt."""
+    batch, size = [], len(header.encode("utf-16-le")) // 2
+    for f in findings:
+        line = f"[{f['severity'].upper()}] {f['area']}: {f['message']}"
+        # External-looking fields from legacy probes cannot grow an alert without bound.
+        line = line.encode("utf-16-le")[:5000].decode("utf-16-le", "ignore")
+        cost = len(line.encode("utf-16-le")) // 2 + 1
+        if batch and size + cost > 3800:
+            yield batch, header + "\n" + "\n".join(item[1] for item in batch)
+            batch, size = [], len(header.encode("utf-16-le")) // 2
+        batch.append((f, line))
+        size += cost
+    if batch:
+        yield batch, header + "\n" + "\n".join(item[1] for item in batch)
+
+
+def run_alerting(findings: list[dict]) -> bool:
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with (STATE_DIR / ".alert.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _run_alerting_locked(findings)
+
+
+def _run_alerting_locked(findings: list[dict]) -> bool:
     streaks = load_state("streaks.json")
     alerted = load_state("alerted.json")
     current = {f["sig"]: f for f in findings}
-
     new_streaks = {sig: streaks.get(sig, 0) + 1 for sig in current}
-
-    to_alert = [
-        current[sig] for sig, n in new_streaks.items()
-        if n >= FAILURE_STREAK and sig not in alerted
-    ]
-    recovered = [sig for sig in alerted if sig not in current]
-
-    if to_alert:
-        lines = ["⚠️ Frota Hermes — novos problemas confirmados\n"]
-        for f in sorted(to_alert, key=lambda x: x["severity"]):
-            lines.append(f"[{f['severity'].upper()}] {f['area']}: {f['message']}")
-        lines.append(f"\nRelatorio: {REPORT_PATH}")
-        if send_telegram("\n".join(lines)):
-            for f in to_alert:
+    to_alert = [current[sig] for sig, n in new_streaks.items()
+                if n >= (1 if current[sig].get("immediate") else FAILURE_STREAK)
+                and sig not in alerted]
+    unavailable = any(f.get("detection_unavailable") for f in findings)
+    recovered = [sig for sig in alerted if sig not in current
+                 and not (unavailable and sig.startswith("atendimento:"))]
+    pending = load_state("pending.json")
+    # Persist BEFORE sending: a transient fault must remain reportable even if it clears.
+    for item in to_alert:
+        pending.setdefault(item["sig"], item)
+    for sig in list(pending):
+        if sig in alerted:
+            pending.pop(sig)  # receipt committed before a crash updating the pending file
+    save_state("pending.json", pending)
+    to_send = []
+    for sig, item in pending.items():
+        item = dict(item)
+        if sig not in current:
+            suffix = ("Estado atual não verificável." if unavailable else
+                      "Sinal não observado nesta rodada; ocorrência anterior ainda precisava ser comunicada.")
+            item["message"] += " " + suffix
+        to_send.append(item)
+    successful, delivery_ok = [], True
+    for batch, text in alert_batches(to_send, "⚠️ Frota Hermes — incidentes para acompanhamento"):
+        if send_telegram(text):
+            for f, _ in batch:
                 alerted[f["sig"]] = datetime.now(timezone.utc).isoformat()
-
-    if recovered:
-        names = ", ".join(sorted(recovered))
-        if send_telegram(f"✅ Frota Hermes — recuperado: {names}"):
-            for sig in recovered:
-                alerted.pop(sig, None)
-
-    # So investiga o que acabou de virar alerta: problema ja conhecido nao
-    # merece um agente de novo, e recorrencia nao e informacao nova.
-    if to_alert:
+                successful.append(f)
+            save_state("alerted.json", alerted)
+            for f, _ in batch:
+                pending.pop(f["sig"], None)
+            save_state("pending.json", pending)
+        else:
+            delivery_ok = False
+    cleared = [{"sig":sig,"area":"acompanhamento","severity":"info",
+                "message":f"{sig}: sinal deixou de ser observado. Renato deve confirmar resolução "
+                          "e necessidade de retomar o atendimento; isso não comprova resposta ao lead."}
+               for sig in recovered]
+    for batch, text in alert_batches(cleared, "ℹ️ Frota Hermes — mudança de estado"):
+        if send_telegram(text):
+            for f, _ in batch:
+                alerted.pop(f["sig"], None)
+            save_state("alerted.json", alerted)
+        else:
+            delivery_ok = False
+    # Diagnosis cannot block detection, and remains bounded by the existing hourly budget.
+    if successful:
         investigations = load_state("investigations.json")
         feitas = investigations.setdefault("done", {})
         agora = datetime.now(timezone.utc).isoformat()
-        for finding in group_for_investigation(to_alert):
-            grupo = finding.pop("_group_sigs", [finding["sig"]])
-            if all(sig in feitas for sig in grupo):
+        for item in group_for_investigation(successful):
+            group = item.pop("_group_sigs", [item["sig"]])
+            if all(sig in feitas for sig in group):
                 continue
             if investigation_slots_left(investigations) <= 0:
-                print(f"aviso: teto de {INVESTIGATION_HOURLY_CAP} investigacoes/hora "
-                      f"atingido; {finding['sig']} fica so com o alerta",
-                      file=sys.stderr)
-                break
-            if request_investigation(finding):
-                for sig in grupo:
+                break  # operator already has the actionable alert
+            if request_investigation(item):
+                for sig in group:
                     feitas[sig] = agora
                 investigations.setdefault("recent", []).append(now())
         save_state("investigations.json", investigations)
-
     save_state("streaks.json", new_streaks)
     save_state("alerted.json", alerted)
+    return delivery_ok
 
 
 # ---------------------------------------------------------------- main
@@ -759,6 +805,7 @@ def main() -> int:
     steps = [
         ("systemd", check_units),
         ("kanban", check_kanban),
+        ("atendimento", lambda: detect_attendance(HERMES_ROOT, now())),
         ("filas", check_queues),
         ("brain", check_brain_runtime),
         ("gateway", check_gateway_heartbeats),
@@ -806,11 +853,11 @@ def main() -> int:
                 fh.write(json.dumps(report, ensure_ascii=False) + "\n")
         except Exception as e:
             print(f"aviso: relatorio nao gravado: {e}", file=sys.stderr)
-        run_alerting(findings)
+        delivered = run_alerting(findings)
         # Em modo timer, achado NAO e falha do servico: ele sai por Telegram e
         # pelo relatorio. Exit != 0 fica reservado para o vigia ter quebrado --
         # so assim `systemctl status` distingue "achou problema" de "eu quebrei".
-        return 0
+        return 0 if delivered else 2
 
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 1 if findings else 0

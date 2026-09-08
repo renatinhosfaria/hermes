@@ -81,6 +81,37 @@ tail -50 /root/.hermes/kanban/logs/t_<task_id>.log
 limpeza. `protocol_violation` significa que o worker saiu limpo sem chamar
 `kanban_complete` — quase sempre bug do prompt, não da infra.
 
+### `atendimento` — atendimento interrompido
+
+O monitor externo é o canal primário de incidentes do CEO. A cada cinco minutos,
+lê os bancos em modo somente leitura e envia os achados novos pelo bot Telegram
+do Dev ao `platforms.telegram.home_channel` configurado. Estes achados alertam na
+primeira detecção; os sinais gerais da frota conservam três verificações.
+
+Cada incidente informa cartão ou sessão técnica, etapa, motivo e horário.
+`INCIDENTE_ATENDIMENTO ` em um comentário é o registro do CEO. O monitor também
+reconhece bloqueio por capacidade, triagem, execução/espera excessiva e mensagem
+externa sem resposta registrada por mais de 15 minutos, mesmo se o CEO não
+conseguir registrar. Isso é sinal de possível interrupção, não prova de causa
+nem de entrega no WhatsApp. Mensagem social de encerramento pode exigir apenas
+encerramento humano após inspeção; nunca envie resposta só para eliminar alerta.
+
+Consulte o cartão/run indicado e o contexto autorizado. Separe dependência
+interna, pergunta aguardando o cliente, falha antiga com retry em andamento e
+cartão antigo superado por atendimento posterior. Não reabra nem substitua
+cartões. Não envie nada ao WhatsApp. O silêncio do CEO é intencional quando não
+há resposta válida.
+
+Os alertas são deduplicados em `/var/lib/hermes-fleet-watch`. O diagnóstico
+continua limitado a três investigações por hora; o alerta não depende de haver
+vaga para investigação. Falha de entrega ao Telegram não é marcada como envio,
+e a próxima verificação tenta novamente.
+
+O desaparecimento de um sinal não comprova resolução comercial. Oriente Renato
+a conferir novas mensagens, resposta já enviada e eventual intervenção humana
+antes de autorizar a retomada. Corrigir ou reiniciar continua exigindo pedido
+específico; a autorização para alertar e diagnosticar não autoriza reparos.
+
 ### `brain` — health degradado ou `lifecycle_effects` presos
 
 ```bash

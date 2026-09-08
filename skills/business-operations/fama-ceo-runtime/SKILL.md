@@ -429,8 +429,16 @@ Um wake posterior sobre a mesma Task nunca substitui o payload já selecionado.
 Se trouxer fato novo que realmente exija ação, processe o fato, mas preserve
 literalmente qualquer `response_ready` que ainda precise ser entregue.
 
-Se response_ready vier nulo ou vazio, não improvise resposta: devolva a tarefa
-ao especialista ou escale para Renato.
+Se `response_ready` do Reno/FamaAgent vier nulo ou vazio, não improvise resposta:
+confira o estado terminal e siga “Quando o worker falhar” do `SOUL.md`. Registre
+uma única ocorrência `INCIDENTE_ATENDIMENTO ` no cartão afetado e finalize o turno
+externo com `[SILENT]`. O monitor externo entrega o alerta no Telegram do Dev.
+Nunca crie tarefa substituta para contornar a falha.
+
+Porteiro/Cadastro com veredito válido e sem `response_ready` são sucesso normal;
+continue para a etapa seguinte. Uma retentativa ainda em andamento também não
+é falha definitiva. Se um humano assumiu o contato, preserve a pausa: conclusão
+tardia de worker não autoriza envio nem retomada automática.
 
 Campo estruturado em vez de marcador no texto porque marcador depende de o modelo
 escrever exatamente aquelas palavras, e formatação se perde no caminho.
@@ -470,8 +478,9 @@ max_retries NÃO é parâmetro de kanban_create — escrevê-lo no corpo não te
 efeito. Quem controla retentativa é o despachante, pelo failure_limit do quadro.
 
 Sem max_runtime_seconds, uma tarefa travada só é recolhida pela varredura de
-dispatch_stale_timeout_seconds — padrão quatro horas. Um lead esperando quatro
-horas é exatamente o que a regra do silêncio existe para impedir.
+dispatch_stale_timeout_seconds — padrão quatro horas. O `max_runtime_seconds`
+definido acima permite detectar o impedimento e alertar o canal interno antes
+dessa varredura; não autoriza mensagem ao lead.
 
 ## Um fluxo por chat
 
@@ -498,6 +507,11 @@ provisório observado antes da conclusão e não mande o worker ler cartão irm�
 - Dependência, credencial ou informação obrigatória ausente: `kanban_block`.
 - Falha transitória: deixe o dispatcher controlar a retentativa.
 - Não crie tarefa substituta para contornar timeout, crash ou circuito aberto.
+- Confira o último estado/run antes de agir sobre uma notificação de falha.
+- Impedimento atual: comentário `INCIDENTE_ATENDIMENTO ` sem PII; silêncio externo.
+  O vigia externo registra, deduplica e envia ao Telegram do Dev. Não prometa envio
+  do alerta sem recibo. Após resolução verificada, `INCIDENTE_ENCERRADO ` registra
+  a evidência; não corrige por si só o estado do cartão.
 
 ## Entrega externa
 
