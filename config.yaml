@@ -80,6 +80,7 @@ display:
       tool_progress: false
       long_running_notifications: false
       interim_assistant_messages: false
+      memory_notifications: '"off"'
   tool_progress: all
   cleanup_progress: false
   long_running_notifications: true

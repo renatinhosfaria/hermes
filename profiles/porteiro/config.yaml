@@ -14,9 +14,10 @@ agent:
   verify_guidance: true
   reasoning_effort: xhigh
 memory:
-  memory_enabled: false
-  user_profile_enabled: false
+  memory_enabled: true
+  user_profile_enabled: true
   write_approval: false
+  nudge_interval: 10
 checkpoints:
   enabled: true
   max_snapshots: 20
@@ -24,8 +25,11 @@ group_sessions_per_user: true
 skills:
   guard_agent_created: true
   write_approval: false
+  creation_nudge_interval: 10
 toolsets:
   - clarify
+  - skills
+  - memory
 platforms:
   telegram:
     enabled: true
@@ -55,13 +59,14 @@ platform_toolsets:
     - terminal
     - file
     - skills
+    - memory
   whatsapp:
     - clarify
     - no_mcp
   cli:
     - clarify
-    - brain
-    - famachat
+    - skills
+    - memory
 mcp_servers:
   brain:
     url: http://127.0.0.1:8765/mcp
@@ -92,3 +97,6 @@ security:
     - .hermes.md
 mcp:
   auto_reload_on_config_change: false
+auxiliary:
+  background_review:
+    enabled: true

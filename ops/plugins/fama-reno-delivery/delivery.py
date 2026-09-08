@@ -287,7 +287,6 @@ def reconcile(
                         session_id=proof["session_id"],
                         idempotency_key=key,
                         max_runtime_seconds=600,
-                        skills=("fama-reno-runtime",),
                     )
                     report["created"] += 1
     return report

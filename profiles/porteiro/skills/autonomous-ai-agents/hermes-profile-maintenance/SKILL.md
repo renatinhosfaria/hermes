@@ -81,18 +81,34 @@ optional follow-up.
 
 ## Resolved values, diff scope, and CLI warnings
 
-- Verify every requested key with `config get`, including keys that already
-  had the desired value. A key absent from the diff may be a successful no-op;
-  do not treat the absence of a diff line as failed configuration.
+- Read each requested key with `config get` before writing and again afterward.
+  If it already resolves to the requested value, treat the operation as a
+  no-op and avoid rewriting it unless reserialization was explicitly requested:
+  even a semantic no-op changes the file mtime and can make a supervised
+  gateway appear stale while its running process retains the same state.
+- Verify every key with `config get`, including keys that already had the
+  desired value. A key absent from the diff may be a successful no-op; do not
+  treat the absence of a diff line as failed configuration.
 - Compare the post-write diff against the requested key set, not merely the
   number of changed lines. Scalar normalization such as quote removal can be
   harmless, but comment loss or changes outside the requested keys are
   unrelated churn and must be restored or reported before commit.
 - Treat a setter warning about an unrecognized key as material evidence: keep
   the requested value only when explicitly authorized, verify that the getter
-  resolves it, and report that the current Hermes version may not consume the
-  key. Do not claim runtime effect from serialization alone; separate file
-  state from process/runtime state.
+  resolves it, and inspect the installed runtime resolver when the key is a
+  profile-local bridge rather than deleting it on the warning alone. Do not
+  claim runtime effect from serialization alone; separate file state from
+  process/runtime state.
+- When a change affects tool exposure or prompt behavior, verify the effective
+  resolver after the getter: use `tools list --platform PLATFORM` for native
+  toolsets and the installed `_get_platform_tools(config, platform,
+  include_default_mcp_servers=True)` for gateway exposure. A resolved file is
+  not proof that an already-running gateway has reloaded it.
+- Treat a supervised gateway that predates the write as stale until its
+  supervisor reloads it. If lifecycle commands are refused from inside that
+  gateway, do not retry through `systemctl`, a child shell, or another bypass;
+  report the boundary and hand the exact restart command to an external shell,
+  because the guard prevents the gateway from killing its own supervisor path.
 - Before commit, retain the original `git status --short` as the baseline and
   confirm the commit's path list. A constrained commit must not be used as a
   reason to discard unrelated work.

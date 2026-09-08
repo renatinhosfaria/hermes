@@ -34,7 +34,7 @@ EXPECTED_PLATFORM_TOOLSETS = {
     },
     "famaagent": {
         "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
-        "cli": ["clarify", "brain"],
+        "cli": ["clarify", "brain", "famachat"],
     },
     "reno": {
         "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
@@ -89,7 +89,7 @@ EXPECTED_CONFIGURED_MCP = {
     "default": set(),
     "porteiro": {"brain", "famachat"},
     "cadastro": {"brain", "famachat"},
-    "famaagent": {"brain"},
+    "famaagent": {"brain", "famachat"},
     "reno": {"brain", "famachat"},
     "dev": set(),
 }
@@ -122,6 +122,21 @@ EXPECTED_MCP_TOOLS = {
         "fc_post_clientes_by_id_notes",
     ],
     ("famaagent", "brain"): ["conversation_recent", "conversation_search"],
+    # Amendment 4 (spec 12.5): as mesmas onze leituras do Reno, sem escrita.
+    # A excecao nominal de fc_patch_clientes_by_id nao alcanca este profile.
+    ("famaagent", "famachat"): [
+        "fc_get_apartamentos",
+        "fc_get_apartamentos_empreendimento_by_id",
+        "fc_get_apartamentos_publico_empreendimento_by_id",
+        "fc_get_appointments_by_id",
+        "fc_get_clientes_by_id",
+        "fc_get_clientes_by_id_empreendimentos",
+        "fc_get_clientes_by_id_notes",
+        "fc_get_empreendimentos",
+        "fc_get_empreendimentos_buscar",
+        "fc_get_empreendimentos_by_id",
+        "fc_get_empreendimentos_publico_by_id",
+    ],
 }
 # Vazio: todo servidor MCP exposto tem contrato declarado. Uma entrada aqui
 # marca allowlist ainda nao gerada, reportada como pendencia e nao como erro,
@@ -230,7 +245,7 @@ EXPECTED_MCP_EXPOSURE = {
     "default": {"cli": set(), "telegram": set(), "whatsapp": set()},
     "porteiro": {"cli": {"brain", "famachat"}, "telegram": set()},
     "cadastro": {"cli": {"brain", "famachat"}, "telegram": set()},
-    "famaagent": {"cli": {"brain"}, "telegram": set()},
+    "famaagent": {"cli": {"brain", "famachat"}, "telegram": set()},
     "reno": {"cli": {"brain", "famachat"}, "telegram": set()},
     "dev": {"cli": set(), "telegram": set()},
 }

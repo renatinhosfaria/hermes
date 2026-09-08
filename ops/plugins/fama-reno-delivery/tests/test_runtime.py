@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from test_guard import HISTORY, PATCH, READ, ROOT, http
 
 
@@ -24,6 +25,8 @@ class RuntimeTests(unittest.TestCase):
             (home / "config.yaml").write_text(
                 "plugins:\n  enabled: [fama-reno-delivery]\nmcp_servers: {}\n"
             )
+            profile = ROOT.parents[2] / "profiles/reno"
+            shutil.copytree(profile / "skills", home / "skills")
             with patch.dict(
                 os.environ,
                 {
@@ -43,6 +46,12 @@ class RuntimeTests(unittest.TestCase):
                 try:
                     import model_tools
                     from hermes_cli import plugins
+                    from hermes_cli.tools_config import _get_platform_tools
+                    from toolsets import resolve_multiple_toolsets
+
+                    config = yaml.safe_load((profile / "config.yaml").read_text())
+                    toolsets = _get_platform_tools(config, "cli")
+                    self.assertIn("skill_view", resolve_multiple_toolsets(toolsets))
 
                     manager = plugins.get_plugin_manager()
                     manager.discover_and_load()
@@ -90,6 +99,25 @@ class RuntimeTests(unittest.TestCase):
                             ),
                         )
                     )
+                    self.assertIn("skill_view", dispatch(HISTORY, {}))
+                    raw = model_tools.handle_function_call(
+                        "skill_view",
+                        {"name": "business-operations/fama-reno-runtime"},
+                        task_id="internal-tool-task",
+                        session_id="probe",
+                        tool_call_id="native-skill",
+                        enabled_tools=["skill_view"],
+                    )
+                    self.assertIn("# Workflow comercial do Reno", raw)
+                    cached = model_tools.handle_function_call(
+                        "skill_view",
+                        {"name": "fama-reno-runtime"},
+                        task_id="internal-tool-task",
+                        session_id="probe",
+                        tool_call_id="native-skill-cached",
+                        enabled_tools=["skill_view"],
+                    )
+                    self.assertNotIn("# Workflow comercial do Reno", cached)
                     self.assertIsNone(
                         dispatch(
                             HISTORY,

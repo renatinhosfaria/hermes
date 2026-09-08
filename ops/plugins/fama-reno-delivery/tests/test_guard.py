@@ -16,6 +16,13 @@ spec.loader.exec_module(guard)
 READ = "mcp__famachat__fc_get_clientes_by_id"
 PATCH = "mcp__famachat__fc_patch_clientes_by_id"
 HISTORY = "mcp__brain__conversation_recent"
+SKILL_RESULT = json.dumps(
+    {
+        "success": True,
+        "name": "fama-reno-runtime",
+        "content": "# Workflow comercial do Reno\nProcedimento sintético de teste.",
+    }
+)
 
 
 def http(body, status=200):
@@ -41,7 +48,12 @@ class GuardTests(unittest.TestCase):
         self.g.after(**kw, result=result, status="ok")
         return verdict
 
-    def identify(self, receipt=False):
+    def load_skill(self):
+        return self.call("skill_view", {"name": "fama-reno-runtime"}, SKILL_RESULT)
+
+    def identify(self, receipt=False, load_skill=True):
+        if load_skill:
+            self.load_skill()
         body = "upstream_result:\n  client_id: 101\n  verdict: LEAD_NOVO_CADASTRADO\npedido_exato: Vi o anúncio, quero informações.\ntest_mode: false\n"
         if receipt:
             body += "operation: CONFIRMACAO_ENVIO\n"
@@ -106,6 +118,83 @@ class GuardTests(unittest.TestCase):
         self.identify()
         self.read()
         self.assertEqual(self.patch()["action"], "block")
+
+    def test_attendance_requires_reno_to_read_runtime_skill(self):
+        self.identify(load_skill=False)
+        for name, args in [
+            (HISTORY, {}),
+            (READ, {"id": 101}),
+            ("kanban_complete", {"task_id": "t_test"}),
+        ]:
+            verdict = self.g.before(
+                tool_name=name, args=args, session_id="s1", tool_call_id="missing-skill"
+            )
+            self.assertIsNotNone(verdict)
+            self.assertEqual(verdict["action"], "block")
+            self.assertIn("skill_view", verdict["message"])
+        self.assertIsNone(self.load_skill())
+        self.assertIsNone(self.read())
+        self.assertIsNone(self.finish())
+
+    def test_failed_other_or_linked_skill_does_not_unlock_attendance(self):
+        cases = [
+            ({"name": "fama-reno-runtime"}, '{"success":false,"error":"missing"}'),
+            (
+                {"name": "fama-reno-runtime"},
+                '{"success":true,"name":"fama-reno-runtime","content":""}',
+            ),
+            (
+                {"name": "other"},
+                '{"success":true,"name":"other","content":"Other procedure"}',
+            ),
+            (
+                {"name": "fama-reno-runtime", "file_path": "references/example.md"},
+                SKILL_RESULT,
+            ),
+        ]
+        for args, result in cases:
+            with self.subTest(args=args, result=result):
+                self.setUp()
+                self.identify(load_skill=False)
+                self.call("skill_view", args, result)
+                self.assertIsNotNone(self.read())
+
+    def test_inflight_or_unsolicited_skill_result_does_not_unlock_attendance(self):
+        self.identify(load_skill=False)
+        kw = dict(
+            tool_name="skill_view",
+            args={"name": "fama-reno-runtime"},
+            session_id="s1",
+            tool_call_id="skill",
+        )
+        self.g.after(**kw, result=SKILL_RESULT)
+        self.assertIsNotNone(self.read())
+        self.assertIsNone(self.g.before(**kw))
+        self.assertIsNotNone(self.read())
+        self.g.after(**kw, result=SKILL_RESULT)
+        self.assertIsNone(self.read())
+
+    def test_wrapped_skill_call_unlocks_only_current_session(self):
+        self.identify(load_skill=False)
+        self.call(
+            "tool_call",
+            {"name": "skill_view", "arguments": {"name": "fama-reno-runtime"}},
+            SKILL_RESULT,
+        )
+        self.assertIsNone(self.read())
+        verdict = self.g.before(
+            tool_name=READ, args={"id": 101}, session_id="another", tool_call_id="other"
+        )
+        self.assertEqual(verdict["action"], "block")
+
+    def test_qualified_runtime_skill_name_unlocks_attendance(self):
+        self.identify(load_skill=False)
+        self.call(
+            "skill_view",
+            {"name": "business-operations/fama-reno-runtime"},
+            SKILL_RESULT,
+        )
+        self.assertIsNone(self.read())
 
     def test_initial_ad_and_internal_silence_cannot_authorize_em_atendimento(self):
         self.identify()

@@ -10,6 +10,7 @@ VERSION = "1.0.0"
 READ = "mcp__famachat__fc_get_clientes_by_id"
 PATCH = "mcp__famachat__fc_patch_clientes_by_id"
 HISTORY = "mcp__brain__conversation_recent"
+RUNTIME_SKILL = "fama-reno-runtime"
 EARLY = {"Sem Atendimento", "Não Respondeu", "Em Atendimento"}
 
 
@@ -85,6 +86,7 @@ class RenoGuard:
         self.patch_ok = False
         self.patched_status = None
         self.receipt = False
+        self.skill_loaded = False
 
     @staticmethod
     def unwrap(name, args):
@@ -106,7 +108,11 @@ class RenoGuard:
         try:
             name, payload = self.unwrap(tool_name, args)
             business = name.startswith(("mcp__famachat__", "mcp__brain__"))
-            if not business and name not in {"kanban_show", "kanban_complete"}:
+            if not business and name not in {
+                "kanban_show",
+                "kanban_complete",
+                "skill_view",
+            }:
                 return None
             with self.lock:
                 if not session_id or (
@@ -114,6 +120,18 @@ class RenoGuard:
                 ):
                     return block("sessao_incompativel")
                 self.session_id = session_id
+                if name == "skill_view":
+                    if not payload.get("file_path"):
+                        if not tool_call_id:
+                            return block("identificador_de_chamada_ausente")
+                        self.pending[tool_call_id] = name
+                    return None
+                if (business or name == "kanban_complete") and not self.skill_loaded:
+                    return block(
+                        'Antes de atender, chame skill_view(name="fama-reno-runtime") '
+                        "e aguarde a leitura bem-sucedida do manual completo. "
+                        "Se a leitura falhar, registre o bloqueio com kanban_block."
+                    )
                 if payload.get("task_id", self.task_id) != self.task_id or payload.get(
                     "board"
                 ):
@@ -301,7 +319,16 @@ class RenoGuard:
                 if status != "ok":
                     return
                 value = decode(result)
-                if name == "kanban_show":
+                if name == "skill_view":
+                    if (
+                        not payload.get("file_path")
+                        and value.get("success") is True
+                        and value.get("name") == RUNTIME_SKILL
+                        and isinstance(value.get("content"), str)
+                        and value["content"].strip()
+                    ):
+                        self.skill_loaded = True
+                elif name == "kanban_show":
                     task = value["task"]
                     if (
                         task["id"] != self.task_id

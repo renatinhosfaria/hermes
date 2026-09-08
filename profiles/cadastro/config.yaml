@@ -4,28 +4,53 @@ model:
   base_url: https://chatgpt.com/backend-api/codex
   reasoning_effort: xhigh
   context_length: 900000
+toolsets:
+  - clarify
+agent:
+  verify_guidance: true
+  verify_on_stop: true
+  reasoning_effort: xhigh
 terminal:
   backend: local
   cwd: /root/.hermes/profiles/cadastro
   timeout: 300
   home_mode: auto
-agent:
-  verify_on_stop: true
-  verify_guidance: true
-  reasoning_effort: xhigh
-memory:
-  memory_enabled: false
-  user_profile_enabled: false
-  write_approval: false
 checkpoints:
   enabled: true
   max_snapshots: 20
-group_sessions_per_user: true
+mcp:
+  auto_reload_on_config_change: false
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  write_approval: false
 skills:
   guard_agent_created: true
   write_approval: false
-toolsets:
-  - clarify
+  creation_nudge_interval: 10
+telegram:
+  require_mention: false
+  allow_from: 8564576789
+  group_allowed_chats: -1003746861842
+approvals:
+  destructive_slash_confirm: false
+plugins:
+  enabled:
+    - fama-cadastro-guard
+security:
+  protected_instruction_files: false
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md
+kanban:
+  dispatch_in_gateway: false
+onboarding:
+  seen:
+    profile_build_offered: true
+_config_version: 41
+group_sessions_per_user: true
 platforms:
   telegram:
     enabled: true
@@ -35,18 +60,6 @@ platforms:
       name: Cadastro
       thread_id: '1'
       user_id: '8564576789'
-_config_version: 41
-onboarding:
-  seen:
-    profile_build_offered: true
-approvals:
-  destructive_slash_confirm: false
-telegram:
-  require_mention: false
-  allow_from: 8564576789
-  group_allowed_chats: -1003746861842
-kanban:
-  dispatch_in_gateway: false
 mcp_servers:
   brain:
     url: http://127.0.0.1:8765/mcp
@@ -73,26 +86,83 @@ mcp_servers:
 platform_toolsets:
   telegram:
     - clarify
-    - no_mcp
-    - terminal
     - file
+    - kanban
+    - memory
     - skills
+    - terminal
   whatsapp:
     - clarify
     - no_mcp
   cli:
-    - clarify
     - brain
+    - clarify
     - famachat
-security:
-  protected_instruction_files: false
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
-mcp:
-  auto_reload_on_config_change: false
-plugins:
-  enabled:
-    - fama-cadastro-guard
+    - kanban
+    - memory
+    - skills
+known_plugin_toolsets:
+  telegram:
+    - a2a
+    - spotify
+  cli:
+    - a2a
+    - spotify
+known_builtin_toolsets:
+  telegram:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - homeassistant
+    - image_gen
+    - memory
+    - session_search
+    - skills
+    - spotify
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao
+  cli:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - homeassistant
+    - image_gen
+    - memory
+    - session_search
+    - skills
+    - spotify
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao
+auxiliary:
+  background_review:
+    enabled: true

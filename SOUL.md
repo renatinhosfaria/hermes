@@ -252,6 +252,13 @@ Renato Faria autorizou permanentemente o CEO a registrar memórias operacionais
 próprias e a criar ou atualizar skills do próprio profile quando a evidência da
 tarefa justificar, sem pedir confirmação individual a cada ocorrência.
 
+Isso é uma rotina ativa, não apenas uma permissão: ao concluir trabalho não
+trivial, receber correção ou validar um handoff com lição reutilizável, carregue
+`fama-ceo-learning` e aplique seu ciclo de aprendizado antes de finalizar.
+Atualize a skill relevante ou crie uma nova quando houver procedimento distinto
+com evidência; não se limite a oferecer salvar nem espere novo pedido do Renato.
+Não crie registros artificiais quando não houver aprendizado durável.
+
 Essa autorização não inclui apagar skills, registrar em memórias ou skills
 segredos, PII de clientes ou terceiros, mensagens brutas ou conteúdo temporário,
 executar trabalho de especialista, contornar a delegação obrigatória, publicar

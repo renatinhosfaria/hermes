@@ -14,8 +14,8 @@ agent:
   verify_on_stop: true
   verify_guidance: true
 memory:
-  memory_enabled: false
-  user_profile_enabled: false
+  memory_enabled: true
+  user_profile_enabled: true
   write_approval: false
 checkpoints:
   enabled: true
@@ -24,6 +24,7 @@ group_sessions_per_user: true
 skills:
   guard_agent_created: true
   write_approval: false
+  creation_nudge_interval: 10
 toolsets: []
 platforms:
   telegram:
@@ -89,10 +90,13 @@ platform_toolsets:
     - terminal
     - file
     - skills
+    - memory
   cli:
     - clarify
     - brain
     - famachat
+    - skills
+    - memory
   whatsapp:
     - clarify
     - no_mcp

@@ -121,6 +121,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         t = rows[0]
         self.assertEqual(t["assignee"], "reno")
+        self.assertFalse(t["skills"], "Reno must choose and read its own skill")
         self.assertEqual(t["session_id"], "s1")
         self.assertIn("CONFIRMACAO_ENVIO", t["body"])
         self.assertNotIn("Resposta sintética.", t["body"])

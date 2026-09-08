@@ -7,6 +7,19 @@ Reno usa exclusivamente hooks públicos. Só o Reno escreve no FamaChat.
 
 ## Operação
 
+Em cada execução Kanban, o próprio Reno chama
+`skill_view(name="fama-reno-runtime")` para ler seu procedimento. O toolset nativo
+`skills` está habilitado no CLI desse profile. A instrução está no SOUL do Reno;
+o CEO não prescreve nem envia a skill na tarefa, e os cartões internos criados
+pelo timer também não preenchem `skills`.
+
+O guard observa a resposta bem-sucedida de `skill_view` na mesma sessão antes
+de liberar MCPs e `kanban_complete`. Listar skills, abrir outro manual ou somente
+um arquivo vinculado não satisfaz essa exigência. Se a leitura falhar, Reno
+registra o impedimento com `kanban_block`. Não há injeção automática do manual
+no prompt pelo plugin. O grupo nativo inclui também manutenção de skills,
+sujeita à autorização permanente e aos limites já definidos no profile.
+
 `delivery.py` é executado pelo timer a cada 15 segundos, após a execução anterior.
 Cruza `response_ready` exato com ledger `delivered`, execução concluída,
 destinatário, thread e sessão. Exige um único candidato. A resposta continua
@@ -38,6 +51,9 @@ Instalar `__init__.py`, `delivery.py` e `plugin.yaml` em
 units operacionais em `/etc/systemd/system`. Criar uma vez
 `plugin-data/fama-reno-delivery/activation.json` com `cutoff` Unix de ativação;
 não retroceder esse valor para testar. Ele exclui entregas históricas.
+
+O CLI do Reno deve incluir `[clarify, brain, famachat, skills]` em
+`platform_toolsets.cli`. Aplique com `hermes --profile reno config set`.
 
 ```bash
 systemctl daemon-reload

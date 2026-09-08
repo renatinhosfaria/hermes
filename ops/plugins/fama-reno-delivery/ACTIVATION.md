@@ -52,3 +52,28 @@ A execução completa com um novo contato real ainda não foi observada. Os test
 validaram componentes, integração de hooks, transações e registros históricos;
 não provam a execução comercial futura pelo modelo/MCP. Nenhuma mensagem foi
 enviada a cliente real para validar esta mudança.
+
+
+## Correção de acesso à skill — 2026-09-08T23:30:22Z
+
+Por orientação explícita do operador, o próprio Reno deve chamar
+`skill_view(name="fama-reno-runtime")` em cada execução. O CEO não envia o manual
+nem prescreve a skill na tarefa. Habilitado o toolset nativo `skills` no CLI do
+Reno, atualizado seu SOUL e removido `skills` dos cartões internos do timer.
+O plugin existente observa a leitura completa bem-sucedida antes de liberar
+MCPs e conclusão; falha de leitura exige bloqueio do cartão.
+
+Validação: 40 testes da integração, 26 de observabilidade e 18 da equipe passaram
+(**84**). Os 40 testes da integração foram repetidos sobre o repositório ativo.
+O verificador instalado confirmou `skill_view` disponível, leitura nativa do
+manual, bloqueio antes da leitura e liberação depois, sem executar MCPs.
+A revisão independente identificou e validou a correção de um caso de cache
+quando o manual é aberto pelo nome com categoria antes do nome simples.
+`verify_team.py core`: PASS. Timer ativo; serviço com Result=success.
+Instalação oficial sem alterações, HEAD `116b03f2efae931e4467eb7ac67f7c3dc7306ac1`.
+Nenhum gateway reiniciado. A alteração vale para novos workers; não foi
+observado um atendimento real posterior a esta correção.
+
+Backup desta correção em `plugin-data/fama-reno-delivery/skill-self-load-backup-20260908T232752Z/`.
+Para revertê-la, restaurar config/SOUL e código fonte/instalado desse backup,
+preservando o timer, recibos e a correção anterior de etapas.

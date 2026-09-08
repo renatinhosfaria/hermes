@@ -4,27 +4,56 @@ model:
   base_url: https://chatgpt.com/backend-api/codex
   reasoning_effort: xhigh
   context_length: 900000
+toolsets: []
+agent:
+  verify_guidance: true
+  verify_on_stop: true
+  reasoning_effort: xhigh
 terminal:
   backend: local
   cwd: /root/.hermes/profiles/famaagent
   timeout: 300
   home_mode: auto
-agent:
-  reasoning_effort: xhigh
-  verify_on_stop: true
-  verify_guidance: true
-memory:
-  memory_enabled: false
-  user_profile_enabled: false
-  write_approval: false
 checkpoints:
   enabled: true
   max_snapshots: 20
-group_sessions_per_user: true
+mcp:
+  auto_reload_on_config_change: false
+auxiliary:
+  background_review:
+    enabled: true
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  write_approval: false
+  nudge_interval: 10
 skills:
   guard_agent_created: true
   write_approval: false
-toolsets: []
+  creation_nudge_interval: 10
+curator:
+  enabled: true
+  consolidate: false
+telegram:
+  require_mention: false
+  allow_from: 8564576789
+  group_allowed_chats: -1003696068287
+approvals:
+  destructive_slash_confirm: false
+security:
+  protected_instruction_files: false
+  protected_instruction_extra_patterns:
+    - SKILL.md
+    - profile.yaml
+    - config.yaml
+    - .hermes.md
+kanban:
+  dispatch_in_gateway: false
+onboarding:
+  seen:
+    profile_build_offered: true
+_config_version: 41
+group_sessions_per_user: true
 platforms:
   telegram:
     enabled: true
@@ -34,18 +63,6 @@ platforms:
       name: FamaAgent
       thread_id: '1'
       user_id: '8564576789'
-_config_version: 41
-onboarding:
-  seen:
-    profile_build_offered: true
-approvals:
-  destructive_slash_confirm: false
-telegram:
-  require_mention: false
-  allow_from: 8564576789
-  group_allowed_chats: -1003696068287
-kanban:
-  dispatch_in_gateway: false
 mcp_servers:
   brain:
     url: http://127.0.0.1:8765/mcp
@@ -59,63 +76,104 @@ mcp_servers:
         - conversation_search
     resources: false
     prompts: false
+  famachat:
+    url: https://mcp.famachat.com.br/mcp
+    headers:
+      Authorization: Bearer ${FAMACHAT_MCP_KEY_FAMAAGENT}
+    tools:
+      include:
+        - fc_get_apartamentos
+        - fc_get_apartamentos_empreendimento_by_id
+        - fc_get_apartamentos_publico_empreendimento_by_id
+        - fc_get_appointments_by_id
+        - fc_get_clientes_by_id
+        - fc_get_clientes_by_id_empreendimentos
+        - fc_get_clientes_by_id_notes
+        - fc_get_empreendimentos
+        - fc_get_empreendimentos_buscar
+        - fc_get_empreendimentos_by_id
+        - fc_get_empreendimentos_publico_by_id
+    resources: false
+    prompts: false
 platform_toolsets:
   telegram:
     - clarify
-    - no_mcp
-    - terminal
     - file
+    - kanban
+    - memory
     - skills
+    - terminal
   cli:
-    - clarify
     - brain
+    - clarify
+    - famachat
+    - kanban
+    - memory
+    - skills
   whatsapp:
     - clarify
     - no_mcp
-security:
-  protected_instruction_files: false
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
-mcp:
-  auto_reload_on_config_change: false
-
-# ── Security ──────────────────────────────────────────────────────────
-# Secret redaction is ON by default — strings that look like API keys,
-# tokens, and passwords are masked in tool output, logs, and chat
-# responses before the model or user ever sees them. Set redact_secrets
-# to false to disable (e.g. when developing the redactor itself).
-# tirith pre-exec scanning is enabled by default when the tirith binary
-# is available. Configure via security.tirith_* keys or env vars
-# (TIRITH_ENABLED, TIRITH_BIN, TIRITH_TIMEOUT, TIRITH_FAIL_OPEN).
-#
-# security:
-#   redact_secrets: true
-#   tirith_enabled: true
-#   tirith_path: "tirith"
-#   tirith_timeout: 5
-#   tirith_fail_open: true
-
-# ── Fallback Model ────────────────────────────────────────────────────
-# Automatic provider failover when primary is unavailable.
-# Uncomment and configure to enable. Triggers on rate limits (429),
-# overload (529), service errors (503), or connection failures.
-#
-# Supported providers:
-#   openrouter   (OPENROUTER_API_KEY)  — routes to any model
-#   openai-codex (OAuth — hermes auth) — OpenAI Codex
-#   nous         (OAuth — hermes auth) — Nous Portal
-#   zai          (ZAI_API_KEY)         — Z.AI / GLM
-#   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
-#   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
-#   minimax      (MINIMAX_API_KEY)     — MiniMax
-#   minimax-cn   (MINIMAX_CN_API_KEY)  — MiniMax (China)
-#   bedrock      (AWS IAM / boto3)     — AWS Bedrock (Converse API)
-#
-# For custom OpenAI-compatible endpoints, add base_url and key_env.
-#
-# fallback_model:
-#   provider: openrouter
-#   model: anthropic/claude-sonnet-4
+known_plugin_toolsets:
+  telegram:
+    - a2a
+    - spotify
+  cli:
+    - a2a
+    - spotify
+known_builtin_toolsets:
+  telegram:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - homeassistant
+    - image_gen
+    - memory
+    - session_search
+    - skills
+    - spotify
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao
+  cli:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - homeassistant
+    - image_gen
+    - memory
+    - session_search
+    - skills
+    - spotify
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao
+display:
+  memory_notifications: 'on'
