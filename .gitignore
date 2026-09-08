@@ -75,3 +75,7 @@
 !/scripts/**
 !/profiles/*/scripts/
 !/profiles/*/scripts/**
+
+# Python bytecode from operational monitors and their tests.
+/ops/**/__pycache__/
+/ops/**/*.pyc

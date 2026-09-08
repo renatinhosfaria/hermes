@@ -39,8 +39,27 @@
 - [x] Explain task marker, independent fallback, investigation-only Dev role, manual resumption and actual timer frequency.
 - [x] Re-test five policy scenarios after edits and review code.
 - [x] Run unit tests and installed configuration checks; commit only this change and integrate into live checkout.
-- [ ] Migrate watcher deduplication state to persistent directory, install reviewed drop-in and activate monitor with an explicit Telegram activation check.
-- [ ] Refresh CEO instruction snapshots through native SessionDB API and gracefully restart CEO when no turn is in flight. Preserve all message history.
-- [ ] Verify timer, delivery, policy snapshots, and clean scoped diff; report limitations.
+- [x] Migrate watcher deduplication state to persistent directory, install reviewed drop-in and activate monitor with an explicit Telegram activation check.
+- [x] Refresh CEO instruction snapshots through native SessionDB API and gracefully restart CEO when no turn is in flight. Preserve all message history.
+- [x] Verify timer, delivery, policy snapshots, and clean scoped diff; report limitations.
 
 Validation before rollout: 24 detector/alert tests plus native instruction-refresh test. Independent review found and resolved run-clock, historical-failure and pending-delivery bugs. Gateway-generated error messages remain outside this prompt-policy change and are explicitly documented.
+
+
+## Rollout evidence
+
+- Integrated locally as `2493f6a`; no remote publication.
+- 25 incident/alert/native-refresh tests and 18 existing CTWA tests passed.
+- Existing systemd monitor retained its five-minute cadence; state migrated from
+  `/run/hermes-fleet-watch` to `/var/lib/hermes-fleet-watch` without deleting the old state.
+- Telegram Bot API confirmed the explicit channel test and delivery of eight
+  existing attendance findings; `pending.json` was empty after the scan.
+- Monitor completed successfully at 2026-09-08 15:46:23 America/Sao_Paulo.
+- CEO restarted gracefully through the native CLI. Temporary ExecStartPre used
+  the native SessionDB API to clear 113 obsolete gateway instruction snapshots.
+  Subsequent read-only check found zero old-policy snapshots in gateway sources.
+  The temporary drop-in was removed after successful startup.
+- Automatic Dev diagnosis was requested for the grouped attendance findings,
+  subject to the existing hourly budget. No automatic repair or task replay.
+- Limitation: prompt silence does not suppress diagnostics generated directly
+  by the installed Hermes gateway; those are explicitly outside this change.
