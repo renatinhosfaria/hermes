@@ -1,0 +1,17 @@
+[Unit]
+Description=CEO confirmed WhatsApp delivery followup for Reno
+
+[Service]
+Type=oneshot
+User=root
+Environment=HERMES_HOME=/root/.hermes
+Environment=HERMES_PROFILE=default
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/local/lib/hermes-agent/venv/bin/python /root/.hermes/ops/plugins/fama-reno-delivery/delivery.py
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/root/.hermes
+ReadOnlyPaths=/usr/local/lib/hermes-agent /root/brain
+TimeoutStartSec=45

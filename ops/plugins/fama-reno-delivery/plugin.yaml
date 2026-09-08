@@ -1,0 +1,7 @@
+name: fama-reno-delivery
+version: 1.0.0
+description: "Require confirmed WhatsApp delivery for Reno post-send stage updates."
+author: Fama Negócios Imobiliários
+provides_hooks:
+  - pre_tool_call
+  - post_tool_call

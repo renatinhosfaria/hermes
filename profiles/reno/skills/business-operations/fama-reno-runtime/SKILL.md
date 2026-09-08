@@ -12,6 +12,14 @@ metadata:
 
 # Workflow comercial do Reno
 
+Antes deste fluxo, confira `operation`. Se for `CONFIRMACAO_ENVIO`, execute
+somente a seção de mesmo nome em SOUL.md: validar recibo, consultar histórico
+uma vez, ler cliente, atualizar apenas Sem Atendimento → Não Respondeu quando
+cabível e confirmar com nova leitura. Preserve etapa avançada, responsável
+alterado e mensagem posterior do cliente. Não prepare mensagem, anexo, nota
+ou agendamento. Conclua com o veredito interno validado pelo guard e
+`response_ready: null`; o CEO permanece em silêncio.
+
 1. Exija `existing_client` ou `new_lead`, ID interno, mensagem original,
    contexto mínimo e critério de aceite.
 2. Se o resultado anterior for `LEAD_NOVO_CADASTRADO`, chame `conversation_recent`
@@ -30,6 +38,17 @@ metadata:
    `entities`, `response_ready`, `evidence`, `reason` e
    `requested_next_action: return_to_ceo`.
 8. Necessidade de outro especialista usa `status: escalate` e retorna ao CEO.
+
+## Etapa comercial e entrega
+
+Mensagem inicial de anúncio não autoriza Em Atendimento, mesmo com pedido
+explícito de informações. `response_ready` ou conclusão da task não autorizam
+Não Respondeu. Na ausência de mensagem humana independente posterior, preserve
+Sem Atendimento até chegar CONFIRMACAO_ENVIO legítima. Para Em Atendimento,
+registre referências e sequência da entrada e da mensagem independente posterior;
+ela pode chegar antes ou depois da primeira resposta da Fama. Repetição, wake,
+`[SILENT]` e outro clique de anúncio não substituem essa evidência. Se faltar
+evidência, preserve etapa e prossiga com o atendimento comercial.
 
 ## Referência do contexto CTWA
 

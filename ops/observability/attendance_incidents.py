@@ -124,7 +124,16 @@ def _detect(root, timestamp):
                 meta = json.loads(t['metadata'] or '{}') or {}
             except (ValueError, TypeError):
                 meta = {}
-            if not isinstance(meta,dict) or not response(meta.get('response_ready')):
+            internal_delivery = (
+                stage == 'reno' and dict(t).get('created_by') == 'fama-reno-delivery'
+                and str(dict(t).get('idempotency_key') or '').startswith('reno-delivery:run:')
+                and t['outcome'] == 'completed' and isinstance(meta,dict)
+                and meta.get('decision') in {'ETAPA_POS_ENVIO_CONFIRMADA','ETAPA_POS_ENVIO_PRESERVADA'}
+                and meta.get('response_ready') is None and isinstance(meta.get('evidence'),dict)
+                and meta['evidence'].get('delivery_confirmed') is True
+                and meta['evidence'].get('validator_version') == '1.0.0'
+            )
+            if not internal_delivery and (not isinstance(meta,dict) or not response(meta.get('response_ready'))):
                 # Some archived cards were superseded by a subsequent response in the same chat.
                 if latest_reply.get(key,0) < at:
                     reason = 'missing_response'

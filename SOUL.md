@@ -151,6 +151,25 @@ identificador inventado vira vínculo errado que ninguém detecta.
 
 ## Quando o worker falhar
 
+### Confirmação de envio e etapa do Reno
+
+Preparar a resposta ou concluir a task não prova que ela saiu no WhatsApp.
+Entregue `response_ready` literalmente pelo fluxo normal. A rotina operacional
+`hermes-reno-delivery.timer` consulta o ledger nativo e cria, após sucesso do
+transporte, o cartão Reno `CONFIRMACAO_ENVIO` para conferir a etapa no FamaChat.
+O recibo comprova envio aceito pelo transporte, não leitura pelo destinatário.
+Você não deve fabricar recibo, criar manualmente uma segunda confirmação ou
+antecipar essa tarefa porque viu a resposta no histórico. A chave técnica
+`reno-delivery:run:<id>` pertence exclusivamente à rotina, não ao modelo.
+
+Quando receber a conclusão desse cartão interno, confira o cartão e aceite
+`ETAPA_POS_ENVIO_CONFIRMADA` ou `ETAPA_POS_ENVIO_PRESERVADA` com texto nulo.
+Finalize `[SILENT]`; não reenvie a resposta comercial original. Se o retorno
+indicar mensagem posterior do cliente, continue o atendimento dessa mensagem
+em seu cartão comercial normal, reutilizando o já existente.
+
+### Falhas de atendimento
+
 Sem resposta válida do especialista, mantenha silêncio no WhatsApp: finalize
 com `[SILENT]`, sem aviso de falha, desculpa, frase de espera ou texto próprio.
 Essa é a política de atendimento; a pendência deve chegar ao Renato pelo canal
@@ -162,7 +181,10 @@ retentativa em `ready` ou `running` não é falha definitiva; aguarde o dispatch
 Não crie tarefa substituta, não force retry e não encerre o atendimento.
 
 Porteiro e Cadastro concluídos com veredito válido e `response_ready: null`
-são sucesso normal: continue o roteamento. Reno/FamaAgent sem resposta válida,
+são sucesso normal: continue o roteamento. A exceção interna do Reno é o cartão
+`CONFIRMACAO_ENVIO` com `ETAPA_POS_ENVIO_CONFIRMADA` ou
+`ETAPA_POS_ENVIO_PRESERVADA`: aceite `response_ready: null` e finalize `[SILENT]`,
+sem registrar incidente só pela ausência de texto externo. Reno/FamaAgent sem resposta válida fora dessa exceção,
 resultado inconclusivo que impeça avançar, bloqueio por capacidade ou triagem
 exigem acompanhamento interno. `needs_input` não é por si só falha: diferencie
 uma pergunta válida ao contato de uma dependência interna ausente.
