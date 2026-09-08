@@ -172,6 +172,45 @@ notificador falhou só porque a mensagem não chegou até você.
 5. Para transição de etapa pelo Reno, preserve `expectedStatus` e somente as
    transições progressivas documentadas na especificação vigente.
 
+## Conferência do handoff CTWA para o Reno
+
+O contrato de corpo está em `fama-ceo-runtime` e `fama-reno-runtime`:
+`contexto.ctwa_attributions` preserva evento, origem e atribuição normalizada
+da conversa atual. Atribuição pendente não segura o atendimento. Endereço e
+demais fatos imobiliários continuam dependendo da verificação no FamaChat.
+
+Teste isolado, sem acesso a serviços ou dados reais, a partir da raiz do checkout:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/local/lib/hermes-agent/venv/bin/python \
+  -m unittest discover -s ops/hermes-team/tests -v
+```
+
+Para auditar um cartão já observado, use dois arquivos JSON locais protegidos:
+o retorno de `conversation_context` da mesma conversa e o **body** do cartão
+convertido em objeto JSON (não a chamada inteira nem uma string YAML):
+
+```bash
+python ops/hermes-team/ctwa_handoff_check.py \
+  --context /caminho/protegido/context.json \
+  --card /caminho/protegido/card-body.json
+```
+
+Saídas: `PASS: CTWA_HANDOFF` (0), divergências de contrato sem conteúdo dos dados
+(1), erro de leitura/decodificação da entrada (2). O verificador não chama rede,
+não grava arquivos nem modifica cartões. Não exporte conteúdo real para Git ou logs.
+
+Este é um diagnóstico offline, **não um hook de `kanban_create`**: valida a
+cópia recebida, mas não autentica a sessão, não prova entrega da resposta e
+não faz detecção geral de PII/raw disfarçado como texto. `verify_team.py` continua
+validando a instalação `/root/.hermes`, mesmo se invocado de um worktree.
+
+Depois de uma ativação autorizada das instruções, valide um novo primeiro cartão
+do Reno e a resposta final. Confira que o prompt usado realmente contém o novo
+contrato: conversas existentes podem conservar instruções em cache. Não apague
+sessões nem reabra cartões antigos para testar. Esta alteração não automatiza
+preenchimento retroativo nem atualização quando uma atribuição pendente resolve.
+
 ## Rollback
 
 1. Identificar os arquivos e a unit afetados; não parar gateways não
