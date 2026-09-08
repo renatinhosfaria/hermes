@@ -64,6 +64,9 @@ sessions, or production systems.
   use `references/gateway-session-reset-and-privacy.md`.
 - Resolving apparent conflicts between `config.yaml`, CLI listings, source code,
   and an already-running gateway.
+- Verifying persistent memory, skill writes and automatic learning triggers;
+  use `references/memory-and-skill-learning.md` for native readback probes,
+  interval semantics, and the distinction between review execution and saving.
 - Auditing a Brain-backed Hermes multi-agent production deployment end to end;
   use `references/brain-hermes-production-audit.md` for Git-without-fetch,
   principal/secret checks, effective capability isolation, plugin parity, live

@@ -16,6 +16,7 @@ agent:
 skills:
   guard_agent_created: true
   write_approval: false
+  creation_nudge_interval: 10
 memory:
   memory_enabled: true
   user_profile_enabled: false
