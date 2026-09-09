@@ -48,8 +48,12 @@ Note: YOLO / `approvals.mode: off` does NOT turn off secret redaction. They are 
 ### "Reset permissions" / "make Hermes ask again"
 
 The user usually means: wipe the accumulated "Always allow" state — NOT yolo
-mode, and NOT a per-edit diff prompt (which doesn't exist; file writes never
-go through the approval prompt, only shell commands do). Two stores hold it:
+mode. File writes can also be gated: instruction-file protection and memory/skill
+write approval are separate controls. `security.protected_instruction_files: false`
+disables that specific gate; extra patterns do not re-enable it. HERMES_HOME
+files have additional dedicated guards, including the config.yaml direct-write
+block. Follow `fama-agendamento-maintenance` and respect runtime refusals.
+Two stores hold accumulated shell/hook consent:
 
 1. Shell-command allowlist: `hermes config set command_allowlist '[]'`
 2. Shell-hook consent (only if present): `rm -f ~/.hermes/shell-hooks-allowlist.json`

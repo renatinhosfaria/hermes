@@ -14,6 +14,13 @@ metadata:
 
 # Hermes Agent
 
+## Scope in the Agendamento profile
+
+For local administrative maintenance, load `fama-agendamento-maintenance` first.
+This general reference does not expand the SOUL authorization: examples about
+spawning, delegation, installation or other profiles are not permission to use
+them here. Commercial tasks use `fama-agendamento-runtime`.
+
 Hermes Agent is an open-source AI agent framework by Nous Research that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
 What makes Hermes different:

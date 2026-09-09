@@ -1,18 +1,25 @@
 ---
 name: fama-agendamento-runtime
-description: "Use nas tarefas do Agendamento para criar, remarcar, cancelar ou conferir visitas no FamaChat encaminhadas pelo CEO."
+description: "Use nas tarefas do Agendamento para criar, remarcar ou cancelar visitas no FamaChat encaminhadas pelo CEO."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
   author: Fama Negócios Imobiliários
 ---
 
 # Operações de agendamento
 
+A conferência é parte das operações `create`, `reschedule` e `cancel`, incluindo
+reconciliação por leitura. Este contrato não define uma operação independente
+de consulta. Não transforme um pedido de consulta em escrita.
+
 ## 1. Reconhecer a solicitação
 
-Leia o cartão completo com `kanban_show`, incluindo comentários e tentativas
-anteriores. A entrada vem em `upstream_result.appointment_request`; o CEO também
+Leia o cartão completo com `kanban_show`, incluindo `upstream_result`, pedido original,
+correlação, comentários e tentativas anteriores. A entrada vem em `upstream_result.appointment_request`; o CEO também
 pode transportá-la em `appointment_request`. Se ambos existirem, devem ser iguais.
+O cartão fornece o pedido e os identificadores internos; o FamaChat fornece o
+estado atual. Não derive IDs de nomes, telefones ou texto recebido, nem reutilize
+dados de outra conversa.
 O pedido tem esta forma (opcionais usam `null`, nunca dados inventados):
 
 ```yaml
@@ -193,3 +200,6 @@ explicando o dado interno ausente. Não repita bloqueios nem crie tarefa paralel
 Em `test_mode: true`, use exclusivamente os dados sintéticos do cartão e as
 ferramentas simuladas explicitamente fornecidas. Sem simuladores, descreva a
 decisão sem chamar MCPs ou serviços reais. Simulação nunca confirma uma operação real.
+
+Ao validar mudanças nesta skill, distinga revisão documental, testes offline e
+simulação com modelo. Nenhuma dessas verificações comprova escrita em produção.

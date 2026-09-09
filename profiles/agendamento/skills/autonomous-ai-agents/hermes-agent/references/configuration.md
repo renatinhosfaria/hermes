@@ -1,6 +1,7 @@
 # Configuration, Toolsets & Voice
 
-Edit with `hermes config edit` or `hermes config set section.key value`.
+For this profile, use `hermes -p agendamento config set section.key value` or
+`config unset section.key`; follow `fama-agendamento-maintenance`.
 Full reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 ### Config Sections (most-used keys)
@@ -8,7 +9,7 @@ Full reference: https://hermes-agent.nousresearch.com/docs/user-guide/configurat
 | Section | Key options |
 |---------|-------------|
 | `model` | `default`, `provider`, `base_url`, `api_key`, `context_length`, `aliases` |
-| `agent` | `max_turns` (90), `tool_use_enforcement`, `service_tier`, `verify_on_stop` |
+| `agent` | `max_turns` (unlimited by default), `reasoning_effort`, `reasoning_overrides`, `service_tier`, `verify_on_stop` |
 | `terminal` | `backend` (local/docker/ssh/modal/daytona/singularity), `cwd`, `timeout` (180) |
 | `compression` | `enabled`, `threshold` (0.50), `target_ratio` (0.20) |
 | `display` | `skin`, `interface` (cli/tui), `language`, `show_reasoning`, `show_cost`, `pet` |
@@ -21,7 +22,12 @@ Full reference: https://hermes-agent.nousresearch.com/docs/user-guide/configurat
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 | `curator` | `enabled`, `consolidate` (false, opt-in aux-model consolidation), `interval_hours`, `stale_after_days` |
 
-`hermes config check` reports sections missing from an older config.
+`hermes config check` reports missing/outdated configuration; it does not verify
+provider access, MCP connectivity or commercial results. Reasoning is configured
+under `agent.reasoning_effort` (with per-model `agent.reasoning_overrides`), not
+`model.reasoning_effort`. `verify_on_stop` checks coding verification evidence,
+not FamaChat read-back. Defaults evolve: confirm them against the installed
+`hermes_cli/config_defaults.py` and the current official documentation.
 
 ### Toolsets
 
@@ -56,7 +62,11 @@ Full enumeration: `TOOLSETS` dict in `toolsets.py` (`_HERMES_CORE_TOOLS` is the 
 | `safe` | Minimal low-risk toolset for locked-down sessions |
 | `spotify`, `homeassistant`, `discord`, `discord_admin`, `feishu_doc`, `feishu_drive`, `yuanbao` | Service integrations (gated on their credentials) |
 
-Tool changes take effect on `/reset` (new session) — never mid-conversation, to preserve prompt caching.
+Verify tool selections in a new session. MCP reload behavior is separately
+controlled by `mcp.auto_reload_on_config_change`; this profile disables it.
+`no_mcp` excludes configured MCP servers from the platform selection. Dispatcher
+workers receive Kanban lifecycle tools; an ordinary CLI session does not gain
+those tools merely by selecting this profile.
 
 ## Voice
 
