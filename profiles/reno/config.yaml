@@ -2,7 +2,6 @@ model:
   default: gpt-6-astra-900k
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
-  reasoning_effort: medium
   context_length: 900000
 terminal:
   backend: local
@@ -116,6 +115,10 @@ mcp:
 plugins:
   enabled:
     - fama-learning-lifecycle
+    - fama-reno-autoload
+hooks:
+  output_spill:
+    enabled: false
 auxiliary:
   background_review:
     enabled: true

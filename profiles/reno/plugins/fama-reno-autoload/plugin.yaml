@@ -1,0 +1,6 @@
+name: fama-reno-autoload
+version: 1.0.0
+description: Load Reno's commercial skill and references before every task turn.
+author: Fama Negócios Imobiliários
+provides_hooks:
+  - pre_llm_call

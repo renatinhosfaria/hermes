@@ -13,6 +13,8 @@ credenciais e dados pessoais; por isso, a política é uma lista permitida no
 - todo o conteúdo funcional das skills da raiz e dos profiles, sejam elas
   locais, bundled ou instaladas pelo Skills Hub;
 - documentação em `docs/` e automações em `ops/`;
+- código, manifesto, README e teste do plugin autoral
+  `profiles/reno/plugins/fama-reno-autoload`, liberados individualmente;
 - os arquivos que documentam e verificam esta própria política.
 
 ## O que nunca entra em texto puro

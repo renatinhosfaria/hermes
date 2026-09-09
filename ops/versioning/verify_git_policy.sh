@@ -21,6 +21,10 @@ must_be_ignored=(
     profiles/famaagent/auth.json
     profiles/famaagent/state.db
     platforms/whatsapp/session/creds.json
+    profiles/reno/plugins/fama-reno-autoload/.env
+    profiles/reno/plugins/fama-reno-autoload/__pycache__/__init__.cpython-311.pyc
+    profiles/reno/plugins/fama-reno-autoload/tests/__pycache__/test_autoload.cpython-311.pyc
+    profiles/reno/plugins/installed-plugin/plugin.yaml
 )
 
 for path in "${must_be_ignored[@]}"; do
@@ -44,6 +48,10 @@ must_be_allowed=(
     profiles/famaagent/profile.yaml
     ops/versioning/verify_git_policy.sh
     ops/observability/fleet_watch.py
+    profiles/reno/plugins/fama-reno-autoload/__init__.py
+    profiles/reno/plugins/fama-reno-autoload/plugin.yaml
+    profiles/reno/plugins/fama-reno-autoload/README.md
+    profiles/reno/plugins/fama-reno-autoload/tests/test_autoload.py
 )
 
 for path in "${must_be_allowed[@]}"; do

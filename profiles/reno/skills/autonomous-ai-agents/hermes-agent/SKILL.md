@@ -14,6 +14,14 @@ metadata:
 
 # Hermes Agent
 
+## Escopo no profile Reno
+
+No Reno, use esta skill para manutenção administrativa conforme o SOUL.md.
+Carregue primeiro [manutencao-reno.md](references/manutencao-reno.md). Exemplos
+genéricos abaixo não autorizam instalação, subprocessos de agentes, delegação,
+acesso a credenciais ou ações fora do escopo permanente. Os procedimentos de
+atendimento pertencem a `fama-reno-runtime`.
+
 Hermes Agent is an open-source AI agent framework by Nous Research that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
 What makes Hermes different:
@@ -210,4 +218,4 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 - **Message role alternation** — never two assistant or two user messages in a row; only `tool` results can repeat.
 - **Secrets in `.env`, settings in `config.yaml`** — never tell a user to put a non-credential setting in `.env`.
 - **Profile-safe paths** — `get_hermes_home()` in code, `$HERMES_HOME` when resolving paths in a session.
-- **Never hand-edit `config.yaml` for the user** — use `hermes config set KEY VAL`; a stray indent can corrupt the file and break the live gateway.
+- **Reno configuration changes** — follow `references/manutencao-reno.md` for the canonical commands and verification sequence.
