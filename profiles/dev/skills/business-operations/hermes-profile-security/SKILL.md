@@ -1,7 +1,7 @@
 ---
 name: hermes-profile-security
 description: "Secure and verify Hermes gateway profile configuration."
-version: 0.1.0
+version: 0.2.0
 author: Renato Faria, Hermes Agent
 license: MIT
 platforms: [linux]
@@ -38,8 +38,8 @@ unless the user explicitly authorizes that operational action.
 - The installed Hermes source under `/usr/local/lib/hermes-agent` is treated as
   read-only and may be consulted when CLI output conflicts with configuration.
 - The profile's `config.yaml` and runtime logs are inspected before mutation.
-- Existing Git changes are recorded; only the requested configuration file is
-  staged for a configuration commit.
+- Existing Git changes are recorded; only task-owned files/hunks are staged,
+  including related instructions when the task requests them.
 
 ## Quick Reference
 
@@ -63,6 +63,8 @@ platforms.telegram.home_channel.name
 platforms.telegram.home_channel.thread_id
 platforms.telegram.home_channel.user_id
 telegram.allow_from
+telegram.group_allow_from
+telegram.allowed_chats
 telegram.group_allowed_chats
 telegram.require_mention
 ```
@@ -139,30 +141,56 @@ telegram.require_mention
    policy forbids editing `.env`, leave it untouched and report the resulting
    activation risk instead of presenting the YAML-only change as complete.
 
-6. **Use the adapter's documented access paths.** For Telegram, persist the
-   sender allowlist and group restriction with:
+6. **Separate sender authorization from chat restrictions.** Choose the access
+   policy from the task before editing. These keys have different meanings:
+
+   - `telegram.allow_from`: users authorized for DMs and, in the gateway's global
+     allowlist path, groups. Authenticate administrative requests by sender metadata.
+   - `telegram.group_allow_from`: group/forum sender allowlist. It does not grant DM access.
+   - `telegram.allowed_chats`: restricts groups where the bot processes messages;
+     it does not authorize their members and does not restrict DMs.
+   - `telegram.group_allowed_chats`: grants authorization to members of those
+     chats. It is not an additional restriction intersected with `allow_from`.
+
+   For an operator-only administrative bot in a designated group, preserve/set
+   the operator allowlist, set the group sender allowlist and chat restriction,
+   and remove the collective group grant:
 
    ```text
    hermes -p <profile> config set telegram.allow_from '<USER_ID>'
-   hermes -p <profile> config set telegram.group_allowed_chats '<GROUP_ID>'
+   hermes -p <profile> config set telegram.group_allow_from '["<USER_ID>"]'
+   hermes -p <profile> config set telegram.allowed_chats '<GROUP_ID>'
+   hermes -p <profile> config unset telegram.group_allowed_chats
    ```
 
-   `telegram.allow_from` must cover DMs as well as group senders. The group
-   restriction is defense in depth if the bot is added elsewhere. If a stale
-   `TELEGRAM_ALLOWED_USERS` key exists in the YAML root, remove that root key
-   with `config unset`; do not edit `.env` directly merely to clean up a
-   configuration audit.
+   In the installed CLI, `allowed_chats` can be typed as a CSV string. Passing
+   JSON text to a string-typed key may persist literal brackets/quotes, blocking
+   even the intended chat. Inspect the saved type and test the adapter's resolved
+   chat set. For several chats, use the supported CSV representation or a real
+   YAML list via a native mapping update; do not hand-edit config.yaml.
 
-7. **Verify persisted state and commit narrowly.** Run `config get` for every
-   changed key, run `hermes -p <profile> config check`, inspect `git diff --check`,
-   and ensure only the intended `config.yaml` is staged. `config set` may
-   reserialize the YAML and remove preexisting comments or formatting; treat
-   those as collateral changes, preserve the original non-semantic content, and
-   re-run the checks until the diff contains only the requested setting. For a
-   multi-profile change, a temporary focused verifier may check YAML parsing,
-   resolved values, and forbidden/unrequested keys together; remove it after
-   execution and report it as ad-hoc verification, not as a canonical test
-   suite. Commit with a descriptive message; never push.
+   Check `guest_mode` and environment/extra overrides as well: guest mode can
+   admit explicit mentions outside `allowed_chats`. Existing pairing grants and
+   global allowlists are separate authorization paths, so YAML alone does not
+   prove exclusive access in a live process. Inspect overrides without exposing
+   values. Do not silently edit credentials or the pairing/state stores.
+
+   Verify at least five cases using the installed authorization and trigger
+   consumers: operator in intended group allowed; another member denied;
+   operator in another group denied; operator DM allowed; another DM denied.
+   Include forum topics or guest mentions when the deployment uses them.
+   Offline probes must not call Telegram or poll the live bot.
+
+7. **Verify persisted state and commit narrowly.** Run `config get` for changed
+   non-secret keys, YAML parsing, `hermes -p <profile> config check`, behavior
+   probes and `git diff --check`. `config check` is a configuration-status report,
+   not a comprehensive schema, authentication or live-runtime test. Stage only
+   task-owned files/hunks, including related instructions when requested; follow
+   the Dev repository contract for commits and preservation of unrelated work.
+   Native `config set` may reserialize YAML. Inspect the semantic diff and report
+   unavoidable formatting changes; do not bypass the native writer to restore
+   comments with direct writes to config.yaml. Never print secret-bearing
+   `config get` subtrees or `${VAR}` values resolved from credentials.
 
 8. **State activation separately from persistence.** Unless the user explicitly
    authorizes a restart, do not restart or reload the gateway. Report that the
@@ -199,8 +227,11 @@ telegram.require_mention
 - [ ] Native-toolset presence/absence is reported from the platform tool listing;
       MCP presence/absence comes from the default-true `_get_platform_tools`
       resolver, not from that listing or persisted YAML alone.
-- [ ] `telegram.allow_from` and `telegram.group_allowed_chats` return the
-      intended values with `config get`.
+- [ ] Sender authorization, group restrictions and any collective grant match
+      the requested policy; the five allow/deny cases passed offline.
+- [ ] `allowed_chats` resolves to actual chat IDs, not literal JSON text.
+- [ ] Guest mode, environment and pairing/global grants were considered separately;
+      unverified live-runtime activation is reported as pending.
 - [ ] Stale YAML-root `TELEGRAM_ALLOWED_USERS` is absent when applicable.
 - [ ] `.env` inspection exposed no unrequested line or secret; any printed value
       belonged to an exact operator-authorized non-secret key.
@@ -210,5 +241,5 @@ telegram.require_mention
 - [ ] Only the requested files are staged and committed.
 - [ ] Restart status is stated explicitly; no unrequested restart occurred.
 
-Session-specific runtime evidence and source-code notes are kept in
+Reusable runtime findings and source-code notes are kept in
 `references/telegram-gateway-diagnostics.md`.

@@ -8,9 +8,16 @@ profile-specific values.
 
 - `platforms.telegram.home_channel` controls the configured Telegram home
   channel and topic/thread routing.
-- In the installed runtime, Telegram authorization is evaluated from the
-  adapter's `allow_from` and group restriction values exposed through the
-  `telegram` configuration namespace.
+- Sender authorization and chat gating are independent. `telegram.allow_from`
+  and `telegram.group_allow_from` select users; `telegram.allowed_chats` limits
+  groups where messages are processed. `telegram.group_allowed_chats` grants
+  collective authorization and must not be mistaken for a restrictive intersection.
+- For an operator-only group bot, remove that collective grant and test sender
+  allow/deny plus chat allow/deny. `guest_mode`, environment overrides, pairing
+  and global grants require separate inspection before claiming live exclusivity.
+- The native CLI may treat `allowed_chats` as CSV text. JSON-looking text stored
+  as a string is not a YAML list: the adapter splits it by commas and retains
+  brackets/quotes. Verify the parsed chat set after writing the configuration.
 - A root-level `TELEGRAM_ALLOWED_USERS` entry is not the adapter configuration
   path. `hermes config set` can still persist an unrecognized custom key and
   bridge it to `.env`, so audit both locations by count and remove the stale

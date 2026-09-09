@@ -3,7 +3,6 @@ model:
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
   context_length: 900000
-  reasoning_effort: medium
 terminal:
   backend: local
   cwd: /root/.hermes/profiles/dev
@@ -57,7 +56,9 @@ approvals:
 telegram:
   require_mention: false
   allow_from: 8564576789
-  group_allowed_chats: -1004365034436
+  allowed_chats: '-1004365034436'
+  group_allow_from:
+    - '8564576789'
 kanban:
   dispatch_in_gateway: false
 platform_toolsets:

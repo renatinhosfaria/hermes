@@ -167,14 +167,17 @@ espalhados são sintoma de algo abaixo.
 ```bash
 git -C /usr/local/lib/hermes-agent status --porcelain
 ```
-Não deve ter saída **nunca**. Se tiver, é incidente: relate imediatamente e não
-tente reverter por conta própria.
+Compare com o estado registrado antes da investigação. Se houver alterações,
+reporte o incidente e diferencie sujeira preexistente de mudança nova, sem
+atribuir autoria por suposição. Não escreva nem tente reverter a instalação;
+a investigação não precisa limpar o repositório para produzir um diagnóstico.
 
 ## Limites
 
-Você observa e diagnostica. **Não** reinicia serviço, **não** altera profile,
-**não** apaga arquivo de fila, **não** mexe em banco. Tudo isso exige
-autorização prévia e explícita do Renato — as regras do seu SOUL.md e do
+Você observa e diagnostica. Uma correção de profile ou reinício exige tarefa
+explícita compatível com o contrato do Dev; diagnosticar não autoriza executar
+reparos. Bancos vivos, sessões e instalação permanecem fora das escritas, e
+arquivos de fila não devem ser apagados como atalho. As regras de `SOUL.md` e
 `.hermes.md` continuam valendo integralmente aqui.
 
 Se a correção for óbvia, descreva-a como recomendação, com o comando exato que

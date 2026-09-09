@@ -407,6 +407,19 @@ def telegram_destination_scope_errors(
     telegram: dict, profile_name: str, expected_chat_id: str
 ) -> list[str]:
     """Verify group destination scope without granting authorization to every member."""
+    if profile_name == "dev":
+        from utils import is_truthy_value
+
+        errors = []
+        if _telegram_id_set(telegram.get("group_allowed_chats")):
+            errors.append("telegram.group_allowed_chats não pode conceder acesso coletivo")
+        if _telegram_id_set(telegram.get("allowed_chats")) != {expected_chat_id}:
+            errors.append("telegram.allowed_chats não aponta somente para o grupo próprio")
+        if _telegram_id_set(telegram.get("group_allow_from")) != {OPERATOR_ID}:
+            errors.append("telegram.group_allow_from deve autorizar somente o operador")
+        if is_truthy_value(telegram.get("guest_mode"), default=False):
+            errors.append("telegram.guest_mode não pode liberar outros grupos")
+        return errors
     if profile_name == "agendamento":
         errors = []
         if telegram.get("group_allowed_chats") != []:
