@@ -32,11 +32,12 @@ By default (`approvals.mode: smart`), Hermes asks an auxiliary LLM to assess she
 
 - `smart` — auto-approve a low-risk command once, deny high-risk commands, and prompt when uncertain (default)
 - `manual` — always prompt
-- `off` — skip all approval prompts (equivalent to `--yolo`)
+- `off` — disable the command approval gate; independent file and learning
+  guards still apply.
 
 ```bash
 hermes config set approvals.mode smart       # recommended middle ground
-hermes config set approvals.mode off         # bypass everything (not recommended)
+hermes config set approvals.mode off         # disable command approval only
 ```
 
 Per-invocation bypass without changing config:
@@ -48,8 +49,8 @@ Note: YOLO / `approvals.mode: off` does NOT turn off secret redaction. They are 
 ### "Reset permissions" / "make Hermes ask again"
 
 The user usually means: wipe the accumulated "Always allow" state — NOT yolo
-mode, and NOT a per-edit diff prompt (which doesn't exist; file writes never
-go through the approval prompt, only shell commands do). Two stores hold it:
+mode. File writes also have independent path and instruction-file guards;
+there is no universal per-edit diff prompt. Two stores hold shell consent:
 
 1. Shell-command allowlist: `hermes config set command_allowlist '[]'`
 2. Shell-hook consent (only if present): `rm -f ~/.hermes/shell-hooks-allowlist.json`
@@ -65,3 +66,12 @@ Some shell-hook integrations require explicit allowlisting before they fire. Man
 
 To keep the model away from network or media tools entirely, open `hermes tools` and toggle per-platform. Takes effect on next session (`/reset`). See `references/configuration.md` for the toolset list.
 
+
+## Instruction and learning writes
+
+`security.protected_instruction_files` controls the instruction-file approval
+gate; when false, `protected_instruction_extra_patterns` is inactive. Protected
+credential paths and config.yaml restrictions are independent. Use native
+`hermes -p PROFILE config set/unset` for config.yaml. `memory.write_approval`
+and `skills.write_approval` govern foreground/background learning separately;
+`skills.guard_agent_created` enables content scanning, not operator approval.

@@ -1,7 +1,7 @@
 ---
 name: hermes-learning-lifecycle
-description: "Use when reviewing learning. Separate memory from skills."
-version: 1.0.0
+description: "Use after completed work, corrections or verified reusable procedures to review and persist durable learning in this profile."
+version: 1.1.0
 author: Fama Negócios Imobiliários
 license: MIT
 metadata:
@@ -36,7 +36,12 @@ class-level workflow for learning reviews and lifecycle validation.
 
 ## Procedure
 
-1. Review the completed work and corrections. Extract only facts that remain
+1. Review completed work, corrections and verified reusable procedures. On
+   short CLI/Kanban workers, do this before the final response and before closing
+   the card; background review complements it. SOUL.md supplies the standing
+   authorization, so no separate save request or maintenance card is required.
+   If no durable lesson exists, finish without manufacturing a memory or skill.
+   Extract only facts that remain
    useful beyond the current task and distinguish user facts from procedures.
 2. Call `skills_list` to inspect the library. For every candidate target, call
    `skill_view` during the current review before patching its SKILL.md; load an
@@ -51,8 +56,11 @@ class-level workflow for learning reviews and lifecycle validation.
    imperative rule with a short reason. Name new references by topic, never by
    date, incident, ticket, or error string.
 5. Use `memory` for the user fact and `skill_manage` for the procedure. Batch
-   related writes atomically where the tool supports it, and do not write when
-   review finds no durable, verified learning.
+   related writes atomically where the tool supports it. When the user explicitly
+   requests active learning, make one targeted, read-before-write attempt against
+   the closest class-level skill; if the target is protected, do not create a
+   duplicate skill merely to satisfy the request, and report the boundary. Do not
+   write when review finds no durable, verified learning.
 6. After a skill write, inspect the tool result and reload the resulting skill
    with `skill_view`. For lifecycle claims, separately verify the persisted
    record in an independent process; never infer persistence from configuration

@@ -2,7 +2,6 @@ model:
   default: gpt-5.6-luna-900k
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
-  reasoning_effort: xhigh
   context_length: 900000
 terminal:
   backend: local
@@ -13,6 +12,7 @@ agent:
   verify_on_stop: true
   verify_guidance: true
   reasoning_effort: xhigh
+  bot_mode_protocol: false
 memory:
   memory_enabled: true
   user_profile_enabled: true
@@ -49,8 +49,11 @@ approvals:
   destructive_slash_confirm: false
 telegram:
   require_mention: false
-  allow_from: 8564576789
-  group_allowed_chats: -1004476890625
+  allow_from:
+    - '8564576789'
+  group_allow_from:
+    - '8564576789'
+  allowed_chats: '-1004476890625'
 kanban:
   dispatch_in_gateway: false
 platform_toolsets:
@@ -93,11 +96,6 @@ mcp_servers:
     prompts: false
 security:
   protected_instruction_files: false
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
 mcp:
   auto_reload_on_config_change: false
 auxiliary:
