@@ -32,11 +32,11 @@ By default (`approvals.mode: smart`), Hermes asks an auxiliary LLM to assess she
 
 - `smart` — auto-approve a low-risk command once, deny high-risk commands, and prompt when uncertain (default)
 - `manual` — always prompt
-- `off` — skip all approval prompts (equivalent to `--yolo`)
+- `off` — bypass the general command approval gate; independent write protections may still apply
 
 ```bash
 hermes config set approvals.mode smart       # recommended middle ground
-hermes config set approvals.mode off         # bypass everything (not recommended)
+hermes config set approvals.mode off         # general command gate only
 ```
 
 Per-invocation bypass without changing config:
@@ -48,8 +48,8 @@ Note: YOLO / `approvals.mode: off` does NOT turn off secret redaction. They are 
 ### "Reset permissions" / "make Hermes ask again"
 
 The user usually means: wipe the accumulated "Always allow" state — NOT yolo
-mode, and NOT a per-edit diff prompt (which doesn't exist; file writes never
-go through the approval prompt, only shell commands do). Two stores hold it:
+mode. File writes can have independent approval gates, including protected
+instruction files and memory/skill write approval. Two command-consent stores are:
 
 1. Shell-command allowlist: `hermes config set command_allowlist '[]'`
 2. Shell-hook consent (only if present): `rm -f ~/.hermes/shell-hooks-allowlist.json`
@@ -65,3 +65,16 @@ Some shell-hook integrations require explicit allowlisting before they fire. Man
 
 To keep the model away from network or media tools entirely, open `hermes tools` and toggle per-platform. Takes effect on next session (`/reset`). See `references/configuration.md` for the toolset list.
 
+
+### Independent write protections
+
+`security.protected_instruction_files` gates protected project instruction
+files; `protected_instruction_extra_patterns` extends that gate only when
+enabled. The native HERMES_HOME config.yaml write block is separate: use
+`hermes -p <profile> config set/unset` for configuration mutations.
+Memory/skill write approval and content/read-before-write guards are also
+independent. Disabling a command gate does not disable all protections.
+
+Telegram sender allowlists are separate for DMs (`allow_from`) and groups
+(`group_allow_from`). A group chat grant (`group_allowed_chats`) is not an
+operator identity check. Validate the adapter's resolved access policy.

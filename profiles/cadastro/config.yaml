@@ -2,7 +2,6 @@ model:
   default: gpt-5.6-luna-900k
   provider: openai-codex
   base_url: https://chatgpt.com/backend-api/codex
-  reasoning_effort: xhigh
   context_length: 900000
 toolsets:
   - clarify
@@ -35,20 +34,16 @@ skills:
 telegram:
   require_mention: false
   allow_from: 8564576789
-  group_allowed_chats: -1003746861842
+  group_allow_from:
+    - '8564576789'
 approvals:
-  destructive_slash_confirm: false
+  destructive_slash_confirm: true
 plugins:
   enabled:
     - fama-cadastro-guard
     - fama-learning-lifecycle
 security:
   protected_instruction_files: false
-  protected_instruction_extra_patterns:
-    - SKILL.md
-    - profile.yaml
-    - config.yaml
-    - .hermes.md
 kanban:
   dispatch_in_gateway: false
 onboarding:

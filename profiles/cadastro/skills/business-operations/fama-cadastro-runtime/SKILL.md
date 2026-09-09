@@ -1,9 +1,9 @@
 ---
 name: fama-cadastro-runtime
-description: "Use when the Cadastro profile receives a Kanban task after Porteiro to identify an existing client or register a new lead and return evidence to CEO."
+description: "Use when Cadastro processes a post-Porteiro Kanban task."
 license: MIT
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   author: Fama Negócios Imobiliários
   platforms: [linux]
   hermes:
@@ -12,56 +12,62 @@ metadata:
 
 # Workflow do Cadastro
 
-1. Leia o cartão atual com `kanban_show({})`. Exija o resultado anterior `not_active`, correlação, origem e os
-   dados mínimos de identidade, ou fixture interna com `test_mode: true`.
-2. Em modo real, mesmo com telefone no cartão, chame sempre
-   `conversation_phone()` pelo MCP `brain` com `{}` e sem argumento de
-   identidade. Use somente o telefone retornado com `status: ok`; nunca derive
-   telefone de nome, texto, LID, `session_key` ou caminho de arquivo. Se a
-   capability estiver ausente, indisponível ou não resolver um telefone único,
-   use `kanban_block(kind="capability")` e não classifique nem crie cadastro.
-3. Com o telefone comprovado, chame `fc_get_clientes` com search igual aos
-   últimos quatro dígitos, dentro de `query`. O plugin `fama-cadastro-guard`
-   compara os telefones completos nas respostas originais. Ele distingue
-   `candidates_returned`, `normalized_matches` e `active_broker35_matches`.
-   Quatro candidatos por sufixo podem ter zero telefones correspondentes.
-   Se a página vier cheia, incremente `page` mantendo `search` e `pageSize`
-   até uma página curta, inclusive vazia. `pagination.total` não é total da
-   base. Não refine com telefone sem pontuação e não estime contagens.
-4. Se algum candidato satisfizer o critério, o veredito é JA_E_CLIENTE. NÃO crie
-   nada: registro existente nunca é alterado nem reativado. Basta um candidato
-   para decidir, independente de quantos arquivados existam ao lado. Mais de
-   um cliente Reno correspondente é INCONCLUSIVO para conferência.
-5. Se nenhum candidato satisfizer o critério, crie o cliente com
-   fc_post_clientes — `body` com phone exatamente como retornou do Brain,
-   fullName, brokerId: 35, source: "Facebook Ads", sem status.
-   O plugin bloqueia o POST sem consulta completa, com cliente Reno existente
-   ou após uma tentativa anterior, inclusive se houve timeout. Não repita.
-6. Releia o registro com fc_get_clientes_by_id usando o id devolvido: imediato,
-   depois ~1s, depois ~1s. Sucesso exige id exato, telefone completo equivalente,
-   brokerId 35 e status Sem Atendimento juntos. A resposta do POST não serve como prova. Três
-   leituras sem prova é INCONCLUSIVO com o id na frase — não repita o POST e
-   não mande para o reno.
+## Entrada e escolha do modo
 
-   Use kanban_block(kind="capability") só se o MCP não responder, e
-   `kind="needs_input"` somente para outro dado realmente ausente que a tarefa
-   exija. Nunca classifique sem consulta, e nunca reporte cadastro que não
-   aconteceu.
-7. Em modo sintético, aceite apenas `existing_client`, `new_lead` ou
-   `indeterminate` em `fixture.decision`; copie apenas IDs sintéticos declarados.
-8. Conclua com summary sem PII e metadata com `status`, `decision`, `entities`,
-   `evidence`, `reason`, `response_ready: null` e
-   `requested_next_action: return_to_ceo`.
+1. Leia o cartão atual com `kanban_show({})`. Confirme o resultado anterior
+   `not_active` do Porteiro, correlação e origem. Um resumo não substitui o cartão.
+2. Escolha o ramo antes de chamar qualquer MCP. `test_mode: true` exige fixture
+   interna explícita; declaração ambígua ou fixture inválida não autoriza modo real.
+3. Dados essenciais ausentes no cartão: `kanban_block(kind="needs_input")`.
+   Não solicite telefone ao contato nem derive identidade do texto recebido.
 
-   Complete após terminar as consultas e o readback necessário. O plugin
-   substitui summary, result e metadata por um handoff calculado das respostas
-   observadas, incluindo as três contagens e `validator_version`. Sem prova
-   suficiente, ele devolve INCONCLUSIVO. Use ferramentas em sequência; aguarde
-   cada resultado antes da próxima chamada. Bloqueio do guard é uma operação
-   não executada: siga a indicação da ferramenta e preserve o limite de um POST.
+## Ramo sintético
 
-   Em modo real, decision assume JA_E_CLIENTE, LEAD_NOVO_CADASTRADO ou
-   INCONCLUSIVO — os mesmos vereditos do SOUL.md, e a primeira linha da
-   conclusão é sempre o veredito puro, sem prosa antes. O vocabulário
-   existing_client / new_lead / indeterminate vale SOMENTE em modo sintético.
-9. Nunca faça atendimento comercial ou envie mensagem externa.
+Use apenas `fixture.decision` (ou `fixture.cadastro.decision`) com
+`existing_client`, `new_lead` ou `indeterminate`. Copie somente entidades
+sintéticas declaradas (`client_id`/`lead_id`); seus IDs devem ter prefixo
+`client-`, `lead-`, `synthetic-` ou `test-` (também aceita `_`) e sufixo
+alfanumérico, `_` ou `-`, de 1 a 80 caracteres.
+
+Não chame Brain nem FamaChat, não crie registros e não percorra o ramo real.
+Conclua pelo handoff abaixo; o guard valida a fixture e produz `TEST_MODE`.
+
+## Ramo real
+
+Leia integralmente [o contrato operacional](references/contrato-cadastro.md)
+antes de consultar ou criar. Ele é a fonte canônica para critério comercial,
+normalização, paginação, payloads e prova de criação.
+
+Execute em sequência, aguardando cada resultado:
+
+1. Resolva o telefone por `conversation_phone({})` no MCP Brain, mesmo quando
+   existir telefone no cartão. Somente `status: ok` com telefone único é prova.
+2. Consulte candidatos no FamaChat e complete a paginação segundo o contrato.
+3. Aplique o critério sobre telefones completos: um cliente elegível significa
+   `JA_E_CLIENTE`; mais de um significa `INCONCLUSIVO`, sem criar.
+4. Ausência comprovada exige criar na mesma execução e confirmar por leitura
+   independente. Limite: um POST, inclusive após timeout; até três releituras.
+5. Só reporte `LEAD_NOVO_CADASTRADO` depois da confirmação completa.
+
+Capability ausente, MCP indisponível ou telefone não resolvido:
+`kanban_block(kind="capability")`. Consulta incompleta, resposta inválida,
+ambiguidade entre clientes ou criação/readback não comprovado: `INCONCLUSIVO`.
+Se a indisponibilidade ocorrer após o POST, preserve o ID conhecido no resultado
+inconclusivo, sem repetir a criação. `needs_input` é reservado a outro dado
+necessário realmente ausente da entrada, não à falha da capability de telefone.
+
+## Handoff e verificação
+
+Conclua com `kanban_complete` após terminar o ramo escolhido. No modo real,
+a primeira linha é o veredito puro e IDs mínimos; o formato completo está no
+contrato. Summary e metadata não contêm telefone, nome ou mensagem bruta.
+
+O plugin `fama-cadastro-guard` substitui summary, result e metadata por evidência
+calculada, com `status`, `decision`, `entities`, `evidence`, `reason`,
+`response_ready: null`, `requested_next_action: return_to_ceo` e
+`validator_version` na evidência. Nunca estime as contagens.
+
+O guard aplica o contrato nos workers identificados; fora deles bloqueia as
+quatro ferramentas comerciais. Um bloqueio significa operação não executada.
+Preserve o limite de um POST e não tente contornar a ferramenta. Sem guard
+carregado ou sem capacidade aprovada, bloqueie a execução comercial.

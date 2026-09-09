@@ -17,6 +17,17 @@ Use para configurar ou verificar um profile Hermes, especialmente quando a
 mudança envolve memória persistente, skills, revisão automática, toolsets ou um
 gateway de mensagens.
 
+## Escopo e aprendizagem
+
+A autorização de manutenção vem do SOUL.md e do pedido autenticado. O canal de
+manutenção do Cadastro é Telegram; pedidos comerciais não autorizam configuração.
+Use terminal e ferramentas de arquivo somente para a manutenção solicitada.
+Não altere credenciais, bancos de estado, sessões ou a instalação do Hermes.
+
+Para registrar aprendizado em qualquer canal ou worker, leia
+[references/aprendizagem.md](references/aprendizagem.md). Esse procedimento usa
+memory/skill_manage e não exige terminal, Git, tarefa nova ou modo administrativo.
+
 ## Procedure
 
 1. **Carregue a orientação aplicável antes de agir.** Para comportamento do
@@ -31,9 +42,10 @@ gateway de mensagens.
    diretamente, porque o CLI preserva a estrutura e normaliza o valor. Para
    chaves suportadas, confirme imediatamente com
    `hermes -p <profile> config get <chave>`.
-4. **Valide a configuração inteira.** Execute
-   `hermes -p <profile> config check` e só considere a alteração concluída se o
-   comando retornar sucesso. Se uma chave customizada for aceita com aviso,
+4. **Verifique sintaxe e resolução.** Valide YAML sem chaves duplicadas e execute
+   `hermes -p <profile> config check`. Esse comando verifica versão e opções
+   ausentes; código zero não prova validade de toda chave nem conectividade.
+   Releia os valores alterados e confirme como o runtime os consome. Se uma chave customizada for aceita com aviso,
    confirme no código/documentação que o runtime realmente a lê antes de
    mantê-la.
 5. **Verifique a capacidade e a semântica dos gatilhos, não só o arquivo.** Para
@@ -71,6 +83,25 @@ gateway de mensagens.
    configuração persistida, capacidade detectada, testes executados e estado do
    gateway; não declare uma execução automática que não foi observada.
 
+## Configuração específica do Cadastro
+
+- Use `hermes -p cadastro` para selecionar o profile. O esforço efetivo fica em
+  `agent.reasoning_effort` ou `agent.reasoning_overrides`, não em
+  `model.reasoning_effort`.
+- Telegram mantém ferramentas de manutenção e `no_mcp`; o CLI de worker mantém
+  Brain, FamaChat, Kanban, memória e skills. Confira a seleção resolvida: listas
+  `known_*` registram escolhas do seletor, não ferramentas ativas.
+- A autorização em grupo usa `telegram.group_allow_from`. Não substitua uma
+  restrição de remetentes por `group_allowed_chats`, que concede acesso ao chat.
+- `security.protected_instruction_files: false` permite a manutenção prevista;
+  padrões adicionais desse gate não atuam quando ele está desligado. O bloqueio
+  separado de escrita direta em config.yaml continua exigindo o CLI nativo.
+- `approvals.destructive_slash_confirm: true` mantém confirmação dos comandos
+  slash destrutivos sem exigir reconfirmação de toda edição já autorizada.
+- `mcp.auto_reload_on_config_change: false` exige recarga apropriada após mudanças
+  MCP. Um gateway já aberto não é prova de que leu a nova configuração.
+- A instalação e os plugins de outros profiles não são alvos da manutenção própria.
+
 ## Pitfalls
 
 - Não habilite recursos apenas porque são defaults: torne explícita somente a
@@ -91,8 +122,8 @@ gateway de mensagens.
 ## Verification
 
 A manutenção está verificada quando o `config check` passa, cada chave alterada
-foi relida, os toolsets/capacidades relevantes foram observados no runtime, os
-semântica e gatilhos de aprendizagem foram exercitados quando aplicável, os
+foi relida, os toolsets/capacidades relevantes foram observados no runtime, a
+semântica e os gatilhos de aprendizagem foram exercitados quando aplicável, os
 testes focados passam quando disponíveis e o estado do gateway foi consultado.
 Para persistência, a evidência forte é uma gravação e a recuperação posterior em
 processo independente; para o ciclo de vida, verifique a espera limitada no CLI

@@ -17,6 +17,20 @@ metadata:
 Use este skill para mapear contratos, filtros, paginação e respostas das
 ferramentas MCP do FamaChat em modo somente leitura, sem cadastro ou alteração.
 
+## Disponibilidade no Cadastro
+
+A allowlist de produção expõe somente `fc_get_clientes`,
+`fc_get_clientes_by_id` e `fc_post_clientes`; não expõe `fc_catalog`,
+`tool_describe` nem `fc_get_users`. As etapas de catálogo e descrição abaixo
+exigem uma superfície de diagnóstico explicitamente autorizada que ofereça
+essas ferramentas. Não amplie a allowlist comercial para executar esta skill.
+
+Se essas capacidades faltarem, relate a descoberta como parcial ou bloqueada;
+não invente contratos, não contorne o guard e não faça chamadas diretas por HTTP.
+No Cadastro, as ferramentas comerciais são bloqueadas fora de worker Kanban.
+O procedimento de classificação não depende desta descoberta: use
+`fama-cadastro-runtime` e seu contrato já estabelecido.
+
 ## Objetivo
 
 Mapear, com evidência verificável e sem efeitos colaterais, como as ferramentas
@@ -148,7 +162,8 @@ estiver embutida em um cartão operacional, preserve `response_ready: null` e
 
 ## Critérios de conclusão
 
-A tarefa só está concluída quando:
+A descoberta completa só está concluída quando (sem essas capacidades,
+relate explicitamente que a descoberta ficou parcial ou bloqueada):
 
 - a capacidade foi contada e a unidade da contagem foi explicitada;
 - o catálogo foi consultado antes do endpoint;

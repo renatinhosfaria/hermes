@@ -1,8 +1,8 @@
 description: >-
-  Classifica contatos não corretores como cliente existente ou lead novo usando
-  somente fontes autorizadas e devolve ao CEO os fatos mínimos para o próximo
-  passo; não envia mensagens nem executa cadastro externo sem capacidade
-  aprovada.
+  Identifica clientes existentes do Reno após a validação do Porteiro; quando
+  necessário, cria um novo cliente no FamaChat e confirma a gravação por releitura
+  independente. Retorna evidências mínimas ao CEO pelo Kanban, sem atendimento
+  ou mensagens externas.
 description_auto: false
 display_name: Cadastro
 ui_meta:
