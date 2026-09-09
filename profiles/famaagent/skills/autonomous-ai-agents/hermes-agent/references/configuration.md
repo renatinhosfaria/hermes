@@ -1,6 +1,8 @@
 # Configuration, Toolsets & Voice
 
-Edit with `hermes config edit` or `hermes config set section.key value`.
+For agent-driven changes, use `hermes -p <profile> config set section.key value`
+or `hermes -p <profile> config unset section.key`. `config edit` is a manual
+operator editor; do not use it to bypass native agent write guards.
 Full reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
 
 ### Config Sections (most-used keys)

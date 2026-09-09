@@ -1,7 +1,7 @@
 ---
 name: hermes-profile-maintenance
-description: "Use when maintaining Hermes profiles. Verify safe changes."
-version: 1.0.0
+description: "Use when maintaining a Hermes profile or saving verified, reusable learning in its memory and skills."
+version: 1.1.0
 author: FamaAgent
 license: MIT
 platforms: [linux, macos, windows]
@@ -12,25 +12,47 @@ metadata:
 
 # Hermes Profile Maintenance
 
-Use this skill for explicit maintenance of a Hermes profile: configuration,
+Use the maintenance procedure for explicit maintenance of a Hermes profile: configuration,
 profile-local runtime behavior, gateway lifecycle, memory/skills capability
 checks, and tests of changes. Keep the change minimal, reproducible, and
 verifiable.
+
+The learning section also applies after ordinary tasks and corrections; it
+does not require a separate administrative request. Authorization and limits
+come from `SOUL.md`, not from this skill.
 
 ## Procedure
 
 1. Load the authoritative Hermes operating guidance before changing Hermes. Confirm the target profile and the exact component in scope.
 2. Inspect the current resolved values with `hermes -p <profile> config get <key>` and check the relevant runtime status before editing. Preserve existing platform allowlists, toolsets, MCP boundaries, and unrelated settings.
-3. Change `config.yaml` only through the native command:
-   `hermes -p <profile> config set <key> <value>`.
+3. Change `config.yaml` only through the native commands:
+   `hermes -p <profile> config set <key> <value>` or
+   `hermes -p <profile> config unset <key>` to remove an obsolete key.
    Never rewrite `config.yaml` directly with a file editor, because native updates preserve Hermes' parsing and versioning behavior.
+   For other authorized text files, use `read_file`, `write_file` or `patch`;
+   use `skill_manage` for skills. Respect runtime refusals and approval requirements.
 4. Read back every changed key, then run `hermes -p <profile> config check`. Treat the check as necessary but not sufficient: also query the component-specific status command and exercise the affected execution path.
 5. For development tests, use the project's supported environment and dependency declaration. If a runtime service environment lacks a development-only runner, invoke it through the project runner (for example, `uv run --extra dev pytest ...`) rather than changing the service environment just to run tests.
 6. If a gateway reload or restart is needed, perform it from an external operator shell. Do not attempt to restart the gateway from a process running inside that same gateway, and do not bypass Hermes' refusal; verify that the service remains active after any refused or completed lifecycle action.
 7. Report what changed, the affected files/components, the exact validation commands and real results, and any remaining reload or operational limitation. Never include secrets or unnecessary identifiers.
 
+For configuration changes, read
+[`references/configuration-verification.md`](references/configuration-verification.md)
+for the native commands, platform authorization checks and lifecycle verification.
+
 ## Persistent learning and skills
 
+- After a task, correction or proven reusable procedure, evaluate whether there
+  is durable learning. In short workers, save it before the final answer and
+  task closure; background review complements foreground learning.
+- Find existing coverage with `skills_list` and read it with `skill_view`.
+  Prefer updating an existing skill. Create a new class-level skill only for
+  a genuinely new task class, with prerequisites, proven steps, pitfalls and
+  verification criteria. Verify the write result and read it back.
+- Write only to this profile's own memory and skills. Generalize the lesson;
+  do not persist third-party PII, secrets, raw conversations, temporary client
+  state or unverified hypotheses. Do not delete skills or change commercial
+  policies as a learning action. No durable lesson means no write is needed.
 - Keep built-in memory and user profile enabled when the requested behavior is persistent learning.
 - Keep the `memory` and `skills` toolsets available on the intended platform when the profile must learn across sessions.
 - Keep `memory.write_approval` and `skills.write_approval` aligned with the requested consent model; automatic learning requires writes not to be silently staged.

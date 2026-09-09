@@ -15,17 +15,12 @@ For ad-hoc, one-off MCP tool calls from the terminal without configuring anythin
 
 ## Prerequisites
 
-- **mcp Python package** -- optional dependency; install with `pip install mcp`. If not installed, MCP support is silently disabled.
-- **Node.js** -- required for `npx`-based MCP servers (most community servers)
-- **uv** -- required for `uvx`-based MCP servers (Python-based servers)
-
-Install the MCP SDK:
-
-```bash
-pip install mcp
-# or, if using uv:
-uv pip install mcp
-```
+- **MCP support** ships with the standard Hermes installation. If imports fail,
+  inspect the installed environment and supported dependency setup before
+  concluding the feature is unavailable; do not install into a live service
+  environment merely because an older reference called MCP optional.
+- **Node.js** is needed only for configured servers launched via `npx`.
+- **uv** is needed only for configured servers launched via `uvx`.
 
 ## Quick Start
 
