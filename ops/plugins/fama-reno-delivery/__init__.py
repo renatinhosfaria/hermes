@@ -4,7 +4,7 @@ import json
 import os
 import threading
 
-from .delivery import task_document, verify_receipt
+from .delivery import ClientIdError, task_client_id, task_document, verify_receipt
 
 VERSION = "1.0.0"
 READ = "mcp__famachat__fc_get_clientes_by_id"
@@ -273,9 +273,7 @@ class RenoGuard:
                     self.patched_status = new
                     self.fresh = False
                 elif name == READ:
-                    if str(payload.get("id")) != str(
-                        self.doc.get("upstream_result", {}).get("client_id")
-                    ):
+                    if str(payload.get("id")) != str(task_client_id(self.doc)):
                         return block("leia_o_cliente_do_cartao")
                     self.client = None
                     self.fresh = False
@@ -293,6 +291,8 @@ class RenoGuard:
                         return block("identificador_de_chamada_ausente")
                     self.pending[tool_call_id] = name
                 return None
+        except ClientIdError as exc:
+            return block(str(exc))
         except Exception:
             return block("evidencia_ausente_ou_invalida_preserve_etapa")
 
@@ -339,7 +339,7 @@ class RenoGuard:
                     self.receipt = doc.get("operation") == "CONFIRMACAO_ENVIO"
                     if self.receipt:
                         proof = self.receipt_verifier(self.task_id)
-                        if proof["client_id"] != doc["upstream_result"]["client_id"]:
+                        if proof["client_id"] != task_client_id(doc):
                             raise ValueError("wrong_client")
                     self.doc = doc
                 elif name == READ:

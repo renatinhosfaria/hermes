@@ -85,3 +85,14 @@ Se o serviço falhar, conferir `journalctl -u hermes-reno-delivery.service`.
 Rollback: parar/desabilitar o timer, remover só este plugin de plugins.enabled
 do Reno e restaurar SOUL/skills a partir do backup da ativação. Não apagar
 recibos, tarefas nem registros de clientes. A instalação oficial permanece intacta.
+
+## Identidade do cliente nos cartões
+
+O formato canônico é `upstream_result.entities.client_id`, inteiro positivo.
+Leitura da ficha, associação de entrega e validação do recibo usam o mesmo
+resolvedor. Cartões antigos com `upstream_result.client_id` continuam aceitos.
+Se os dois campos estiverem presentes, ambos precisam ser válidos e iguais.
+ID ausente, nulo, booleano, textual, não positivo ou divergente não autoriza
+leitura nem associação de entrega. Erros de identidade da leitura são explícitos.
+Novos cartões `CONFIRMACAO_ENVIO` usam o formato canônico; recibos antigos
+continuam sujeitos às mesmas verificações de transporte, sessão e pausa humana.

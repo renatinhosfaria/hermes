@@ -83,7 +83,7 @@ class RuntimeTests(unittest.TestCase):
                             )
                         return None
 
-                    body = "upstream_result:\n  client_id: 101\n  verdict: LEAD_NOVO_CADASTRADO\npedido_exato: Vi o anúncio.\n"
+                    body = "upstream_result:\n  entities:\n    client_id: 101\n  verdict: LEAD_NOVO_CADASTRADO\npedido_exato: Vi o anúncio.\n"
                     self.assertIsNone(
                         dispatch(
                             "kanban_show",

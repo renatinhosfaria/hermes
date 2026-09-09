@@ -77,3 +77,32 @@ observado um atendimento real posterior a esta correção.
 Backup desta correção em `plugin-data/fama-reno-delivery/skill-self-load-backup-20260908T232752Z/`.
 Para revertê-la, restaurar config/SOUL e código fonte/instalado desse backup,
 preservando o timer, recibos e a correção anterior de etapas.
+
+## Correção do contrato de identidade — 08/09/2026
+
+O cartão t_29e3af7b/run 368 usou `upstream_result.entities.client_id`;
+o guard de leitura procurava somente `upstream_result.client_id`.
+Reprodução offline com a versão histórica confirmou o bloqueio do ID correto.
+
+Agora leitura, associação de entrega e verificação de recibo compartilham um
+resolvedor. O formato canônico é o aninhado; o antigo continua aceito. Ambos
+presentes precisam ser inteiros positivos iguais. O CEO recebe instrução
+explícita e a rotina gera novos cartões internos no formato canônico.
+
+Validação antes da instalação: 45 testes de integração (incluindo carregador
+nativo e formato do incidente), 26 de observabilidade e 20 da equipe passaram.
+A revisão independente não encontrou impedimentos. Os novos testes foram
+executados antes da correção e reproduziram a falha. `verify_team.py core`
+falhou antes da instalação em divergências já existentes nos toolsets dos
+profiles e exposição de MCP no Telegram; nenhuma configuração foi alterada
+nesta correção. Isso impede declarar a verificação global da equipe aprovada.
+
+Instalação: substituir `delivery.py` antes de `__init__.py` no plugin do Reno,
+com backup em `plugin-data/fama-reno-delivery/client-contract-backup/`.
+Validar os hashes e hooks com `verify_activation.py`, que agora testa o ID
+canônico e a recusa de outro cliente sem executar ferramentas comerciais.
+Novos workers carregam a correção; o timer recarrega o script em cada execução.
+Rollback: restaurar os arquivos do backup e as instruções anteriores juntas;
+não reexecutar atendimentos nem remover recibos. Cartões novos usam o formato
+aninhado e precisam de compatibilidade de leitura antes de qualquer rollback.
+O atendimento do incidente não é reaberto nem respondido por esta instalação.

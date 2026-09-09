@@ -71,6 +71,32 @@ def task_document(body):
     return doc
 
 
+class ClientIdError(ValueError):
+    """Malformed or conflicting client identity in a handoff."""
+
+
+def task_client_id(doc):
+    """Canonical entities.client_id plus strict compatibility with legacy cards."""
+    upstream = doc.get("upstream_result")
+    if not isinstance(upstream, dict):
+        raise ClientIdError("client_id_ausente_ou_invalido")
+    entities = upstream.get("entities", {})
+    if not isinstance(entities, dict):
+        raise ClientIdError("client_id_ausente_ou_invalido")
+    ids = []
+    for container in (entities, upstream):
+        if "client_id" in container:
+            value = container["client_id"]
+            if type(value) is not int or value <= 0:
+                raise ClientIdError("client_id_ausente_ou_invalido")
+            ids.append(value)
+    if not ids:
+        raise ClientIdError("client_id_ausente_ou_invalido")
+    if len(set(ids)) != 1:
+        raise ClientIdError("client_id_divergente_no_cartao")
+    return ids[0]
+
+
 def route_for(board, task_id):
     rows = board.execute(
         "SELECT * FROM kanban_notify_subs WHERE task_id=?", (task_id,)
@@ -114,8 +140,7 @@ def candidates(board, state, cutoff):
                 ):
                     continue
                 doc = task_document(run["body"])
-                upstream = doc.get("upstream_result", {})
-                client_id = upstream.get("client_id")
+                client_id = task_client_id(doc)
                 if (
                     type(client_id) is not int
                     or client_id <= 0
@@ -236,7 +261,7 @@ def reconcile(
                         "test_mode": False,
                         "upstream_result": {
                             "worker": "reno",
-                            "client_id": proof["client_id"],
+                            "entities": {"client_id": proof["client_id"]},
                         },
                         "delivery_receipt": {
                             k: proof[k]
@@ -318,7 +343,7 @@ def verify_receipt(
             proof = json.loads(row["proof"])
             if (
                 doc.get("operation") != "CONFIRMACAO_ENVIO"
-                or doc["upstream_result"]["client_id"] != proof["client_id"]
+                or task_client_id(doc) != proof["client_id"]
                 or task["idempotency_key"] != f"reno-delivery:run:{proof['run_id']}"
                 or task["session_id"] != proof["session_id"]
                 or any(

@@ -114,6 +114,54 @@ class GuardTests(unittest.TestCase):
             ),
         )
 
+    def test_canonical_card_reads_only_its_client(self):
+        self.identify()
+        self.g.doc["upstream_result"] = {
+            "worker": "cadastro",
+            "entities": {"client_id": 12847},
+        }
+        verdict = self.g.before(
+            tool_name=READ,
+            args={"id": 12847},
+            session_id="s1",
+            tool_call_id="canonical",
+        )
+        self.assertIsNone(verdict)
+        self.g.pending.clear()
+        verdict = self.g.before(
+            tool_name=READ, args={"id": 999}, session_id="s1", tool_call_id="other"
+        )
+        self.assertEqual(verdict["action"], "block")
+
+    def test_missing_invalid_or_conflicting_card_ids_fail_closed(self):
+        for upstream in (
+            {},
+            {"client_id": None},
+            {"client_id": True},
+            {"entities": {"client_id": 0}},
+            {"client_id": "101"},
+            {"client_id": 101, "entities": {"client_id": 102}},
+            {"client_id": 101, "entities": {"client_id": None}},
+            {"client_id": 101, "entities": []},
+        ):
+            with self.subTest(upstream=upstream):
+                self.setUp()
+                self.identify()
+                self.g.doc["upstream_result"] = upstream
+                verdict = self.g.before(
+                    tool_name=READ,
+                    args={"id": 101},
+                    session_id="s1",
+                    tool_call_id="bad",
+                )
+                self.assertEqual(verdict["action"], "block")
+                self.assertIn("client_id_", verdict["message"])
+
+    def test_identical_dual_ids_are_compatible(self):
+        self.identify()
+        self.g.doc["upstream_result"]["entities"] = {"client_id": 101}
+        self.assertIsNone(self.read())
+
     def test_normal_response_cannot_set_nao_respondeu_before_send(self):
         self.identify()
         self.read()

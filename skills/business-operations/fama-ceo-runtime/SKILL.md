@@ -315,6 +315,22 @@ upstream_result:
   status: Sem Atendimento
 ```
 
+Para todo cartão Reno que referencia um cliente, preserve o ID inteiro positivo
+confirmado pelo Cadastro em `upstream_result.entities.client_id`. Exemplo:
+
+```yaml
+upstream_result:
+  worker: cadastro
+  verdict: LEAD_NOVO_CADASTRADO
+  entities:
+    client_id: 12847 # exemplo; use somente o ID confirmado na execução
+```
+
+Não escreva o ID diretamente em `upstream_result.client_id` nos novos cartões.
+Esse formato antigo é aceito apenas para compatibilidade. Se um resultado trouxer
+os dois campos, eles devem ser inteiros positivos e iguais; divergência exige
+incidente interno, nunca escolha arbitrária de um deles.
+
 Esse transporte é responsabilidade do CEO. O worker downstream não consulta a
 Task irmã nem depende de conhecer o quadro que a contém.
 

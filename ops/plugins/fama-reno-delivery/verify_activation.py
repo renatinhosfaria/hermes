@@ -80,7 +80,7 @@ def main():
                 "task": {
                     "id": "t_activation_probe",
                     "current_run_id": 1,
-                    "body": "upstream_result:\n  client_id: 101\ntest_mode: false\n",
+                    "body": "upstream_result:\n  entities:\n    client_id: 101\ntest_mode: false\n",
                 }
             }
         ),
@@ -101,9 +101,23 @@ def main():
         tool_call_id="history_probe",
     )
     assert not message, "attendance_still_blocked_after_skill"
+    message, _ = plugins._dispatch_pre_tool_call_hooks(
+        "mcp__famachat__fc_get_clientes_by_id",
+        {"id": 999},
+        session_id="activation_probe",
+        tool_call_id="wrong_client_probe",
+    )
+    assert message and "leia_o_cliente_do_cartao" in message, "wrong_client_not_blocked"
+    message, _ = plugins._dispatch_pre_tool_call_hooks(
+        "mcp__famachat__fc_get_clientes_by_id",
+        {"id": 101},
+        session_id="activation_probe",
+        tool_call_id="canonical_client_probe",
+    )
+    assert not message, "canonical_client_still_blocked"
     print(
         "PASS: installed Reno code matches source; native skill_view available and runtime skill read; "
-        "attendance blocked before reading and released after reading. No business tools executed."
+        "attendance blocked before reading and released after reading; canonical client accepted, wrong client blocked. No business tools executed."
     )
 
 

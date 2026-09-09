@@ -113,6 +113,63 @@ class DeliveryTests(unittest.TestCase):
             "SELECT * FROM tasks WHERE created_by='fama-reno-delivery'"
         ).fetchall()
 
+    def test_canonical_source_creates_canonical_receipt_and_accepts_legacy(self):
+        self.k.execute(
+            "UPDATE tasks SET body=? WHERE id=?",
+            (
+                "upstream_result:\n  entities:\n    client_id: 101\ntest_mode: false\n",
+                self.task,
+            ),
+        )
+        self.k.commit()
+        self.reconcile()
+        rows = self.children()
+        self.assertEqual(len(rows), 1)
+        child = rows[0]
+        doc = delivery.task_document(child["body"])
+        self.assertEqual(doc["upstream_result"]["entities"]["client_id"], 101)
+        self.assertNotIn("client_id", doc["upstream_result"])
+        self.assertEqual(
+            delivery.verify_receipt(
+                child["id"], self.board, self.state, self.receipts, self.pause
+            )["client_id"],
+            101,
+        )
+        doc["upstream_result"]["client_id"] = doc["upstream_result"].pop("entities")[
+            "client_id"
+        ]
+        self.k.execute(
+            "UPDATE tasks SET body=? WHERE id=?", (json.dumps(doc), child["id"])
+        )
+        self.k.commit()
+        self.assertEqual(
+            delivery.verify_receipt(
+                child["id"], self.board, self.state, self.receipts, self.pause
+            )["client_id"],
+            101,
+        )
+        doc["upstream_result"]["entities"] = {"client_id": 102}
+        self.k.execute(
+            "UPDATE tasks SET body=? WHERE id=?", (json.dumps(doc), child["id"])
+        )
+        self.k.commit()
+        with self.assertRaises(ValueError):
+            delivery.verify_receipt(
+                child["id"], self.board, self.state, self.receipts, self.pause
+            )
+
+    def test_conflicting_source_ids_never_generate_receipt(self):
+        self.k.execute(
+            "UPDATE tasks SET body=? WHERE id=?",
+            (
+                "upstream_result:\n  client_id: 101\n  entities:\n    client_id: 102\ntest_mode: false\n",
+                self.task,
+            ),
+        )
+        self.k.commit()
+        self.reconcile()
+        self.assertEqual(len(self.children()), 0)
+
     def test_confirmed_send_creates_one_internal_reno_task_with_exact_session_and_wake(
         self,
     ):
