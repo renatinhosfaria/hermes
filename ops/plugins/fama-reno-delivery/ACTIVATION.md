@@ -106,3 +106,13 @@ Rollback: restaurar os arquivos do backup e as instruções anteriores juntas;
 não reexecutar atendimentos nem remover recibos. Cartões novos usam o formato
 aninhado e precisam de compatibilidade de leitura antes de qualquer rollback.
 O atendimento do incidente não é reaberto nem respondido por esta instalação.
+
+Verificação após instalação: `verify_activation.py` PASS (hashes iguais,
+carregador nativo, skill disponível, cliente canônico aceito e outro cliente
+bloqueado). Os 45 testes da integração passaram novamente no diretório ativo.
+O cartão original t_29e3af7b foi lido via SQLite somente leitura e aceito pelo
+guard instalado em replay offline, após satisfazer a precondição da skill.
+Nenhum MCP comercial foi invocado. Timer ativo, último serviço com
+`Result=success`; árvore Git da instalação oficial Hermes sem alterações.
+Não havia cartão Reno ready/running na conferência anterior à instalação.
+A alteração vale para novos workers; nenhum gateway foi reiniciado.
