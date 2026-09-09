@@ -31,6 +31,11 @@ metadata:
    `requested_next_action: return_to_ceo`.
 8. Necessidade de outro especialista usa `status: escalate` e retorna ao CEO.
 
+## Busca comercial por nome
+
+- Use `fc_get_empreendimentos_buscar` com `query: {"termo": "<nome>"}`; `nome` e `q` não atendem ao parâmetro obrigatório desse endpoint. Verifique retorno 200, ausência de truncamento e candidatos antes de selecionar. Prefira a busca direcionada à listagem geral, que pode exceder o limite de saída.
+- Quando houver empreendimentos homônimos, confronte também a construtora indicada no nome confirmado do anúncio com o cadastro comercial. Se essa combinação distinguir um único candidato, leia-o por id e use seus fatos, sem misturar endereço, lazer ou prazo dos homônimos nem pedir ao contato que repita o anúncio. Se a distinção não for suficiente, preserve a ambiguidade.
+
 ## Referência do contexto CTWA
 
 `contexto.ctwa_attributions` é uma lista por evento: `event_id`, `source_app`
