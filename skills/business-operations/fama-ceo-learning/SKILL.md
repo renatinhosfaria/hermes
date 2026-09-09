@@ -15,6 +15,13 @@ validar um handoff com lição reutilizável. A autorização permanente permite
 criar e atualizar skills próprias sem pedir confirmação por ocorrência; não
 permite executar trabalho de especialista nem alterar outros profiles.
 
+## Manutenção própria
+
+Para pedido explícito do operador autenticado no Telegram de editar configurações,
+instruções ou skills do CEO, carregue
+[manutenção própria](references/manutencao-propria.md) antes de agir. A autorização
+e seus limites estão no SOUL; o procedimento não exige delegação nem cartão.
+
 ## Ciclo de aprendizado
 
 1. Identifique o que mudou: correção comprovada, abordagem validada, armadilha
@@ -34,8 +41,13 @@ permite executar trabalho de especialista nem alterar outros profiles.
 5. Execute `memory` ou `skill_manage` no mesmo turno quando houver lição útil.
    Não apenas ofereça salvar. Sem novidade durável, não grave por obrigação.
 6. Confira o retorno: pendente de aprovação não é salvo; erro não é sucesso.
-   Carregue skills novas via `skill_view` para validar descoberta e uso. Se
-   faltar espaço de memória, consolide em lote atômico sem perder fatos válidos.
+   Releia com `skill_view` toda skill criada ou atualizada, incluindo a referência
+   alterada, para confirmar persistência e descoberta. Para memória, confira o
+   estado persistido sem alterar o snapshot da sessão. Se faltar espaço de
+   memória, consolide em lote atômico sem perder fatos válidos.
+   Em workers curtos, conclua a gravação e a verificação antes da resposta final
+   e do encerramento do cartão. A revisão automática complementa esse ciclo,
+   usando memória e skills nativas, sem precisar de terminal ou Git.
 7. Em trabalho posterior, carregue a skill relevante e confira sua validade
    antes de agir. Corrija-a diante de evidência nova. Handoff declaratório não
    comprova efeito externo: valide o alvo antes de ensinar como bem-sucedido.
@@ -60,13 +72,19 @@ Somente para manutenção própria autorizada pelo Telegram:
 - Use `hermes -p default config set <chave> <valor>` para ajustes necessários;
   confira com `config get` e execute `hermes -p default config check`.
   Nunca edite YAML diretamente nem altere a instalação para contornar bloqueio.
-- Para enums textuais `off`/`on`, passe uma string YAML explicitamente citada,
-  como `hermes -p default config set display.platforms.whatsapp.memory_notifications '"off"'`.
-  O CLI pode interpretar `off` sem aspas internas como booleano; confira tipo
-  e valor antes de declarar que a configuração textual foi aplicada.
-- Mantenha notificações de aprendizado fora do WhatsApp usando
-  `display.platforms.whatsapp.memory_notifications: "off"`. Nunca altere
-  payload externo para explicar ferramentas, manutenção ou aprendizado.
+- Para silenciar avisos de aprendizagem nesta versão, use
+  `hermes -p default config set display.memory_notifications off` e confira que
+  o valor é a string `off`, sem aspas incorporadas. O consumidor da revisão
+  automática lê a opção global, não a substituição por plataforma. Isso silencia
+  os avisos também no Telegram, sem desabilitar memória, skills ou revisão.
+- Não passe aspas internas como parte do argumento: o CLI instalado as conserva
+  literalmente. Se for necessário gravar a substituição do WhatsApp, use um mapa
+  YAML/JSON via `config set display.platforms.whatsapp`, preservando os demais
+  campos, com `memory_notifications` como string `off`. Confira tipo e valor no
+  YAML. Não trate esse override como efetivo sem verificar o consumidor instalado.
+- Nunca altere payload externo para explicar ferramentas ou aprendizado. Se uma
+  versão futura suportar avisos por plataforma, valide esse comportamento antes
+  de reativar avisos globais.
 - Separe configuração habilitada, escrita/leitura exercitadas e revisão
   automática efetivamente observada. Para comprovar execução, procure no
   `logs/agent.log` do próprio profile a linha `Background review complete:`;

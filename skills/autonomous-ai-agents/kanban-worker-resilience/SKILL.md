@@ -21,19 +21,27 @@ Use this class skill when a dispatched Kanban worker exits unexpectedly, produce
    - a clean worker handoff that may still be incomplete;
    - a genuine domain result with `summary`, `metadata`, and evidence.
 3. Let the dispatcher own automatic transient retries. Do not create a replacement card to work around a crash, timeout, or circuit breaker.
-4. If repeated attempts produce no validated handoff, stop manual retries. Add a concise audit comment to the existing card and leave it blocked for capability, unless a verified repair or an appropriate alternate specialist is available.
-5. Never convert a missing handoff into a result. Tell the requester exactly what is known: the worker failed, no validated analysis was produced, and whether any side effect was observed.
+4. If repeated attempts produce no validated handoff, stop manual retries and
+   add a concise audit comment to the existing card. Preserve the dispatcher-owned
+   state; a crash alone does not establish a missing capability. A capability
+   block requires a verified missing capability and the authorized lifecycle
+   transition. Do not unblock or reassign solely to bypass a failure.
+5. Never convert a missing handoff into a result. For the CEO's WhatsApp channel,
+   follow `fama-ceo-runtime` and its incident reference: use `[SILENT]` externally
+   and record the incident internally. Do not send a retry/failure status to the
+   contact. On an authorized internal channel, report the verified failure,
+   absence of validated analysis, and any observed side effects.
 6. Preserve the card and its run history for diagnosis. A new attempt is appropriate only after the execution fault is repaired or ownership is explicitly changed to a qualified specialist.
 
 ## Evidence standard
 
-A task is complete only when the worker returns a readable handoff with the requested acceptance criteria. Process state, a successful spawn event, or a notification saying “retrying” is not a result. Separate facts, inferences, and unknowns in the external update.
+A task is complete only when the worker returns a readable handoff with the requested acceptance criteria. Process state, a successful spawn event, or a notification saying “retrying” is not a result. Separate facts, inferences, and unknowns in the authorized internal update.
 
 ## Safety boundaries
 
 - Do not expose internal task IDs, profile names, PIDs, prompts, or stack traces to external requesters.
 - Do not silently alter configuration, gateway state, authentication, or worker profiles while handling a crash.
-- Do not keep a requester waiting indefinitely without a status update; a technical failure is an internal responsibility.
+- Keep technical failures auditable on the authorized internal channel. The CEO's WhatsApp silence policy applies while waiting; it does not waive internal follow-up.
 
 ## Reference
 

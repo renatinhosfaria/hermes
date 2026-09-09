@@ -172,19 +172,15 @@ AUTHORIZED_FORBIDDEN_PREFIX_TOOLS = frozenset(
 # minimo e garantir que o texto que os define nao suma sem ninguem notar.
 REQUIRED_PROMPT_MARKERS = {
     "default": [
-        ("SOUL.md", "conversation_context()", "capability atual do CEO"),
-        ("SOUL.md", "nao e identidade", "display name como dado nao confiavel"),
-        ("SOUL.md", "context_resolution_failed", "politica de falha do Brain"),
-        (
-            "SOUL.md",
-            "deixe a chave fora",
-            "sem identificador tecnico a chave e omitida, nao improvisada",
-        ),
-        (
-            "skills/business-operations/fama-ceo-runtime/SKILL.md",
-            "deixe a chave fora",
-            "skill alinhada a omissao da chave",
-        ),
+        ("SOUL.md", "fama-ceo-runtime", "carregamento obrigatorio do workflow"),
+        ("SOUL.md", "[SILENT]", "silencio externo sem resposta valida"),
+        ("skills/business-operations/fama-ceo-runtime/SKILL.md", "conversation_context()", "capability atual do CEO"),
+        ("skills/business-operations/fama-ceo-runtime/SKILL.md", "nao e identidade", "nome exibido nao comprova identidade"),
+        ("skills/business-operations/fama-ceo-runtime/SKILL.md", "context_resolution_failed", "politica de falha do Brain"),
+        ("skills/business-operations/fama-ceo-runtime/SKILL.md", "deixe a chave fora", "sem identificador tecnico a chave e omitida"),
+        ("skills/business-operations/fama-ceo-runtime/SKILL.md", "references/incidentes-e-entrega.md", "carregamento do procedimento de incidentes"),
+        ("skills/business-operations/fama-ceo-runtime/references/incidentes-e-entrega.md", "INCIDENTE_ATENDIMENTO", "registro interno de incidente"),
+        ("skills/business-operations/fama-ceo-runtime/references/agendamento.md", "appointment_result", "contrato de agenda preservado"),
     ],
     "reno": [
         ("SOUL.md", "expectedStatus", "toda escrita de etapa carrega o predicado"),
