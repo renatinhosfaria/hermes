@@ -102,4 +102,56 @@ class AlertTests(unittest.TestCase):
             self.assertTrue(fleet.send_telegram('Activation check'))
         self.assertEqual(captured,[{'chat_id':'-100123','text':'Activation check'}])
 
+    def test_disabled_agendamento_telegram_is_pending_without_gateway_failure(self):
+        profile = self.root / 'profiles/agendamento'
+        profile.mkdir(parents=True)
+        (profile / 'config.yaml').write_text(
+            'platforms:\n  telegram:\n    enabled: false\n', encoding='utf-8'
+        )
+        calls = []
+
+        class Result:
+            stdout = 'ActiveState=active\nSubState=running\nNRestarts=0\nResult=success\n'
+
+        def systemctl(argv, **kwargs):
+            calls.append(argv)
+            return Result()
+
+        with patch.object(fleet, 'HERMES_ROOT', self.root), patch.object(
+            fleet.subprocess, 'run', side_effect=systemctl
+        ):
+            findings = fleet.check_units()
+
+        self.assertTrue(any(item['sig'] == 'telegram:agendamento_pending' for item in findings))
+        self.assertFalse(any('hermes-gateway-agendamento.service esta' in item['message'] for item in findings))
+        self.assertFalse(any('hermes-gateway-agendamento.service' in argv for argv in calls))
+
+        self.assertTrue(fleet.run_alerting(findings))
+        self.assertTrue(fleet.run_alerting(findings))
+        self.assertTrue(fleet.run_alerting(findings))
+        self.assertEqual(self.delivered, [])
+        self.assertEqual(fleet.load_state('pending.json'), {})
+        self.assertEqual(fleet.load_state('alerted.json'), {})
+
+    def test_missing_agendamento_profile_does_not_skip_gateway_check(self):
+        calls = []
+
+        class Result:
+            stdout = 'ActiveState=inactive\nSubState=dead\nNRestarts=0\nResult=success\n'
+
+        def systemctl(argv, **kwargs):
+            calls.append(argv)
+            return Result()
+
+        with patch.object(fleet, 'HERMES_ROOT', self.root), patch.object(
+            fleet.subprocess, 'run', side_effect=systemctl
+        ):
+            findings = fleet.check_units()
+
+        self.assertTrue(any(
+            item['sig'] == 'systemd:hermes-gateway-agendamento.service'
+            for item in findings
+        ))
+        self.assertTrue(any('hermes-gateway-agendamento.service' in argv for argv in calls))
+
 if __name__=='__main__': unittest.main()

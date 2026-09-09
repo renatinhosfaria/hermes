@@ -15,8 +15,8 @@ from hermes_constants import reset_hermes_home_override, set_hermes_home_overrid
 from toolsets import resolve_multiple_toolsets
 
 ROOT = Path("/root/.hermes")
-EXPECTED_NAMED = {"porteiro", "cadastro", "famaagent", "reno", "dev"}
-EXPECTED_ALL = ["default", "porteiro", "cadastro", "famaagent", "reno", "dev"]
+EXPECTED_NAMED = {"porteiro", "cadastro", "famaagent", "reno", "agendamento", "dev"}
+EXPECTED_ALL = ["default", "porteiro", "cadastro", "famaagent", "reno", "agendamento", "dev"]
 OPERATOR_ID = "8564576789"
 
 EXPECTED_PLATFORM_TOOLSETS = {
@@ -25,20 +25,24 @@ EXPECTED_PLATFORM_TOOLSETS = {
         "cli": ["hermes-cli"],
     },
     "porteiro": {
-        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
-        "cli": ["clarify", "brain", "famachat"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills", "memory"],
+        "cli": ["clarify", "skills", "memory"],
     },
     "cadastro": {
-        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
-        "cli": ["clarify", "brain", "famachat"],
+        "telegram": ["clarify", "no_mcp", "file", "kanban", "memory", "skills", "terminal"],
+        "cli": ["brain", "clarify", "famachat", "kanban", "memory", "skills"],
     },
     "famaagent": {
-        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
-        "cli": ["clarify", "brain", "famachat"],
+        "telegram": ["clarify", "no_mcp", "file", "kanban", "memory", "skills", "terminal"],
+        "cli": ["brain", "clarify", "famachat", "kanban", "memory", "skills"],
     },
     "reno": {
-        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills"],
-        "cli": ["clarify", "brain", "famachat"],
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills", "memory"],
+        "cli": ["clarify", "brain", "famachat", "skills", "memory"],
+    },
+    "agendamento": {
+        "telegram": ["clarify", "no_mcp", "terminal", "file", "skills", "memory"],
+        "cli": ["clarify", "famachat", "skills", "memory"],
     },
     "dev": {
         "telegram": [
@@ -72,6 +76,7 @@ EXPECTED_HOME_CHANNELS = {
     "cadastro": {"chat_id": "-1003746861842", "name": "Cadastro"},
     "famaagent": {"chat_id": "-1003696068287", "name": "FamaAgent"},
     "reno": {"chat_id": "-1003859524818", "name": "Reno"},
+    "agendamento": {"chat_id": "-1003944432295", "name": "Agendamento"},
     "dev": {"chat_id": "-1004365034436", "name": "Dev"},
 }
 
@@ -81,6 +86,7 @@ GATEWAY_UNITS = {
     "cadastro": "hermes-gateway-cadastro.service",
     "famaagent": "hermes-gateway-famaagent.service",
     "reno": "hermes-gateway-reno.service",
+    "agendamento": "hermes-gateway-agendamento.service",
     "dev": "hermes-gateway-dev.service",
 }
 
@@ -91,6 +97,7 @@ EXPECTED_CONFIGURED_MCP = {
     "cadastro": {"brain", "famachat"},
     "famaagent": {"brain", "famachat"},
     "reno": {"brain", "famachat"},
+    "agendamento": {"famachat"},
     "dev": set(),
 }
 # Allowlists exatas da secao 12 da spec. Um servidor MCP sem entrada aqui e
@@ -109,7 +116,6 @@ EXPECTED_MCP_TOOLS = {
         "fc_get_apartamentos",
         "fc_get_apartamentos_empreendimento_by_id",
         "fc_get_apartamentos_publico_empreendimento_by_id",
-        "fc_get_appointments_by_id",
         "fc_get_clientes_by_id",
         "fc_get_clientes_by_id_empreendimentos",
         "fc_get_clientes_by_id_notes",
@@ -118,12 +124,18 @@ EXPECTED_MCP_TOOLS = {
         "fc_get_empreendimentos_by_id",
         "fc_get_empreendimentos_publico_by_id",
         "fc_patch_clientes_by_id",
-        "fc_post_appointments",
         "fc_post_clientes_by_id_notes",
     ],
+    ("agendamento", "famachat"): [
+        "fc_get_clientes_by_id",
+        "fc_get_appointments",
+        "fc_get_appointments_by_id",
+        "fc_post_appointments",
+        "fc_patch_appointments_by_id",
+    ],
     ("famaagent", "brain"): ["conversation_recent", "conversation_search"],
-    # Amendment 4 (spec 12.5): as mesmas onze leituras do Reno, sem escrita.
-    # A excecao nominal de fc_patch_clientes_by_id nao alcanca este profile.
+    # Amendment 4 (spec 12.5): allowlist historica de leitura do FamaAgent,
+    # sem escrita. A excecao nominal de fc_patch_clientes_by_id nao o alcanca.
     ("famaagent", "famachat"): [
         "fc_get_apartamentos",
         "fc_get_apartamentos_empreendimento_by_id",
@@ -149,7 +161,10 @@ FORBIDDEN_TOOL_PREFIXES = ("fc_patch_", "fc_put_", "fc_delete_", "fc_del_", "db_
 # A excecao e nominal de proposito: afrouxar o prefixo autorizaria fc_patch_*
 # inteiro, e uma excecao que vira prefixo deixa de ser excecao.
 AUTHORIZED_FORBIDDEN_PREFIX_TOOLS = frozenset(
-    {("reno", "fc_patch_clientes_by_id")}
+    {
+        ("reno", "fc_patch_clientes_by_id"),
+        ("agendamento", "fc_patch_appointments_by_id"),
+    }
 )
 
 # Trechos que precisam existir no prompt de cada profile. Sao contratos de
@@ -180,6 +195,24 @@ REQUIRED_PROMPT_MARKERS = {
             "skills/business-operations/fama-reno-runtime/SKILL.md",
             "conversation_recent",
             "skill alinhada a regra de primeiro cartao",
+        ),
+        (
+            "skills/business-operations/fama-reno-runtime/SKILL.md",
+            "appointment_request",
+            "skill alinhada ao pedido intermediario de agendamento",
+        ),
+    ],
+    "agendamento": [
+        ("SOUL.md", "appointment_result", "resultado estruturado do Agendamento"),
+        (
+            "skills/business-operations/fama-agendamento-runtime/SKILL.md",
+            "APPOINTMENT_ATTEMPT",
+            "marcador de tentativa antes de escrita",
+        ),
+        (
+            "skills/business-operations/fama-agendamento-runtime/SKILL.md",
+            "fc_get_appointments_by_id",
+            "releitura obrigatoria do agendamento",
         ),
     ],
     "cadastro": [
@@ -247,6 +280,7 @@ EXPECTED_MCP_EXPOSURE = {
     "cadastro": {"cli": {"brain", "famachat"}, "telegram": set()},
     "famaagent": {"cli": {"brain", "famachat"}, "telegram": set()},
     "reno": {"cli": {"brain", "famachat"}, "telegram": set()},
+    "agendamento": {"cli": {"famachat"}, "telegram": set(), "whatsapp": set()},
     "dev": {"cli": set(), "telegram": set()},
 }
 
@@ -257,7 +291,7 @@ TELEGRAM_MAINTENANCE_TOOLS = {"terminal", "read_file", "write_file", "patch", "s
 # O reload automatico de MCP reconstroi a superficie de ferramentas e invalida
 # o prompt cache. Com context_length 900000 e reasoning_effort xhigh isso e
 # caro, e a postura do projeto ja e mudanca deliberada (/reload-mcp).
-EXPECTED_MCP_AUTORELOAD_OFF = {"porteiro", "cadastro", "famaagent", "reno"}
+EXPECTED_MCP_AUTORELOAD_OFF = {"porteiro", "cadastro", "famaagent", "reno", "agendamento"}
 
 # Resiliencia do dispatcher (secao 10 da spec + itens 0.21.0). Valores exatos:
 # um drift aqui muda o comportamento de recuperacao sem ninguem perceber.
@@ -350,6 +384,41 @@ def resolve_platform(config: dict, profile_name: str, platform: str) -> set[str]
         reset_hermes_home_override(token)
 
 
+def telegram_runtime_state(config: dict, profile_name: str) -> str:
+    """Classify Telegram without treating an absent setting as an approved pause."""
+    telegram = ((config.get("platforms") or {}).get("telegram") or {})
+    enabled = telegram.get("enabled")
+    if enabled is True:
+        return "enabled"
+    if profile_name == "agendamento" and enabled is False:
+        return "pending"
+    return "invalid"
+
+
+def _telegram_id_set(value: object) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, list):
+        return {str(item).strip() for item in value if str(item).strip()}
+    return {item.strip() for item in str(value).split(",") if item.strip()}
+
+
+def telegram_destination_scope_errors(
+    telegram: dict, profile_name: str, expected_chat_id: str
+) -> list[str]:
+    """Verify group destination scope without granting authorization to every member."""
+    if profile_name == "agendamento":
+        errors = []
+        if telegram.get("group_allowed_chats") != []:
+            errors.append("telegram.group_allowed_chats deve permanecer vazio")
+        if _telegram_id_set(telegram.get("allowed_chats")) != {expected_chat_id}:
+            errors.append("telegram.allowed_chats não aponta somente para o grupo próprio")
+        return errors
+    if str(telegram.get("group_allowed_chats")) != expected_chat_id:
+        return ["telegram.group_allowed_chats não aponta para o grupo próprio"]
+    return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("core", "full"))
@@ -364,6 +433,7 @@ def main() -> int:
 
     configs: dict[str, dict] = {}
     observed_home_ids: list[str] = []
+    enabled_home_profiles: list[str] = []
 
     for name in EXPECTED_ALL:
         profile_home = home(name)
@@ -474,20 +544,32 @@ def main() -> int:
         )
 
         telegram_platform = ((config.get("platforms") or {}).get("telegram") or {})
+        telegram_state = telegram_runtime_state(config, name)
         check(
-            telegram_platform.get("enabled") is True,
-            f"{name}: plataforma Telegram não habilitada",
+            telegram_state != "invalid",
+            f"{name}: plataforma Telegram sem estado válido explícito",
             errors,
         )
-        channel = telegram_platform.get("home_channel") or {}
-        expected_channel = EXPECTED_HOME_CHANNELS[name]
-        channel_id = str(channel.get("chat_id", ""))
-        observed_home_ids.append(channel_id)
-        check(channel.get("platform") == "telegram", f"{name}: home_channel não é Telegram", errors)
-        check(channel_id == expected_channel["chat_id"], f"{name}: home_channel.chat_id incorreto", errors)
-        check(channel.get("name") == expected_channel["name"], f"{name}: home_channel.name incorreto", errors)
-        check(str(channel.get("thread_id")) == "1", f"{name}: home_channel.thread_id incorreto", errors)
-        check(str(channel.get("user_id")) == OPERATOR_ID, f"{name}: home_channel.user_id incorreto", errors)
+        expected_channel = EXPECTED_HOME_CHANNELS.get(name)
+        if telegram_state == "pending":
+            pending.append(
+                f"{name}: Telegram desabilitado enquanto aguarda credencial e destino"
+            )
+        elif telegram_state == "enabled":
+            enabled_home_profiles.append(name)
+            channel = telegram_platform.get("home_channel") or {}
+            channel_id = str(channel.get("chat_id", ""))
+            observed_home_ids.append(channel_id)
+            check(expected_channel is not None, f"{name}: home_channel esperado não declarado", errors)
+            if expected_channel is not None:
+                check(channel.get("platform") == "telegram", f"{name}: home_channel não é Telegram", errors)
+                check(channel_id == expected_channel["chat_id"], f"{name}: home_channel.chat_id incorreto", errors)
+                check(channel.get("name") == expected_channel["name"], f"{name}: home_channel.name incorreto", errors)
+                if name == "agendamento":
+                    check(channel.get("thread_id") in (None, ""), f"{name}: home_channel não deve fixar tópico", errors)
+                else:
+                    check(str(channel.get("thread_id")) == "1", f"{name}: home_channel.thread_id incorreto", errors)
+                    check(str(channel.get("user_id")) == OPERATOR_ID, f"{name}: home_channel.user_id incorreto", errors)
 
         if name != "default":
             check(
@@ -495,15 +577,16 @@ def main() -> int:
                 f"{name}: kanban.dispatch_in_gateway deve ser false",
                 errors,
             )
-            check(
-                str(telegram.get("group_allowed_chats")) == expected_channel["chat_id"],
-                f"{name}: telegram.group_allowed_chats não aponta para o grupo próprio",
-                errors,
-            )
+            if telegram_state == "enabled" and expected_channel is not None:
+                for scope_error in telegram_destination_scope_errors(
+                    telegram, name, expected_channel["chat_id"]
+                ):
+                    check(False, f"{name}: {scope_error}", errors)
 
         unit = GATEWAY_UNITS[name]
-        check(systemctl("ActiveState", unit) == "active", f"{name}: gateway inativo", errors)
-        check(systemctl("UnitFileState", unit) == "enabled", f"{name}: gateway não habilitado", errors)
+        if telegram_state != "pending":
+            check(systemctl("ActiveState", unit) == "active", f"{name}: gateway inativo", errors)
+            check(systemctl("UnitFileState", unit) == "enabled", f"{name}: gateway não habilitado", errors)
 
         configured_mcp = set(enabled_mcp_server_names(config))
         check(
@@ -614,7 +697,7 @@ def main() -> int:
             )
 
     check(
-        len(observed_home_ids) == len(set(observed_home_ids)) == len(EXPECTED_ALL),
+        len(observed_home_ids) == len(set(observed_home_ids)) == len(enabled_home_profiles),
         "home_channel Telegram não é exclusivo por profile",
         errors,
     )

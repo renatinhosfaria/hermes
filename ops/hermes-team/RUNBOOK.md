@@ -3,19 +3,31 @@
 ## Estado esperado
 
 - Gateways ativos e habilitados: `hermes-gateway.service` e os gateways
-  `porteiro`, `cadastro`, `famaagent`, `reno` e `dev`.
-- Profiles: `default`, `porteiro`, `cadastro`, `famaagent`, `reno`, `dev`.
-- Modelos: CEO e Dev em `gpt-5.6-sol-900k`; demais Profiles em
-  `gpt-5.6-luna-900k`.
+  `porteiro`, `cadastro`, `famaagent`, `reno`, `agendamento` e `dev`.
+- Profiles: `default`, `porteiro`, `cadastro`, `famaagent`, `reno`,
+  `agendamento`, `dev`.
+- Modelos: CEO, Reno, Agendamento e Dev em `gpt-6-astra-900k`; Porteiro,
+  Cadastro e FamaAgent em `gpt-5.6-luna-900k`. O Agendamento deve usar
+  exatamente a configuração de modelo vigente do Reno.
 - Kanban: dispatcher somente no gateway do CEO; `dispatch_in_gateway: false`
-  nos cinco especialistas; decomposição automática desligada.
+  nos seis especialistas; decomposição automática desligada.
 - Telegram: somente Renato pela allowlist, com home channel exclusivo por
-  Profile.
+  Profile ativo. O Agendamento usa o bot `@agendamentofama_bot`, destino
+  `-1003944432295`, sem tópico. `telegram.allowed_chats` contém somente esse
+  destino, `telegram.group_allowed_chats` permanece vazio e
+  `telegram.allow_from` contém somente o operador `8564576789`; o grupo não
+  concede autorização a todos os seus participantes.
 - WhatsApp: modo bot, DMs abertas, grupos desabilitados.
 - Alerta de WhatsApp: `hermes-whatsapp-healthcheck.timer` ativo; alerta após
   três falhas consecutivas e mensagem de recuperação quando o health volta.
 - MCPs: Brain/FamaChat somente nos Profiles e contextos permitidos por
   `verify_team.py`; não são expostos nos canais Telegram dos workers.
+  Agendamento expõe no CLI somente FamaChat e as cinco ferramentas
+  `fc_get_clientes_by_id`, `fc_get_appointments`,
+  `fc_get_appointments_by_id`, `fc_post_appointments` e
+  `fc_patch_appointments_by_id`. Reno não expõe as duas ferramentas de agenda
+  que foram transferidas (`fc_get_appointments_by_id` e
+  `fc_post_appointments`).
 - Delegação: somente o Dev tem o toolset `delegation`; filhos em
   `gpt-5.6-luna-900k`, no máximo 4 simultâneos.
 - Manutenção pelo Telegram: todos os Profiles têm terminal, edição de arquivos
@@ -38,7 +50,7 @@ contra escrever o próprio `config.yaml` com `write_file`/`patch` permanece.
 Instruções e outros arquivos textuais podem ser editados com `patch`/`write_file`.
 Recusas ou aprovações das ferramentas continuam sendo respeitadas.
 
-Nos quatro especialistas, somente `platform_toolsets.telegram` ganhou
+Nos Profiles especialistas, somente `platform_toolsets.telegram` ganhou
 `terminal`, `file` e `skills`. MCPs, capacidades de atendimento do CLI e do
 WhatsApp, allowlists e credenciais foram preservados. O Dev mantém seu escopo
 de manutenção dos demais Profiles quando o alvo estiver declarado na tarefa.
@@ -85,6 +97,7 @@ for unit in \
   hermes-gateway-cadastro.service \
   hermes-gateway-famaagent.service \
   hermes-gateway-reno.service \
+  hermes-gateway-agendamento.service \
   hermes-gateway-dev.service
 do
   systemctl is-active "$unit"
@@ -94,6 +107,11 @@ done
 
 Todos devem responder `active` e `enabled`. Reinicie apenas a unit que falhou;
 um gateway de especialista não possui dispatcher Kanban.
+
+Se o Telegram do Agendamento for explicitamente desabilitado durante uma nova
+troca de credencial/destino, `verify_team.py` e `fleet_watch.py` registram a
+pendência sem declarar falha de gateway; a operação CLI continua disponível.
+Ausência do Profile ou ausência de um estado Telegram explícito continuam erro.
 
 ### Como reiniciar
 
@@ -116,7 +134,7 @@ Ordem segura: especialistas primeiro, CEO por último, na janela de menor
 tráfego.
 
 ```bash
-for p in porteiro cadastro famaagent reno dev; do
+for p in porteiro cadastro famaagent reno agendamento dev; do
   hermes -p $p gateway restart
 done
 hermes gateway restart
@@ -173,6 +191,41 @@ vazio não significa que o monitor externo esteja desligado.
 4. Execute os modos `core` e `full` antes de reiniciar qualquer gateway.
 5. Para transição de etapa pelo Reno, preserve `expectedStatus` e somente as
    transições progressivas documentadas na especificação vigente.
+6. Para agenda, preserve o encadeamento `Reno -> Agendamento -> Reno`, a
+   allowlist exata de cinco ferramentas do Agendamento e a remoção das duas
+   ferramentas de agenda do Reno.
+
+## Conferência do handoff de agendamento
+
+O pedido intermediário do Reno usa `decision: appointment_requested`, e o
+resultado do Agendamento usa `decision: appointment_processed`. Ambos têm
+`status: success`, `requested_next_action: return_to_ceo` e
+`response_ready: null`. O `request_id` do pedido deve ser o ID real da tarefa
+original do Reno; o resultado preserva pedido, cliente, corretor e operação.
+
+Valide cópias JSON protegidas sem acessar rede ou dados reais:
+
+```bash
+python ops/hermes-team/appointment_handoff_check.py request \
+  /caminho/protegido/reno-metadata.json \
+  --original-task-id '<id-real-da-tarefa-reno>'
+
+python ops/hermes-team/appointment_handoff_check.py result \
+  /caminho/protegido/agendamento-metadata.json \
+  --request /caminho/protegido/corpo-da-tarefa-agendamento.json
+```
+
+Saídas: `PASS: APPOINTMENT_REQUEST` ou `PASS: APPOINTMENT_RESULT` (0),
+divergência de forma/identidade (1) e erro de leitura ou JSON (2). O validador
+confere somente a forma e a correlação fornecida. Ele não chama o FamaChat, não
+prova que o modelo seguirá as instruções comerciais, não confirma entrega pelo
+CEO e não exige que o horário ainda esteja no futuro no instante da auditoria.
+
+O monitor aceita um pedido válido do Reno como etapa intermediária, em vez de
+`missing_response`. Tarefa do Agendamento em fila, travada ou falha segue os
+alertas normais; resultado malformado gera `appointment_result_invalid` e
+`outcome: pending` válido gera `appointment_pending` para atenção interna.
+`needs_information` válido segue ao Reno para formular a pergunta ao cliente.
 
 ## Conferência do handoff CTWA para o Reno
 
@@ -377,3 +430,7 @@ anteriores, limpe somente o prompt e os nomes de ferramentas das sessões ativas
 pelas APIs `SessionDB.update_system_prompt(id, None)` e
 `SessionDB.update_session_tool_names(id, None)`, e use o reinício nativo que
 aguarda turnos em andamento. Preserve mensagens, sessões e roteamento.
+
+## Correção das divergências — 09/09/2026
+
+Memória e skills são esperadas em todos os canais dos especialistas. O CLI mantém suas capacidades comerciais; Cadastro e FamaAgent usam `no_mcp` no Telegram administrativo. As 10 divergências anteriores foram resolvidas e o verificador `full` passou. Evidências em `TEAM-DIVERGENCES-RESOLVED.md`.

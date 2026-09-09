@@ -1,0 +1,191 @@
+{
+  "create": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_create",
+    "appointment_request": {
+      "request_id": "task_reno_create",
+      "operation": "create",
+      "client_id": 7101,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": null,
+      "scheduled_at": "2030-09-12T18:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": "Plantão Centro",
+      "address": null
+    },
+    "client": {"id": 7101, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [],
+    "next_appointment_id": 8101,
+    "expected": {"outcome": "confirmed", "appointment_id": 8101, "status": "Agendado", "verified": true}
+  },
+  "reschedule": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_reschedule",
+    "appointment_request": {
+      "request_id": "task_reno_reschedule",
+      "operation": "reschedule",
+      "client_id": 7102,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": 8102,
+      "scheduled_at": "2030-09-13T19:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7102, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [
+      {"id": 8102, "clienteId": 7102, "brokerId": 35, "type": "Visita", "status": "Confirmado", "scheduledAt": "2030-09-12T18:00:00-03:00", "endAt": "2030-09-12T19:30:00-03:00", "location": "Plantão Sul", "address": "Rua Sintética, 10"}
+    ],
+    "expected": {"outcome": "confirmed", "appointment_id": 8102, "status": "Reagendado", "scheduled_at": "2030-09-13T19:00:00-03:00", "end_at": "2030-09-13T20:30:00-03:00", "verified": true}
+  },
+  "cancel": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_cancel",
+    "appointment_request": {
+      "request_id": "task_reno_cancel",
+      "operation": "cancel",
+      "client_id": 7103,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": 8103,
+      "scheduled_at": null,
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7103, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [
+      {"id": 8103, "clienteId": 7103, "brokerId": 35, "type": "Visita", "status": "Agendado", "scheduledAt": "2030-09-14T10:00:00-03:00", "endAt": null, "location": null, "address": null}
+    ],
+    "expected": {"outcome": "confirmed", "appointment_id": 8103, "status": "Cancelado", "scheduled_at": "2030-09-14T10:00:00-03:00", "verified": true}
+  },
+  "duplicate_task": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_duplicate",
+    "appointment_request": {
+      "request_id": "task_reno_duplicate",
+      "operation": "create",
+      "client_id": 7104,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": null,
+      "scheduled_at": "2030-09-15T11:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7104, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [
+      {"id": 8104, "clienteId": 7104, "brokerId": 35, "type": "Visita", "status": "Agendado", "scheduledAt": "2030-09-15T11:00:00-03:00", "endAt": null, "location": null, "address": null}
+    ],
+    "comments": [
+      "APPOINTMENT_ATTEMPT {\"request_id\":\"task_reno_duplicate\",\"operation\":\"create\",\"client_id\":7104,\"broker_id\":35,\"appointment_id\":8104,\"body\":{\"clienteId\":7104,\"brokerId\":35,\"type\":\"Visita\",\"status\":\"Agendado\",\"scheduledAt\":\"2030-09-15T11:00:00-03:00\"}}"
+    ],
+    "expected": {"outcome": "confirmed", "appointment_id": 8104, "status": "Agendado", "verified": true, "write_count": 0}
+  },
+  "lost_response": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_lost_response",
+    "appointment_request": {
+      "request_id": "task_reno_lost_response",
+      "operation": "cancel",
+      "client_id": 7105,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": 8105,
+      "scheduled_at": null,
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7105, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [
+      {"id": 8105, "clienteId": 7105, "brokerId": 35, "type": "Visita", "status": "Confirmado", "scheduledAt": "2030-09-16T14:00:00-03:00", "endAt": "2030-09-16T15:00:00-03:00", "location": null, "address": null}
+    ],
+    "fault": "lost_write_response",
+    "expected": {"outcome": "confirmed", "appointment_id": 8105, "status": "Cancelado", "scheduled_at": "2030-09-16T14:00:00-03:00", "verified": true, "write_count": 1}
+  },
+  "record_mismatch": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_mismatch",
+    "appointment_request": {
+      "request_id": "task_reno_mismatch",
+      "operation": "create",
+      "client_id": 7106,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": null,
+      "scheduled_at": "2030-09-17T16:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7106, "brokerId": 35, "status": "Em Atendimento"},
+    "appointments": [],
+    "next_appointment_id": 8106,
+    "fault": "readback_time_mismatch",
+    "expected": {"outcome": "pending", "appointment_id": 8106, "verified": false, "write_count": 1}
+  },
+  "wrong_broker": {
+    "role": "agendamento",
+    "task_id": "task_agendamento_wrong_broker",
+    "appointment_request": {
+      "request_id": "task_reno_wrong_broker",
+      "operation": "create",
+      "client_id": 7107,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": null,
+      "scheduled_at": "2030-09-18T17:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "client": {"id": 7107, "brokerId": 44, "status": "Em Atendimento"},
+    "appointments": [],
+    "expected": {"outcome": "pending", "appointment_id": null, "verified": false, "write_count": 0}
+  },
+  "ceo_return_to_reno": {
+    "role": "ceo",
+    "task_id": "task_agendamento_return",
+    "agendamento_task_id": "task_agendamento_origin",
+    "correlation_id": "corr_synthetic_appointment",
+    "pedido_exato": "Quero visitar o imóvel no horário combinado.",
+    "appointment_request": {
+      "request_id": "task_reno_origin",
+      "operation": "create",
+      "client_id": 7108,
+      "broker_id": 35,
+      "customer_accepted": true,
+      "appointment_id": null,
+      "scheduled_at": "2030-09-19T18:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "end_at": null,
+      "location": null,
+      "address": null
+    },
+    "appointment_result": {
+      "request_id": "task_reno_origin",
+      "operation": "create",
+      "client_id": 7108,
+      "broker_id": 35,
+      "outcome": "confirmed",
+      "appointment_id": 8108,
+      "scheduled_at": "2030-09-19T18:00:00-03:00",
+      "status": "Agendado",
+      "verified": true,
+      "reason": "Registro sintético conferido pelo id."
+    },
+    "response_ready": null,
+    "expected": {"assignee": "reno", "parent": "task_agendamento_origin", "idempotency_key": "appointment:task_reno_origin:followup:task_agendamento_origin"}
+  }
+}

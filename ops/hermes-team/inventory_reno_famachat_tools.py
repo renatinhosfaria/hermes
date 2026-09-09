@@ -32,7 +32,6 @@ PROFILE = Path("/root/.hermes/profiles/reno")
 REQUIRED_BRAIN_TOOLS = ["conversation_recent", "conversation_search"]
 REQUIRED_WRITE_TOOLS = [
     "fc_patch_clientes_by_id",
-    "fc_post_appointments",
     "fc_post_clientes_by_id_notes",
 ]
 
@@ -65,8 +64,6 @@ SELECTED_READ_TOOLS = {
     "fc_get_apartamentos_publico_empreendimento_by_id": (
         "GET /api/apartamentos/publico/empreendimento/:id"
     ),
-    # Appointment readback after booking, required by the Reno SOUL step 3.
-    "fc_get_appointments_by_id": "GET /api/appointments/:id",
 }
 
 # Observed but deliberately excluded, with the reason each is refused. Recorded
@@ -76,6 +73,9 @@ EXCLUDED_READ_TOOLS = {
     "fc_get_clientes": "client search; Reno receives the exact id on its card",
     "fc_get_empreendimentos_page_buscar": (
         "duplicate of fc_get_empreendimentos_buscar"
+    ),
+    "fc_get_appointments_by_id": (
+        "appointment execution and readback belong to the Agendamento profile"
     ),
 }
 

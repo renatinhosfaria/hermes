@@ -7,7 +7,6 @@
     "fc_get_apartamentos",
     "fc_get_apartamentos_empreendimento_by_id",
     "fc_get_apartamentos_publico_empreendimento_by_id",
-    "fc_get_appointments_by_id",
     "fc_get_clientes_by_id",
     "fc_get_clientes_by_id_empreendimentos",
     "fc_get_clientes_by_id_notes",
@@ -18,7 +17,6 @@
   ],
   "famachat_write": [
     "fc_patch_clientes_by_id",
-    "fc_post_appointments",
     "fc_post_clientes_by_id_notes"
   ]
 }

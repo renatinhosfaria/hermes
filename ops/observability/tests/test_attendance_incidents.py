@@ -22,7 +22,7 @@ class DetectionTests(unittest.TestCase):
         self.k.executescript('''
         CREATE TABLE tasks(id TEXT,assignee TEXT,status TEXT,session_id TEXT,
           block_kind TEXT,consecutive_failures INTEGER,created_at REAL,started_at REAL,
-          completed_at REAL,max_runtime_seconds INTEGER);
+          completed_at REAL,max_runtime_seconds INTEGER,body TEXT);
         CREATE TABLE task_runs(id INTEGER,task_id TEXT,outcome TEXT,metadata TEXT,
           started_at REAL,ended_at REAL);
         CREATE TABLE task_comments(id INTEGER,task_id TEXT,author TEXT,body TEXT,created_at REAL);
@@ -39,9 +39,9 @@ class DetectionTests(unittest.TestCase):
             h.execute('CREATE TABLE paused_contacts(contact_id TEXT,session_key TEXT,paused_at REAL)')
         self.s.commit()
 
-    def task(self, stage='reno', status='blocked', block='capability', failures=0, age=1800, payload=None, outcome='blocked', task='t_case'):
-        self.k.execute('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?,?)',
-                       (task,stage,status,'s1',block,failures,NOW-age,NOW-age,NOW-60 if status=='done' else None,600))
+    def task(self, stage='reno', status='blocked', block='capability', failures=0, age=1800, payload=None, outcome='blocked', task='t_case', body=None):
+        self.k.execute('INSERT INTO tasks VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                       (task,stage,status,'s1',block,failures,NOW-age,NOW-age,NOW-60 if status=='done' else None,600,json.dumps(body) if body else None))
         self.k.execute('INSERT INTO task_runs VALUES (?,?,?,?,?,?)',
                        (self.k.execute('SELECT count(*) FROM task_runs').fetchone()[0]+1,task,outcome,json.dumps(payload),NOW-age,NOW-60))
         self.k.commit()
@@ -72,6 +72,116 @@ class DetectionTests(unittest.TestCase):
     def test_reno_completed_without_payload_is_incident(self):
         self.task(status='done',block=None,outcome='completed',payload={'response_ready':None})
         self.assertEqual(self.detect()[0]['reason'],'missing_response')
+
+    def test_valid_reno_appointment_request_is_an_intermediate_not_missing_response(self):
+        payload = self.appointment_request_metadata()
+        self.task(status='done', block=None, outcome='completed', payload=payload)
+        self.assertEqual(self.detect(), [])
+
+    def test_reno_appointment_request_with_wrong_original_task_id_is_incident(self):
+        payload = self.appointment_request_metadata()
+        payload['appointment_request']['request_id'] = 'some-other-task'
+        self.task(status='done', block=None, outcome='completed', payload=payload)
+        self.assertEqual(self.detect()[0]['reason'], 'missing_response')
+
+    def test_agendamento_confirmed_and_needs_information_results_are_valid_continuations(self):
+        for outcome in ('confirmed', 'needs_information'):
+            request = self.appointment_request_metadata()['appointment_request']
+            result = self.appointment_result_metadata(outcome=outcome)
+            self.task(stage='agendamento', status='done', block=None,
+                      outcome='completed', payload=result,
+                      task='t_' + outcome, body={'appointment_request': request})
+        self.assertEqual(self.detect(), [])
+
+    def test_agendamento_pending_result_requires_internal_attention(self):
+        request = self.appointment_request_metadata()['appointment_request']
+        result = self.appointment_result_metadata(outcome='pending')
+        self.task(stage='agendamento', status='done', block=None,
+                  outcome='completed', payload=result,
+                  body={'appointment_request': request})
+        self.assertEqual(self.detect()[0]['reason'], 'appointment_pending')
+
+    def test_agendamento_stalled_and_failed_tasks_use_existing_incident_rules(self):
+        self.task(stage='agendamento', status='ready', block=None,
+                  outcome='timed_out', age=600, task='t_stalled')
+        self.k.execute(
+            'UPDATE task_runs SET ended_at=? WHERE task_id=?', (NOW-600, 't_stalled')
+        )
+        self.task(stage='agendamento', status='blocked', block='capability',
+                  outcome='blocked', task='t_failed')
+        reasons = {item['task_id']: item['reason'] for item in self.detect()}
+        self.assertEqual(reasons['t_stalled'], 'queue_stalled')
+        self.assertEqual(reasons['t_failed'], 'capability')
+
+    def test_agendamento_malformed_result_is_incident(self):
+        request = self.appointment_request_metadata()['appointment_request']
+        result = self.appointment_result_metadata()
+        result['appointment_result']['status'] = 'Agendado errado para remarcação'
+        result['appointment_result']['operation'] = 'reschedule'
+        request['operation'] = 'reschedule'
+        self.task(stage='agendamento', status='done', block=None,
+                  outcome='completed', payload=result,
+                  body={'appointment_request': request})
+        self.assertEqual(self.detect()[0]['reason'], 'appointment_result_invalid')
+
+    def test_agendamento_accepts_upstream_request_fallback(self):
+        request = self.appointment_request_metadata()['appointment_request']
+        result = self.appointment_result_metadata()
+        self.task(stage='agendamento', status='done', block=None,
+                  outcome='completed', payload=result,
+                  body={'upstream_result': {'appointment_request': request}})
+        self.assertEqual(self.detect(), [])
+
+    def test_agendamento_rejects_disagreeing_direct_and_upstream_requests(self):
+        request = self.appointment_request_metadata()['appointment_request']
+        upstream = dict(request, client_id=999)
+        result = self.appointment_result_metadata()
+        self.task(stage='agendamento', status='done', block=None,
+                  outcome='completed', payload=result,
+                  body={'appointment_request': request,
+                        'upstream_result': {'appointment_request': upstream}})
+        self.assertEqual(self.detect()[0]['reason'], 'appointment_result_invalid')
+
+    def test_agendamento_unhashable_result_fields_are_invalid_not_watchdog_failure(self):
+        request = self.appointment_request_metadata()['appointment_request']
+        result = self.appointment_result_metadata()
+        result['appointment_result']['operation'] = ['create']
+        self.task(stage='agendamento', status='done', block=None,
+                  outcome='completed', payload=result,
+                  body={'appointment_request': request})
+        detected = self.detect()
+        self.assertEqual(detected[0]['reason'], 'appointment_result_invalid')
+        self.assertNotEqual(detected[0]['area'], 'watchdog')
+
+    @staticmethod
+    def appointment_request_metadata():
+        return {
+            'status': 'success', 'decision': 'appointment_requested',
+            'requested_next_action': 'return_to_ceo', 'response_ready': None,
+            'appointment_request': {
+                'request_id': 't_case', 'operation': 'create', 'client_id': 123,
+                'broker_id': 35, 'customer_accepted': True, 'appointment_id': None,
+                'scheduled_at': '2030-09-12T18:00:00-03:00',
+                'timezone': 'America/Sao_Paulo', 'end_at': None,
+                'location': None, 'address': None,
+            },
+        }
+
+    @staticmethod
+    def appointment_result_metadata(outcome='confirmed'):
+        confirmed = outcome == 'confirmed'
+        return {
+            'status': 'success', 'decision': 'appointment_processed',
+            'requested_next_action': 'return_to_ceo', 'response_ready': None,
+            'appointment_result': {
+                'request_id': 't_case', 'operation': 'create', 'client_id': 123,
+                'broker_id': 35, 'outcome': outcome,
+                'appointment_id': 456 if confirmed else None,
+                'scheduled_at': '2030-09-12T18:00:00-03:00' if confirmed else None,
+                'status': 'Agendado' if confirmed else None,
+                'verified': confirmed, 'reason': 'Resultado sintético curto.',
+            },
+        }
 
     def test_ready_retry_and_recent_running_task_are_not_terminal_failures(self):
         self.task(status='ready',outcome='timed_out',age=30)

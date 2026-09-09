@@ -1,0 +1,9 @@
+description: >-
+  Registra, remarca, cancela e confere visitas no FamaChat para clientes da
+  carteira do Reno, por tarefas do CEO. Devolve resultado estruturado ao CEO
+  para continuação pelo Reno, sem enviar mensagens ao cliente.
+description_auto: false
+display_name: Agendamento
+ui_meta:
+  hermes-bots:
+    title: Agendamento

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import sqlite3
 from contextlib import closing
@@ -12,9 +13,22 @@ from zoneinfo import ZoneInfo
 WAIT_SECONDS = 15 * 60
 QUEUE_SECONDS = 5 * 60
 RUNTIME_GRACE = 60
-STAGES = {'porteiro', 'cadastro', 'reno', 'famaagent'}
+STAGES = {'porteiro', 'cadastro', 'reno', 'agendamento', 'famaagent'}
 MARKER = 'INCIDENTE_ATENDIMENTO '
 CLOSED_MARKER = 'INCIDENTE_ENCERRADO '
+
+
+def _load_appointment_validator():
+    path = Path(__file__).resolve().parents[1] / 'hermes-team' / 'appointment_handoff_check.py'
+    spec = importlib.util.spec_from_file_location('hermes_appointment_handoff_check', path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f'cannot load appointment validator from {path}')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_APPOINTMENT = _load_appointment_validator()
 
 
 def connect(path: Path):
@@ -38,13 +52,17 @@ def incident(key, reason, at, timestamp, task_id=None, stage='ceo', session_ref=
         'runtime_exceeded': 'execução excedeu o limite da etapa',
         'queue_stalled': 'tarefa não iniciou no prazo de verificação',
         'missing_response': 'especialista concluiu sem resposta válida',
+        'appointment_result_invalid': 'Agendamento concluiu com resultado inválido',
+        'appointment_pending': 'operação de agendamento continua pendente após execução',
         'ceo_reported': 'CEO registrou impedimento de atendimento',
         'unanswered': 'mensagem recebida sem resposta registrada há mais de 15 minutos',
     }
     when = datetime.fromtimestamp(at, ZoneInfo('America/Sao_Paulo')).strftime('%d/%m %H:%M')
     reference = f'cartão {task_id}' if task_id else f'conversa {session_ref}'
     return {
-        'sig': f'atendimento:{key}', 'severity': 'critical', 'area': 'atendimento',
+        'sig': f'atendimento:{key}',
+        'severity': 'warning' if reason == 'appointment_pending' else 'critical',
+        'area': 'atendimento',
         'immediate': True, 'reason': reason, 'task_id': task_id, 'stage': stage,
         'since': at, 'age_seconds': max(0, int(timestamp-at)),
         'message': f'{reference} | etapa {stage} | {reasons[reason]} ({reason}) | desde {when} (Brasília). '
@@ -93,7 +111,7 @@ def _detect(root, timestamp):
         tasks = board.execute('''SELECT t.*,r.id AS run_id,r.outcome,r.metadata,
             r.started_at AS run_started_at,r.ended_at AS run_ended_at FROM tasks t LEFT JOIN task_runs r
             ON r.id=(SELECT max(id) FROM task_runs WHERE task_id=t.id)
-            WHERE t.assignee IN ('porteiro','cadastro','reno','famaagent')''').fetchall()
+            WHERE t.assignee IN ('porteiro','cadastro','reno','agendamento','famaagent')''').fetchall()
         comments = board.execute('''SELECT task_id,body,created_at FROM task_comments
             WHERE body LIKE 'INCIDENTE_ATENDIMENTO %' OR body LIKE 'INCIDENTE_ENCERRADO %'
             ORDER BY id''').fetchall()
@@ -124,10 +142,45 @@ def _detect(root, timestamp):
                 meta = json.loads(t['metadata'] or '{}') or {}
             except (ValueError, TypeError):
                 meta = {}
-            if not isinstance(meta,dict) or not response(meta.get('response_ready')):
+            valid_appointment_request = (
+                stage == 'reno'
+                and not _APPOINTMENT.validate_request(meta, t['id'])
+            )
+            if (not isinstance(meta,dict) or not response(meta.get('response_ready'))) and not valid_appointment_request:
                 # Some archived cards were superseded by a subsequent response in the same chat.
                 if latest_reply.get(key,0) < at:
                     reason = 'missing_response'
+        elif status == 'done' and stage == 'agendamento':
+            try:
+                meta = json.loads(t['metadata'] or '{}') or {}
+            except (ValueError, TypeError):
+                meta = {}
+            try:
+                import yaml
+                body = yaml.safe_load(t['body'] or '') or {}
+            except (ValueError, TypeError, yaml.YAMLError):
+                body = {}
+            request = None
+            request_conflict = False
+            if isinstance(body, dict):
+                direct_request = body.get('appointment_request')
+                upstream = body.get('upstream_result')
+                upstream_request = (
+                    upstream.get('appointment_request') if isinstance(upstream, dict) else None
+                )
+                request_conflict = (
+                    direct_request is not None
+                    and upstream_request is not None
+                    and direct_request != upstream_request
+                )
+                request = direct_request if direct_request is not None else upstream_request
+            result_errors = _APPOINTMENT.validate_result(meta, request)
+            if request_conflict:
+                result_errors.append('appointment_request: cópias direta e upstream divergem')
+            if result_errors:
+                reason = 'appointment_result_invalid'
+            elif meta['appointment_result']['outcome'] == 'pending':
+                reason = 'appointment_pending'
         active_marker, marked_at = markers.get(t['id'], (False,0))
         if active_marker and status not in {'running','ready','cancelled'}:
             reason, at = 'ceo_reported', marked_at

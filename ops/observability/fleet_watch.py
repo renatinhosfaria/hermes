@@ -32,12 +32,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERMES_ROOT = Path("/root/.hermes")
-PROFILES = ["default", "dev", "reno", "porteiro", "cadastro", "famaagent"]
+PROFILES = ["default", "dev", "reno", "agendamento", "porteiro", "cadastro", "famaagent"]
 
 UNITS = [
     "hermes-gateway.service",
     "hermes-gateway-dev.service",
     "hermes-gateway-reno.service",
+    "hermes-gateway-agendamento.service",
     "hermes-gateway-porteiro.service",
     "hermes-gateway-cadastro.service",
     "hermes-gateway-famaagent.service",
@@ -45,6 +46,10 @@ UNITS = [
     "brain.service",
     "brain-whatsapp-observer.service",
 ]
+
+PENDING_TELEGRAM_GATEWAYS = {
+    "hermes-gateway-agendamento.service": "agendamento",
+}
 
 # Limiares. Mantidos conservadores para nao gerar falso positivo na 1a rodada.
 GATEWAY_HEARTBEAT_MAX_AGE = 300      # s; heartbeat do gateway parado
@@ -78,6 +83,14 @@ def finding(sev: str, area: str, msg: str, **extra) -> dict:
 def check_units() -> list[dict]:
     out = []
     for unit in UNITS:
+        pending_profile = PENDING_TELEGRAM_GATEWAYS.get(unit)
+        if pending_profile and telegram_explicitly_disabled(pending_profile):
+            out.append(finding(
+                "warning", "telegram",
+                f"[{pending_profile}] Telegram pendente de credencial e destino; gateway não esperado",
+                key=f"{pending_profile}_pending", pending=True, report_only=True,
+            ))
+            continue
         try:
             r = subprocess.run(
                 ["systemctl", "show", unit,
@@ -109,6 +122,18 @@ def check_units() -> list[dict]:
                                f"{unit} reiniciou {n}x desde o ultimo reset",
                                key=f"{unit}:restarts", nrestarts=n))
     return out
+
+
+def telegram_explicitly_disabled(profile: str) -> bool:
+    """Only an explicit false suppresses that profile's Telegram gateway probe."""
+    home = HERMES_ROOT if profile == "default" else HERMES_ROOT / "profiles" / profile
+    try:
+        import yaml
+        config = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
+        telegram = ((config or {}).get("platforms") or {}).get("telegram") or {}
+        return telegram.get("enabled") is False
+    except (OSError, TypeError, yaml.YAMLError):
+        return False
 
 
 # ---------------------------------------------------------------- health HTTP
@@ -718,7 +743,7 @@ def run_alerting(findings: list[dict]) -> bool:
 def _run_alerting_locked(findings: list[dict]) -> bool:
     streaks = load_state("streaks.json")
     alerted = load_state("alerted.json")
-    current = {f["sig"]: f for f in findings}
+    current = {f["sig"]: f for f in findings if not f.get("report_only")}
     new_streaks = {sig: streaks.get(sig, 0) + 1 for sig in current}
     to_alert = [current[sig] for sig, n in new_streaks.items()
                 if n >= (1 if current[sig].get("immediate") else FAILURE_STREAK)
