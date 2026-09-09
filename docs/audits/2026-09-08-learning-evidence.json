@@ -1,0 +1,322 @@
+{
+  "verified_at": "2026-09-08T21:18:16.102411-03:00",
+  "reviews": {
+    "default": {
+      "profile": ".hermes",
+      "real_model": "gpt-6-astra-900k",
+      "foreground_calls": 3,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=3 in=4905 out=603 cache_read=63488 result=none"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skills_list",
+        "skill_view",
+        "skill_view"
+      ]
+    },
+    "cadastro": {
+      "profile": "cadastro",
+      "real_model": "gpt-5.6-luna-900k",
+      "foreground_calls": 3,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=4 in=12258 out=4173 cache_read=72704 result=skill+memory"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skills_list",
+        "skill_view",
+        "skill_view"
+      ]
+    },
+    "dev": {
+      "profile": "dev",
+      "real_model": "gpt-6-astra-900k",
+      "foreground_calls": 5,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=5 in=10355 out=616 cache_read=151040 result=skill"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skill_view",
+        "skills_list",
+        "skill_view",
+        "skill_view",
+        "skill_view",
+        "skill_view"
+      ]
+    },
+    "famaagent": {
+      "profile": "famaagent",
+      "real_model": "gpt-5.6-luna-900k",
+      "foreground_calls": 3,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=4 in=13911 out=3018 cache_read=71680 result=skill+memory"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skills_list",
+        "skill_view",
+        "skill_view"
+      ]
+    },
+    "porteiro": {
+      "profile": "porteiro",
+      "real_model": "gpt-5.6-luna-900k",
+      "foreground_calls": 3,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=8 in=21265 out=6603 cache_read=182272 result=skill+memory"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skills_list",
+        "skill_view",
+        "skill_view"
+      ]
+    },
+    "reno": {
+      "profile": "reno",
+      "real_model": "gpt-6-astra-900k",
+      "foreground_calls": 4,
+      "automatic_review": [
+        "Background review complete: thread=bg-review calls=5 in=7816 out=704 cache_read=113152 result=skill"
+      ],
+      "natural_counters": true,
+      "foreground_tools": [
+        "skills_list",
+        "skill_view",
+        "skill_view",
+        "skill_view"
+      ]
+    }
+  },
+  "runtime": {
+    "porteiro": {
+      "pid": 1711166,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:14:14.856275+00:00",
+          "writer_pid": 1711166,
+          "writer_start_time": 155004142,
+          "needs_attention": false,
+          "retrying_since": null
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    },
+    "cadastro": {
+      "pid": 1711516,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:14:42.024400+00:00",
+          "writer_pid": 1711516,
+          "writer_start_time": 155007117,
+          "needs_attention": false,
+          "retrying_since": null
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    },
+    "famaagent": {
+      "pid": 1711970,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:15:18.243100+00:00",
+          "writer_pid": 1711970,
+          "writer_start_time": 155010266,
+          "needs_attention": false,
+          "retrying_since": null
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    },
+    "reno": {
+      "pid": 1712457,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:15:53.145499+00:00",
+          "writer_pid": 1712457,
+          "writer_start_time": 155014142,
+          "needs_attention": false,
+          "retrying_since": null
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    },
+    "dev": {
+      "pid": 1712840,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:16:19.702069+00:00",
+          "writer_pid": 1712840,
+          "writer_start_time": 155017071,
+          "needs_attention": false,
+          "retrying_since": null
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    },
+    "default": {
+      "pid": 1713122,
+      "gateway": "running",
+      "platforms": {
+        "telegram": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:16:48.378222+00:00",
+          "writer_pid": 1713122,
+          "writer_start_time": 155019891,
+          "needs_attention": false,
+          "retrying_since": null
+        },
+        "whatsapp": {
+          "state": "connected",
+          "error_code": null,
+          "error_message": null,
+          "updated_at": "2026-09-09T00:16:48.387356+00:00",
+          "writer_pid": 1713122,
+          "writer_start_time": 155019891
+        }
+      },
+      "remaining_active_snapshots": 0,
+      "learning_plugin_installed": true
+    }
+  },
+  "config_checks": {
+    "default": {
+      "exit_code": 0,
+      "config_version_ok": true
+    },
+    "cadastro": {
+      "exit_code": 0,
+      "config_version_ok": true
+    },
+    "dev": {
+      "exit_code": 0,
+      "config_version_ok": true
+    },
+    "famaagent": {
+      "exit_code": 0,
+      "config_version_ok": true
+    },
+    "porteiro": {
+      "exit_code": 0,
+      "config_version_ok": true
+    },
+    "reno": {
+      "exit_code": 0,
+      "config_version_ok": true
+    }
+  },
+  "learned_skill_recall": [
+    {
+      "profile": "dev",
+      "learned_skill_reload": "hermes-runtime-verification",
+      "file": "references/memory-and-skill-learning.md",
+      "memory_reload": true,
+      "user_reload": false
+    },
+    {
+      "profile": "cadastro",
+      "learned_skill_reload": "hermes-profile-maintenance",
+      "file": null,
+      "memory_reload": true,
+      "user_reload": true
+    },
+    {
+      "profile": "reno",
+      "learned_skill_reload": "reno-aprendizado-continuo",
+      "file": "references/infraestrutura-aprendizagem.md",
+      "memory_reload": true,
+      "user_reload": true
+    },
+    {
+      "profile": "porteiro",
+      "learned_skill_reload": "hermes-learning-lifecycle",
+      "file": null,
+      "memory_reload": true,
+      "user_reload": true
+    },
+    {
+      "profile": "famaagent",
+      "learned_skill_reload": "hermes-profile-maintenance",
+      "file": null,
+      "memory_reload": true,
+      "user_reload": true
+    }
+  ],
+  "legacy_fleet_comparison": {
+    "before": {
+      "exit_code": 1,
+      "failures": [
+        "FAIL: cadastro/telegram: MCP ausentes [], esperado ['brain', 'famachat']",
+        "FAIL: cadastro/telegram: MCP presentes ['brain', 'famachat'], esperado []",
+        "FAIL: cadastro: platform_toolsets.cli incorreto: ['brain', 'clarify', 'famachat', 'kanban', 'memory', 'skills']",
+        "FAIL: cadastro: platform_toolsets.telegram incorreto: ['clarify', 'file', 'kanban', 'memory', 'skills', 'terminal']",
+        "FAIL: default: gateway inativo",
+        "FAIL: famaagent/telegram: MCP ausentes [], esperado ['brain', 'famachat']",
+        "FAIL: famaagent/telegram: MCP presentes ['brain', 'famachat'], esperado []",
+        "FAIL: famaagent: platform_toolsets.cli incorreto: ['brain', 'clarify', 'famachat', 'kanban', 'memory', 'skills']",
+        "FAIL: famaagent: platform_toolsets.telegram incorreto: ['clarify', 'file', 'kanban', 'memory', 'skills', 'terminal']",
+        "FAIL: porteiro: platform_toolsets.cli incorreto: ['clarify', 'skills', 'memory']",
+        "FAIL: porteiro: platform_toolsets.telegram incorreto: ['clarify', 'no_mcp', 'terminal', 'file', 'skills', 'memory']",
+        "FAIL: reno: platform_toolsets.cli incorreto: ['clarify', 'brain', 'famachat', 'skills', 'memory']",
+        "FAIL: reno: platform_toolsets.telegram incorreto: ['clarify', 'no_mcp', 'terminal', 'file', 'skills', 'memory']"
+      ]
+    },
+    "after": {
+      "exit_code": 1,
+      "failures": [
+        "FAIL: cadastro/telegram: MCP ausentes [], esperado ['brain', 'famachat']",
+        "FAIL: cadastro/telegram: MCP presentes ['brain', 'famachat'], esperado []",
+        "FAIL: cadastro: platform_toolsets.cli incorreto: ['brain', 'clarify', 'famachat', 'kanban', 'memory', 'skills']",
+        "FAIL: cadastro: platform_toolsets.telegram incorreto: ['clarify', 'file', 'kanban', 'memory', 'skills', 'terminal']",
+        "FAIL: default: gateway inativo",
+        "FAIL: famaagent/telegram: MCP ausentes [], esperado ['brain', 'famachat']",
+        "FAIL: famaagent/telegram: MCP presentes ['brain', 'famachat'], esperado []",
+        "FAIL: famaagent: platform_toolsets.cli incorreto: ['brain', 'clarify', 'famachat', 'kanban', 'memory', 'skills']",
+        "FAIL: famaagent: platform_toolsets.telegram incorreto: ['clarify', 'file', 'kanban', 'memory', 'skills', 'terminal']",
+        "FAIL: porteiro: platform_toolsets.cli incorreto: ['clarify', 'skills', 'memory']",
+        "FAIL: porteiro: platform_toolsets.telegram incorreto: ['clarify', 'no_mcp', 'terminal', 'file', 'skills', 'memory']",
+        "FAIL: reno: platform_toolsets.cli incorreto: ['clarify', 'brain', 'famachat', 'skills', 'memory']",
+        "FAIL: reno: platform_toolsets.telegram incorreto: ['clarify', 'no_mcp', 'terminal', 'file', 'skills', 'memory']"
+      ]
+    },
+    "new_failures": []
+  },
+  "native_store_tests": {
+    "default": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed",
+    "cadastro": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed",
+    "dev": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed",
+    "famaagent": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed",
+    "porteiro": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed",
+    "reno": "passed: memory write, background-origin skill create/patch, independent recall, temporary entries removed"
+  },
+  "source_sha": "116b03f2efae931e4467eb7ac67f7c3dc7306ac1"
+}

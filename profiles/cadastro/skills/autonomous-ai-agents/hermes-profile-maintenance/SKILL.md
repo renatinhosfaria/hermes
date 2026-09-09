@@ -36,16 +36,26 @@ gateway de mensagens.
    comando retornar sucesso. Se uma chave customizada for aceita com aviso,
    confirme no código/documentação que o runtime realmente a lê antes de
    mantê-la.
-5. **Verifique a capacidade, não só o arquivo.** Para a aprendizagem automática,
-   confirme separadamente memória persistente habilitada, o toolset `skills`
-   disponível (inclui `skill_manage`),
-   `auxiliary.background_review.enabled: true` e os intervalos de nudge. Use
-   `memory status`, `tools list` e uma sondagem do runtime ou testes focados;
-   não trate uma inspeção do YAML como prova de execução.
-6. **Diferencie aprendizagem de manutenção.** A revisão automática pós-turno é o
-   mecanismo que captura memória e atualiza skills. O curator mantém a
-   biblioteca e a consolidação LLM é uma opção separada, mais ampla e com custo;
-   não habilite consolidação apenas para ativar aprendizagem.
+5. **Verifique a capacidade e a semântica dos gatilhos, não só o arquivo.** Para
+   a aprendizagem automática, confirme separadamente memória persistente
+   habilitada, o toolset `skills` disponível (inclui `skill_manage`),
+   `auxiliary.background_review.enabled: true` e os intervalos de nudge. Trate
+   `memory.nudge_interval` como contador de turnos do usuário e
+   `skills.creation_nudge_interval` como contador de iterações de ferramenta;
+   não os compare como se tivessem a mesma unidade. Use `memory status`,
+   `tools list` e uma sondagem do runtime ou testes focados. A configuração
+   habilitada não prova persistência: confirme uma gravação e uma recuperação em
+   processo independente quando a tarefa exigir prova de execução. O fork nativo
+   só dispara após uma resposta final não interrompida e depende das ferramentas
+   disponíveis.
+6. **Valide o encerramento por superfície.** Em execuções one-shot do CLI,
+   confirme que o hook oficial `on_session_finalize` ou equivalente aguarda a
+   revisão em segundo plano antes do cleanup, com limite de espera explícito
+   (até 300 segundos quando configurado). Em canais gateway, trate a revisão como
+   assíncrona e não exija espera síncrona. A revisão automática pós-turno captura
+   memória e atualiza skills; o curator mantém a biblioteca e a consolidação LLM
+   é uma opção separada, mais ampla e com custo. Não habilite consolidação apenas
+   para ativar aprendizagem.
 7. **Teste pelo ambiente declarado do projeto.** Para testes do código-fonte,
    prefira o extra de desenvolvimento declarado pelo projeto, por exemplo
    `uv run --extra dev pytest <testes-focados>`, em vez de presumir que o
@@ -72,6 +82,9 @@ gateway de mensagens.
 - Não trate `config get`, `config check` ou um teste unitário isolado como prova
   de que um gateway antigo recarregou a configuração; valide o processo e
   informe quando a nova sessão ainda for necessária.
+- Não trate a saída de uma execução one-shot como prova de persistência da
+  revisão; confirme o readback em processo independente, porque uma thread
+  daemon pode ser encerrada no cleanup antes de gravar.
 - Não inclua tokens, valores de `.env`, Authorization, conteúdo bruto de
   configuração ou PII no handoff.
 
@@ -79,4 +92,8 @@ gateway de mensagens.
 
 A manutenção está verificada quando o `config check` passa, cada chave alterada
 foi relida, os toolsets/capacidades relevantes foram observados no runtime, os
+semântica e gatilhos de aprendizagem foram exercitados quando aplicável, os
 testes focados passam quando disponíveis e o estado do gateway foi consultado.
+Para persistência, a evidência forte é uma gravação e a recuperação posterior em
+processo independente; para o ciclo de vida, verifique a espera limitada no CLI
+e o comportamento assíncrono nos gateways.

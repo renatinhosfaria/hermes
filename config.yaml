@@ -6,6 +6,8 @@ model:
   context_length: 900000
 toolsets:
   - kanban
+  - memory
+  - skills
 database:
   journal_mode: wal
 runtime:
@@ -101,14 +103,14 @@ memory:
   write_approval: false
   memory_char_limit: 2200
   user_char_limit: 1375
-  nudge_interval: 10
+  nudge_interval: 1
 delegation:
   max_iterations: 250
 skills:
   guard_agent_created: true
   write_approval: false
   ledger: true
-  creation_nudge_interval: 10
+  creation_nudge_interval: 1
 whatsapp:
   dm_policy: open
   group_policy: disabled
@@ -124,6 +126,7 @@ plugins:
     - brain-ceo-bridge
     - fama-whatsapp-human-handover
     - fama-kanban-channel-policy
+    - fama-learning-lifecycle
 security:
   protected_instruction_files: false
   protected_instruction_extra_patterns:
@@ -178,6 +181,7 @@ platform_toolsets:
     - skills
     - vision
     - brain-context
+    - memory
   slack:
     - hermes-slack
   signal:

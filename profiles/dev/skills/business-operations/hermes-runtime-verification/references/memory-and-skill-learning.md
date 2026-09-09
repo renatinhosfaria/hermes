@@ -75,10 +75,19 @@ APIs privadas do script depois de um update do Hermes.
   limiar em um agente temporário testa o finalizador com uma chamada real ao
   modelo, mas não demonstra que o limiar foi atingido naturalmente na conversa
   de produção. Preserve configuração, intervalos e permissões do profile.
-- Aguarde a conclusão do fork no processo de teste; a thread é daemon e pode
-  ser encerrada ao sair um CLI de uma única pergunta. Use o registro nativo
-  `Background review complete` como evidência, separando `result=none` de
-  escrita bem-sucedida e de erro. Não confunda criação do cliente com conclusão.
+- Verifique o encerramento real do CLI one-shot, não apenas um probe que aguarda
+  o fork manualmente; a thread daemon `bg-review` pode morrer na saída antes de
+  persistir a gravação. Use o registro nativo `Background review complete` como
+  evidência de conclusão, separando `result=none`, escrita e erro; confirme a
+  persistência por recuperação em processo independente no mesmo profile.
+- Ao verificar a integração local de ciclo de vida, confira o plugin
+  `fama-learning-lifecycle` e seu hook oficial `on_session_finalize`: a solução
+  validada aguarda revisões somente no CLI, por até 300 segundos antes do
+  cleanup, preservando o gateway assíncrono sem editar a instalação do Hermes.
+  Revalide a integração após updates e teste separadamente término do one-shot,
+  isolamento de canal e limite de espera; atingir o timeout não comprova que a
+  revisão concluiu ou gravou. Não transforme essa espera local em bloqueio dos
+  canais gateway.
 - Notas de memória gravadas durante uma sessão entram no disco imediatamente,
   mas o snapshot do prompt fica congelado; valide recuperação em processo novo,
   não pela permanência do texto antigo no prompt atual.

@@ -324,3 +324,56 @@ conta; `--apply` exige CEO parado e deve executar em um `ExecStartPre` temporár
 durante restart gracioso. Não altera mensagens, IDs, histórico ou roteamento.
 A marca privada `ceo-policy-20260908.applied` torna a atualização única. Remova o
 drop-in temporário depois da partida verificada; não faça reset de conversas.
+
+## Aprendizagem automática — 08/09/2026
+
+Os seis profiles têm `memory.memory_enabled: true`,
+`memory.user_profile_enabled: true`, `memory.write_approval: false`,
+`skills.write_approval: false`, `skills.ledger: true` e
+`auxiliary.background_review.enabled: true`. A autorização permanente está em
+`SOUL.md` e cobre memória e criação/atualização de skills, no primeiro plano e
+na revisão automática, inclusive nos workers. Não exige pedido para salvar.
+
+`memory.nudge_interval: 1` conta turnos de usuário;
+`skills.creation_nudge_interval: 1` conta iterações de ferramenta. Essa frequência
+permite revisar trabalhos curtos e aumenta o uso do modelo em comparação com o
+intervalo anterior de 10. Sem aprendizado novo, `result=none` é um resultado
+válido. Os modelos e a rota da revisão foram preservados.
+
+A disponibilidade deve ser conferida pelo resolvedor nativo de ferramentas.
+Composites que já incluem memória e skills são preservados; misturar nomes
+inválidos com toolsets explícitos pode mudar o fallback. Nos canais WhatsApp,
+foram acrescentadas somente as capacidades de aprendizagem que faltavam.
+
+O plugin `fama-learning-lifecycle` fica em `ops/plugins/` e cada home tem um link
+em `plugins/fama-learning-lifecycle`, com o nome incluído em `plugins.enabled`.
+O hook oficial `on_session_finalize` espera as threads nativas `bg-review`
+somente no CLI, antes do cleanup one-shot, com limite fixo padrão de 300 segundos.
+Se o limite expirar, registra `pending > 0`; isso não comprova persistência.
+Gateways mantêm revisão assíncrona. Nenhuma guarda de ferramenta foi removida.
+
+Verificação reproduzível (sempre com o home explícito):
+
+```bash
+HERMES_HOME=/root/.hermes/profiles/porteiro /usr/local/lib/hermes-agent/venv/bin/python /root/.hermes/ops/hermes-team/verify_learning.py native
+HERMES_HOME=/root/.hermes/profiles/porteiro /usr/local/lib/hermes-agent/venv/bin/python /root/.hermes/ops/hermes-team/verify_learning.py live
+python3 -m unittest discover -s /root/.hermes/ops/hermes-team/tests -p test_learning_lifecycle.py -v
+```
+
+`native` cria entradas temporárias únicas, testa memória e criação/alteração de
+skill com origem de revisão, recupera em outro processo e remove suas entradas.
+`live` usa o modelo configurado, contadores naturais e o finalizador oficial;
+pode salvar lições técnicas verificadas no próprio profile. Não usa CRM nem
+envia mensagens. Confirme `Background review complete` e recupere a skill
+salva em outro processo. Não confunda teste com contadores preparados com
+execução natural: este verificador não prepara nem força os contadores.
+
+Filhos de `delegate_task` continuam sujeitos ao bloqueio nativo da ferramenta
+`memory`; o pai consolida as lições verificadas do filho. Não foi alterado o
+código instalado do Hermes para contornar esse limite.
+
+Após alterar instruções ou ferramentas de um gateway, salve os snapshots
+anteriores, limpe somente o prompt e os nomes de ferramentas das sessões ativas
+pelas APIs `SessionDB.update_system_prompt(id, None)` e
+`SessionDB.update_session_tool_names(id, None)`, e use o reinício nativo que
+aguarda turnos em andamento. Preserve mensagens, sessões e roteamento.

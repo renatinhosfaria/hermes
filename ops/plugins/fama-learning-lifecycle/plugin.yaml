@@ -1,0 +1,6 @@
+name: fama-learning-lifecycle
+version: 1.0.0
+description: Finish native background learning before CLI worker teardown.
+author: Fama Negócios Imobiliários
+provides_hooks:
+  - on_session_finalize

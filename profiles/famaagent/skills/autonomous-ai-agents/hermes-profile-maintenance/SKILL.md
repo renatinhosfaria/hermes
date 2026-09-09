@@ -36,6 +36,12 @@ verifiable.
 - Keep `memory.write_approval` and `skills.write_approval` aligned with the requested consent model; automatic learning requires writes not to be silently staged.
 - Enable the profile's background self-improvement review when automatic memory and procedural-skill capture is requested.
 - Treat curator pruning/consolidation as a separate lifecycle concern; do not enable broad LLM consolidation merely to turn on per-session learning.
+- Store stable user facts, preferences, and cross-task environment invariants in memory; store reusable procedures, decision points, pitfalls, and verification criteria in a class-level skill.
+- Before editing an existing skill, read its current `SKILL.md` (and any support file being overwritten) with `skill_view`; patch the existing class-level rule in place, strengthen duplicates instead of appending them, and prefer a topical reference over a session-specific skill.
+- Treat `memory.nudge_interval` as a user-turn count and `skills.creation_nudge_interval` as a tool-iteration count; do not compare or tune them as if they used the same unit.
+- Require a final, uninterrupted response and the necessary write tools before relying on the native review fork; a configured interval alone does not prove that a review will run or persist.
+- For one-shot CLI runs, do not assume daemon threads finish before process exit; use the official session-finalization hook to await background review with a bounded timeout (the local lifecycle plugin uses up to 300 seconds), while keeping gateway-channel reviews asynchronous according to their lifecycle contract.
+- Validate persistence by exercising the real write path and recovering the memory or skill from an independent process; also verify channel isolation and the wait bound when lifecycle behavior is involved.
 - Do not manufacture a skill during validation. Save only a generalizable workflow or preference that a future session can reuse.
 
 ## Safety and evidence rules

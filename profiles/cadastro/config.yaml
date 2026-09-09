@@ -6,6 +6,8 @@ model:
   context_length: 900000
 toolsets:
   - clarify
+  - memory
+  - skills
 agent:
   verify_guidance: true
   verify_on_stop: true
@@ -24,10 +26,12 @@ memory:
   memory_enabled: true
   user_profile_enabled: true
   write_approval: false
+  nudge_interval: 1
 skills:
   guard_agent_created: true
   write_approval: false
-  creation_nudge_interval: 10
+  creation_nudge_interval: 1
+  ledger: true
 telegram:
   require_mention: false
   allow_from: 8564576789
@@ -37,6 +41,7 @@ approvals:
 plugins:
   enabled:
     - fama-cadastro-guard
+    - fama-learning-lifecycle
 security:
   protected_instruction_files: false
   protected_instruction_extra_patterns:
@@ -94,6 +99,8 @@ platform_toolsets:
   whatsapp:
     - clarify
     - no_mcp
+    - memory
+    - skills
   cli:
     - brain
     - clarify

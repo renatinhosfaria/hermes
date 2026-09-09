@@ -4,7 +4,9 @@ model:
   base_url: https://chatgpt.com/backend-api/codex
   reasoning_effort: xhigh
   context_length: 900000
-toolsets: []
+toolsets:
+  - memory
+  - skills
 agent:
   verify_guidance: true
   verify_on_stop: true
@@ -26,11 +28,12 @@ memory:
   memory_enabled: true
   user_profile_enabled: true
   write_approval: false
-  nudge_interval: 10
+  nudge_interval: 1
 skills:
   guard_agent_created: true
   write_approval: false
-  creation_nudge_interval: 10
+  creation_nudge_interval: 1
+  ledger: true
 curator:
   enabled: true
   consolidate: false
@@ -113,6 +116,8 @@ platform_toolsets:
   whatsapp:
     - clarify
     - no_mcp
+    - memory
+    - skills
 known_plugin_toolsets:
   telegram:
     - a2a
@@ -177,3 +182,6 @@ known_builtin_toolsets:
     - yuanbao
 display:
   memory_notifications: 'on'
+plugins:
+  enabled:
+    - fama-learning-lifecycle

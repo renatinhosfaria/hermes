@@ -17,6 +17,7 @@ memory:
   memory_enabled: true
   user_profile_enabled: true
   write_approval: false
+  nudge_interval: 1
 checkpoints:
   enabled: true
   max_snapshots: 20
@@ -24,8 +25,11 @@ group_sessions_per_user: true
 skills:
   guard_agent_created: true
   write_approval: false
-  creation_nudge_interval: 10
-toolsets: []
+  creation_nudge_interval: 1
+  ledger: true
+toolsets:
+  - memory
+  - skills
 platforms:
   telegram:
     enabled: true
@@ -100,6 +104,8 @@ platform_toolsets:
   whatsapp:
     - clarify
     - no_mcp
+    - memory
+    - skills
 security:
   protected_instruction_files: false
   protected_instruction_extra_patterns:
@@ -112,3 +118,7 @@ mcp:
 plugins:
   enabled:
     - fama-reno-delivery
+    - fama-learning-lifecycle
+auxiliary:
+  background_review:
+    enabled: true

@@ -16,11 +16,13 @@ agent:
 skills:
   guard_agent_created: true
   write_approval: false
-  creation_nudge_interval: 10
+  creation_nudge_interval: 1
+  ledger: true
 memory:
   memory_enabled: true
-  user_profile_enabled: false
+  user_profile_enabled: true
   write_approval: false
+  nudge_interval: 1
 checkpoints:
   enabled: true
   max_snapshots: 20
@@ -84,3 +86,9 @@ security:
 delegation:
   model: gpt-5.6-luna-900k
   max_concurrent_children: 4
+auxiliary:
+  background_review:
+    enabled: true
+plugins:
+  enabled:
+    - fama-learning-lifecycle
