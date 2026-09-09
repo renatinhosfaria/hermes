@@ -73,17 +73,6 @@ class DetectionTests(unittest.TestCase):
         self.task(status='done',block=None,outcome='completed',payload={'response_ready':None})
         self.assertEqual(self.detect()[0]['reason'],'missing_response')
 
-    def test_verified_internal_delivery_followup_without_response_is_normal(self):
-        self.k.execute('ALTER TABLE tasks ADD COLUMN created_by TEXT')
-        self.k.execute('ALTER TABLE tasks ADD COLUMN idempotency_key TEXT')
-        self.k.execute("INSERT INTO tasks (id,assignee,status,session_id,created_at,started_at,completed_at,max_runtime_seconds,created_by,idempotency_key) VALUES ('t_receipt','reno','done','s1',?,?,?,?,?,?)",
-                       (NOW-1800,NOW-1800,NOW-60,600,'fama-reno-delivery','reno-delivery:run:1'))
-        meta={'response_ready':None,'decision':'ETAPA_POS_ENVIO_PRESERVADA','evidence':{'delivery_confirmed':True,'validator_version':'1.0.0'}}
-        self.k.execute('INSERT INTO task_runs VALUES (?,?,?,?,?,?)',(1,'t_receipt','completed',json.dumps(meta),NOW-1800,NOW-60));self.k.commit()
-        self.assertEqual(self.detect(),[])
-        self.k.execute("UPDATE tasks SET created_by='default'");self.k.commit()
-        self.assertEqual(self.detect()[0]['reason'],'missing_response')
-
     def test_ready_retry_and_recent_running_task_are_not_terminal_failures(self):
         self.task(status='ready',outcome='timed_out',age=30)
         self.assertEqual(self.detect(),[])

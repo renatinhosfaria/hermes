@@ -117,7 +117,6 @@ mcp:
   auto_reload_on_config_change: false
 plugins:
   enabled:
-    - fama-reno-delivery
     - fama-learning-lifecycle
 auxiliary:
   background_review:

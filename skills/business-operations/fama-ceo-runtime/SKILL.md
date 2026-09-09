@@ -445,14 +445,7 @@ Um wake posterior sobre a mesma Task nunca substitui o payload já selecionado.
 Se trouxer fato novo que realmente exija ação, processe o fato, mas preserve
 literalmente qualquer `response_ready` que ainda precise ser entregue.
 
-Exceção interna: cartões `CONFIRMACAO_ENVIO` criados pela rotina operacional
-`fama-reno-delivery`, com decisão `ETAPA_POS_ENVIO_CONFIRMADA` ou
-`ETAPA_POS_ENVIO_PRESERVADA`, concluem corretamente com `response_ready: null`.
-Confira a conclusão e finalize `[SILENT]`, sem reenviar o texto original nem
-registrar incidente apenas pela ausência de mensagem. Se houve resposta nova
-do cliente, trate-a no cartão comercial normal, reutilizando o já existente.
-
-Fora dessa exceção, se `response_ready` do Reno/FamaAgent vier nulo ou vazio, não improvise resposta:
+Se `response_ready` do Reno/FamaAgent vier nulo ou vazio, não improvise resposta:
 confira o estado terminal e siga “Quando o worker falhar” do `SOUL.md`. Registre
 uma única ocorrência `INCIDENTE_ATENDIMENTO ` no cartão afetado e finalize o turno
 externo com `[SILENT]`. O monitor externo entrega o alerta no Telegram do Dev.
