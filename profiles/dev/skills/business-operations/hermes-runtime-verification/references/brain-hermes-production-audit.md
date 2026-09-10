@@ -115,6 +115,30 @@ secrets in-process, never print URL/header values, and report only HTTP status,
 tool count, required-name presence, and unresolved-placeholder absence. Do not
 call business tools or retrieve customer data.
 
+## Cross-platform Kanban origin and authorization
+
+For a task created from a control channel with a WhatsApp parent, verify origin
+and delivery independently: compare `tasks.session_id` with the canonical session
+source and with the WhatsApp longitudinal set, and compare parent/child
+subscriptions only in memory. Emit booleans, platform names and Task/Run IDs,
+never destination IDs, session keys or message bodies. Open both stores with
+`mode=ro` and `PRAGMA query_only=ON`.
+
+Trace the installed creation handler, subscription inheritance and Brain worker
+authorizer before proposing repair. Subscription inheritance is notification
+routing, not proof that the child inherited the parent's session or a separate
+resumption authorization. Corroborate a session-mismatch diagnosis with a bounded,
+sanitized service-log match for the exact Task/Run; do not retry the denied
+business tool with substituted identity headers.
+
+Inspect supported mutation interfaces before recommending an unblock. A state
+transition does not repair origin, and a plugin that directly rewrites a live
+session binding is not an acceptable substitute for an authenticated, auditable
+resumption contract. Preserve the control origin and fail-closed identity gates;
+if no supported repair interface exists within authorized write boundaries,
+report that capability/scope blocker. Passing existing authorization tests is
+not evidence of a repaired cross-platform flow or successful live resumption.
+
 ## Logs
 
 Count and classify sanitized findings instead of quoting raw logs. Search for:
