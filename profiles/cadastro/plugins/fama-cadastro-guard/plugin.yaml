@@ -1,5 +1,5 @@
 name: fama-cadastro-guard
-version: 1.0.1
+version: 1.1.0
 description: "Verify Cadastro phone evidence, creation and CEO handoff."
 author: Fama Negócios Imobiliários
 provides_hooks:

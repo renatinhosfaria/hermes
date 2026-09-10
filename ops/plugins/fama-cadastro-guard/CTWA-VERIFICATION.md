@@ -71,3 +71,28 @@ Novos workers leem a cópia instalada/configuração atualizada. Para o CEO, o
 helper de snapshots com `fama-cadastro-ctwa-v1` renova somente WhatsApp durante
 partida após drenagem nativa. Preserve sessões e histórico; não restaure um
 banco inteiro por uma divergência de vínculo.
+
+## Instalação conferida
+
+- Commit de implementação `4c22a8c` integrado localmente por fast-forward.
+- Cópias instaladas do guard e manifesto sincronizadas; esses dois arquivos
+  já eram rastreados no Git apesar da regra geral de ignore para plugins.
+  Sua atualização é versionada junto ao registro de instalação, sem `add -f`.
+- `verify_activation.py`: fonte e cópia iguais, plugin habilitado, três hooks
+  nativos carregados e POST sem evidência bloqueado.
+- Testes no checkout principal: guard 35/35 e equipe 76/76.
+- `verify_team.py core/full`: sete falhas preexistentes remanescentes; quatro
+  marcadores desatualizados do Cadastro foram substituídos pelas verificações
+  da referência canônica. Nenhuma falha nova de allowlist ou vínculo CTWA.
+- Restart do CEO via `hermes gateway restart`, com drenagem nativa. O
+  ExecStartPre renovou quatro snapshots de WhatsApp pela API nativa e reportou
+  `conversation_history: preserved`; consulta posterior encontrou zero snapshots
+  antigos. O drop-in temporário foi removido após a partida.
+- CEO ativo e bridge WhatsApp com `status: connected` após o restart.
+- Smoke Brain novamente aprovado após ativação.
+- Backup privado consistente do estado do CEO e dos arquivos de implantação
+  em `/root/hermes-rollout-backups/cadastro-ctwa-20260910-RsQCg1`.
+
+A confirmação de um cadastro real com vínculo permanece dependente de uma
+próxima entrada CTWA elegível. Não foram gerados contatos nem mensagens de teste
+em produção.

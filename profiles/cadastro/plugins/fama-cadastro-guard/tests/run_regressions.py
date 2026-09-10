@@ -13,9 +13,11 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 test_guard.guard = module
 test_guard.ROOT = root
+import test_ctwa
 import test_runtime
 suite = unittest.TestSuite([
     unittest.defaultTestLoader.loadTestsFromModule(test_guard),
+    unittest.defaultTestLoader.loadTestsFromModule(test_ctwa),
     unittest.defaultTestLoader.loadTestsFromModule(test_runtime),
     unittest.defaultTestLoader.discover(str(root / "tests")),
 ])
