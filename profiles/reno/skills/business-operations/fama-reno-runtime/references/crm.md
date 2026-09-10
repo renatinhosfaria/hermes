@@ -24,6 +24,10 @@ fc_get_clientes_by_id_notes e pule se já existir uma com o mesmo marcador. Toda
 nota sua termina com o marcador do cartão, entre colchetes, no formato
 [<task_id>#<turno>].
 
+Ao usar `fc_post_clientes_by_id_notes`, envie o texto em `body.content`; o campo
+`note` não é aceito como conteúdo. A leitura devolve o texto em `text`.
+Confira a nota pela releitura do mesmo cliente antes de declarar o registro verificado.
+
 Nunca registre transcript bruto em nota.
 
 ## Mover a etapa do cliente no FamaChat
