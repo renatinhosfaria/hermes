@@ -227,12 +227,45 @@ alertas normais; resultado malformado gera `appointment_result_invalid` e
 `outcome: pending` válido gera `appointment_pending` para atenção interna.
 `needs_information` válido segue ao Reno para formular a pergunta ao cliente.
 
-## Conferência do handoff CTWA para o Reno
+## Conferência do handoff CTWA para Cadastro e Reno
 
-O contrato de corpo está em `fama-ceo-runtime` e `fama-reno-runtime`:
+O contrato de corpo está em `fama-ceo-runtime`, `fama-cadastro-runtime` e `fama-reno-runtime`:
 `contexto.ctwa_attributions` preserva evento, origem e atribuição normalizada
 da conversa atual. Atribuição pendente não segura o atendimento. Endereço e
 demais fatos imobiliários continuam dependendo da verificação no FamaChat.
+
+### Cadastro com empreendimento do anúncio — 10/09/2026
+
+`fama-cadastro-ctwa-v1`: o CEO transporta a mesma atribuição normalizada para
+Cadastro e Reno. Cadastro ganhou somente `fc_get_empreendimentos_buscar` e
+`fc_get_empreendimentos_by_id` no CLI; Telegram/WhatsApp continuam sem MCP.
+O guard 1.1.0 permite `body.idEmpreendimento: [id]` apenas após candidato único
+coerente com os eventos confirmados e leitura por ID. A releitura do novo
+cliente deve confirmar a mesma lista. Clientes existentes não são alterados.
+
+Sem atribuição confirmada, match único ou consulta completa, o Cadastro cria
+sem vínculo e devolve `evidence.empreendimento_resolution`. Após vínculo relido,
+devolve também `entities.empreendimento_id`. O CEO preserva esses campos no
+`upstream_result` do Reno, além dos eventos. Nenhum raw entra no cartão.
+
+O contrato foi conferido em `renatinhosfaria/famachat`: criação em
+`server/routes/clientes.ts` usa `insertClienteSchema` de `shared/schema.ts`,
+que declara `idEmpreendimento` como array JSON de inteiros na coluna
+`id_empreendimento`. `server/models/empreendimentos-schema.ts` expõe o código
+como `id`; busca retorna lista e leitura por ID retorna objeto. Manifesto MCP
+tem body genérico e não basta, sozinho, para provar esses tipos.
+
+Instale a fonte do guard após testes sintéticos, confira `verify_activation.py`
+e a resolução efetiva das ferramentas. Novos workers carregam a configuração;
+não reinicie Cadastro só para atualizar o plugin. Para o CEO, use o helper de
+snapshots com `default --policy-marker fama-cadastro-ctwa-v1`: sem `--apply` é
+somente leitura; com `--apply` exige gateway drenado e parado. Use um
+ExecStartPre temporário para aplicar durante `hermes gateway restart`, remova-o
+após confirmar a partida. Esse marcador renova apenas snapshots de WhatsApp,
+preservando mensagens, sessões Telegram e workers.
+
+Falhas históricas do verificador geral devem ser registradas separadamente;
+não altere allowlists de outros profiles para fazer esta mudança passar.
 
 Teste isolado, sem acesso a serviços ou dados reais, a partir da raiz do checkout:
 

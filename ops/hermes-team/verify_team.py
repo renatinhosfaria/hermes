@@ -109,6 +109,8 @@ EXPECTED_MCP_TOOLS = {
     ("cadastro", "famachat"): [
         "fc_get_clientes",
         "fc_get_clientes_by_id",
+        "fc_get_empreendimentos_buscar",
+        "fc_get_empreendimentos_by_id",
         "fc_post_clientes",
     ],
     ("reno", "brain"): ["conversation_recent", "conversation_search"],
@@ -213,13 +215,26 @@ REQUIRED_PROMPT_MARKERS = {
         ),
     ],
     "cadastro": [
-        ("SOUL.md", "fc_get_clientes_by_id", "readback por leitura independente"),
-        ("SOUL.md", "Sem Atendimento", "status exigido no readback"),
-        ("SOUL.md", "no maximo uma vez", "POST unico"),
+        ("SOUL.md", "fama-cadastro-runtime", "contrato operacional obrigatorio"),
+        (
+            "skills/business-operations/fama-cadastro-runtime/references/contrato-cadastro.md",
+            "fc_get_clientes_by_id", "readback por leitura independente",
+        ),
+        (
+            "skills/business-operations/fama-cadastro-runtime/references/contrato-cadastro.md",
+            "Sem Atendimento", "status exigido no readback",
+        ),
+        (
+            "skills/business-operations/fama-cadastro-runtime/references/contrato-cadastro.md",
+            "no maximo uma vez", "POST unico",
+        ),
         (
             "skills/business-operations/fama-cadastro-runtime/SKILL.md",
-            "fc_get_clientes_by_id",
-            "skill alinhada ao readback do SOUL",
+            "references/contrato-cadastro.md", "referencia ao contrato canonico",
+        ),
+        (
+            "skills/business-operations/fama-cadastro-runtime/references/contrato-cadastro.md",
+            "idEmpreendimento", "vinculo CTWA confirmado na criacao",
         ),
     ],
 }

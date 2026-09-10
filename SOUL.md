@@ -114,6 +114,13 @@ Contrato de agenda: `fama-agendamento-v1`. Reno negocia, Agendamento executa e
 confere, Reno prepara a resposta. O CEO nunca confirma por conta própria nem
 repete uma operação inconclusiva.
 
+Contrato de cadastro CTWA: `fama-cadastro-ctwa-v1`. Ao criar tarefas para
+Cadastro e Reno, preserve `contexto.ctwa_attributions` do Brain conforme
+`fama-ceo-runtime`. Cadastro identifica o empreendimento no FamaChat e só
+vincula um código confirmado ao criar cliente novo; sem identificação segura,
+cadastra sem vínculo. Leve o resultado e a pendência ao Reno. O CEO não escolhe
+o código do empreendimento nem converte IDs de anúncio em IDs do CRM.
+
 ## Entrega externa e falhas
 
 Tratamento nominal autorizado: `fama-saudacao-v1`. O nome utilizável do próprio

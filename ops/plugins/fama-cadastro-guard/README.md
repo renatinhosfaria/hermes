@@ -5,7 +5,7 @@ cria um processo por execução com `HERMES_PROFILE`, `HERMES_KANBAN_TASK` e
 `HERMES_KANBAN_RUN_ID`; os hooks vinculam a evidência a essa execução e sessão.
 O gateway administrativo sem tarefa mantém seu modo de manutenção.
 
-O plugin observa `kanban_show`, Brain e as três APIs FamaChat existentes. Faz
+O plugin observa `kanban_show`, Brain e as cinco APIs FamaChat autorizadas. Faz
 comparação completa do telefone, inclusive país, pontuação e nono dígito;
 exige paginação completa; impede POST com cliente Reno não arquivado; reserva
 uma tentativa de POST antes da chamada e exige readback independente com ID,
@@ -13,6 +13,31 @@ telefone, brokerId e status. O handoff substitui contagens e decisões do modelo
 por dados calculados da mesma evidência. Contagens ausentes ficam ausentes,
 em vez de virar zero. Nenhum telefone é persistido pelo plugin ou incluído
 na conclusão. As respostas originais continuam nos registros normais do Hermes.
+
+Na versão 1.1.0, observa também `fc_get_empreendimentos_buscar` e
+`fc_get_empreendimentos_by_id`. Os nomes completos dos candidatos devem ocorrer
+nos nomes confirmados do anúncio/campanha do cartão, com comparação de caixa,
+acentos e separadores. As duas pistas de cada evento precisam ser consultadas;
+uma busca pode cobrir ambas quando compartilham o termo. Ambos os nomes precisam
+ter correspondência positiva com o mesmo empreendimento; busca vazia não prova
+convergência. Todos os eventos devem convergir para um único ID. Homônimos e
+divergências não autorizam escolher um.
+
+Após leitura do candidato por ID, o POST exige `body.idEmpreendimento: [id]`
+e o readback confirma a mesma lista. O campo corresponde à coluna
+`id_empreendimento`, mas a API recebe camelCase e array de inteiros. Sem prova,
+o POST básico permanece permitido, sem esse campo. O handoff inclui
+`evidence.empreendimento_resolution` e, apenas após vínculo relido,
+`entities.empreendimento_id`; não inclui nomes do anúncio ou do empreendimento.
+
+O vínculo usa correspondência conservadora de nomes, não uma associação
+formal de ad_id a empreendimento. Apelidos, abreviações, buscas truncadas e
+nomes homônimos deixam o cadastro sem vínculo. A escolha do termo e a cópia fiel
+do contexto pelo CEO continuam dependendo das instruções; o guard não consulta
+Brain CTWA por conta própria. `ctwa_handoff_check.py` permite auditar a cópia.
+
+Esta versão incorpora a contenção 1.0.1 que estava somente na cópia instalada:
+fora de worker Kanban identificado, bloqueia Brain e todas as cinco APIs FamaChat.
 
 `transform_tool_result` só acrescenta uma anotação por página; a decisão não
 confia nessa anotação. O observador recalcula a partir do payload original,
@@ -51,6 +76,11 @@ Os próximos workers leem os arquivos e a configuração atualizados. Não é
 necessário reiniciar CEO, Brain ou o gateway Cadastro. Execuções já iniciadas
 não ganham o plugin retroativamente. Conferir `validator_version` no próximo
 handoff real. Não criar lead em produção para fazer teste.
+
+Isso descreve a ativação do plugin. A mudança de instrução CTWA do CEO requer
+renovar seus snapshots de WhatsApp e drenar/reiniciar o gateway pelo fluxo nativo,
+conforme o runbook da equipe. Preserve a configuração instalada e acrescente
+somente as duas leituras de empreendimento à allowlist CLI do Cadastro.
 
 Rollback: restaurar a versão anterior de SOUL/skill e retirar apenas
 `fama-cadastro-guard` de `plugins.enabled` pela CLI. Manter código/evidências

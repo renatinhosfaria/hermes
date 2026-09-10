@@ -1,16 +1,22 @@
 """Cadastro policy on observed tool results. No network, business DB reads or PII logs."""
 
+import hashlib
 import json
 import os
 import re
 import threading
+import unicodedata
+from pathlib import Path
 
 BRAIN = "mcp__brain__conversation_phone"
 SEARCH = "mcp__famachat__fc_get_clientes"
 POST = "mcp__famachat__fc_post_clientes"
 READ = "mcp__famachat__fc_get_clientes_by_id"
-WATCHED = {BRAIN, SEARCH, POST, READ, "kanban_show", "kanban_complete"}
-VERSION = "1.0.0"
+DEV_SEARCH = "mcp__famachat__fc_get_empreendimentos_buscar"
+DEV_READ = "mcp__famachat__fc_get_empreendimentos_by_id"
+BUSINESS = {BRAIN, SEARCH, POST, READ, DEV_SEARCH, DEV_READ}
+WATCHED = BUSINESS | {"kanban_show", "kanban_complete"}
+VERSION = "1.1.0"
 
 
 def national_phone(value):
@@ -63,12 +69,12 @@ def decode_result(raw):
     return value
 
 
-def http_body(raw, expected=200):
+def http_body(raw, expected=200, body_type=dict):
     value = decode_result(raw)
     if value.get("status") != expected or value.get("truncated") is not False:
         raise ValueError("incomplete_response")
     body = value.get("body")
-    if not isinstance(body, dict):
+    if not isinstance(body, body_type):
         raise ValueError("invalid_body")
     return body
 
@@ -98,6 +104,132 @@ def block(reason):
     return {"action": "block", "message": "Cadastro: " + reason}
 
 
+def normalized_name(value):
+    if not isinstance(value, str) or not value.strip() or len(value) > 2000:
+        raise ValueError("invalid_name")
+    folded = unicodedata.normalize("NFKD", value.casefold())
+    return " ".join(re.findall(r"[^\W_]+", "".join(c for c in folded if not unicodedata.combining(c))))
+
+
+def name_in(name, text):
+    return bool(name) and (" " + name + " ") in (" " + text + " ")
+
+
+class CtwaDevelopment:
+    """Conservative attribution: every event must resolve to the same unique ID.
+
+    Only observed, complete CRM reads establish IDs. The model chooses search
+    terms, but cannot select among homonyms or invent an ID in the POST.
+    """
+
+    def __init__(self, document):
+        self.names = []
+        self.searches = {}
+        self.verified = None
+        self.read_failed = False
+        try:
+            events = document["contexto"]["ctwa_attributions"]
+            if not isinstance(events, list) or not 0 < len(events) <= 100:
+                raise ValueError("missing_attribution")
+            seen = set()
+            for event in events:
+                if set(event) != {"event_id", "source_app", "meta_attribution"}:
+                    raise ValueError("invalid_event")
+                eid = event["event_id"]
+                if not isinstance(eid, str) or not re.fullmatch(r"waevt_[A-Za-z0-9_-]{1,128}", eid) or eid in seen:
+                    raise ValueError("invalid_event")
+                seen.add(eid)
+                meta = event["meta_attribution"]
+                if not isinstance(meta, dict) or set(meta) != {"status", "ad_id", "ad_name", "campaign_id", "campaign_name"} or meta["status"] != "confirmed":
+                    raise ValueError("unconfirmed_attribution")
+                if not all(isinstance(meta[k], str) and re.fullmatch(r"[0-9]{1,64}", meta[k]) for k in ("ad_id", "campaign_id")):
+                    raise ValueError("invalid_attribution_id")
+                self.names.append(tuple(normalized_name(meta[k]) for k in ("ad_name", "campaign_name")))
+        except (KeyError, TypeError, ValueError):
+            self.names = []
+
+    def begin_search(self, payload):
+        query = payload.get("query", {})
+        if set(payload) != {"query"} or set(query) != {"termo"}:
+            raise ValueError("use_query_termo")
+        term = normalized_name(query["termo"])
+        if not 3 <= len(term) <= 160 or not any(name_in(term, text) for pair in self.names for text in pair):
+            raise ValueError("search_not_in_attribution")
+        self.searches[term] = None
+        self.verified, self.read_failed = None, False
+
+    def observe_search(self, payload, raw):
+        rows = http_body(raw, body_type=list)
+        if len(rows) > 1000:
+            raise ValueError("too_many_candidates")
+        candidates = {}
+        term = normalized_name(payload["query"]["termo"])
+        for row in rows:
+            if not isinstance(row, dict) or not valid_id(row.get("id")) or row["id"] in candidates:
+                raise ValueError("invalid_development")
+            name = normalized_name(row.get("nomeEmpreendimento"))
+            # The endpoint is a name substring search. A result outside that
+            # contract is not evidence that this search was applied.
+            if len(name) < 3 or term not in name:
+                raise ValueError("invalid_development_name")
+            candidates[row["id"]] = name
+        self.searches[term] = candidates
+
+    def candidate(self):
+        if not self.names:
+            return None, "no_confirmed_attribution"
+        if not self.searches:
+            return None, "not_searched"
+        if any(rows is None for rows in self.searches.values()):
+            return None, "lookup_unavailable"
+        selected = set()
+        for texts in self.names:
+            matches = set()
+            for text in texts:
+                relevant = False
+                text_matches = set()
+                for term, rows in self.searches.items():
+                    if not name_in(term, text):
+                        continue
+                    relevant = True
+                    for did, name in rows.items():
+                        if name_in(name, text):
+                            text_matches.add((did, name))
+                if not relevant:
+                    return None, "not_searched"
+                if not text_matches:
+                    return None, "no_match"
+                matches.update(text_matches)
+            if len(matches) > 1:
+                return None, "ambiguous"
+            if not matches:
+                return None, "no_match"
+            selected.update(matches)
+        if len(selected) != 1:
+            return None, "ambiguous"
+        return next(iter(selected)), "unverified"
+
+    def begin_read(self, payload):
+        candidate, _reason = self.candidate()
+        if not candidate or set(payload) != {"id"} or isinstance(payload["id"], bool) or str(payload["id"]) != str(candidate[0]):
+            raise ValueError("development_read_requires_unique_candidate")
+        self.verified, self.read_failed = None, True
+
+    def observe_read(self, raw):
+        row = http_body(raw)
+        candidate, _reason = self.candidate()
+        if not candidate or not valid_id(row.get("id")) or (row["id"], normalized_name(row.get("nomeEmpreendimento"))) != candidate:
+            raise ValueError("development_read_mismatch")
+        self.verified, self.read_failed = candidate[0], False
+
+    def resolution(self):
+        if self.verified is not None:
+            return self.verified, "verified"
+        if self.read_failed:
+            return None, "lookup_unavailable"
+        return None, self.candidate()[1]
+
+
 class CadastroGuard:
     """A fresh instance per worker. Hooks serialize mutations and bind one real session."""
 
@@ -106,6 +238,7 @@ class CadastroGuard:
         self.lock = threading.RLock()
         self.session_id = None
         self.task_seen = False
+        self.task_body_hash = None
         self.synthetic = False
         self.fixture = None
         self.phone = None
@@ -118,6 +251,8 @@ class CadastroGuard:
         self.readback_confirmed = False
         self.reads = 0
         self.error = None
+        self.development = CtwaDevelopment({})
+        self.requested_development = None
 
     @staticmethod
     def unwrap(tool_name, args):
@@ -160,13 +295,24 @@ class CadastroGuard:
                     return block("leia_kanban_show_do_cartao_atual_primeiro")
                 if name == "kanban_show":
                     self.task_seen = False
-                if name in {BRAIN, SEARCH, POST, READ} and self.synthetic:
+                if name in BUSINESS and self.synthetic:
                     return block("modo_sintetico_nao_chama_MCP")
+                if name in {DEV_SEARCH, DEV_READ}:
+                    _counts, reno = self.evidence()
+                    if reno or self.post_attempted:
+                        return block("empreendimento_somente_para_novo_cliente_antes_do_POST")
+                    if name == DEV_SEARCH:
+                        self.development.begin_search(payload)
+                    else:
+                        self.development.begin_read(payload)
                 if name == BRAIN:
                     if payload or self.post_attempted:
                         return block("conversation_phone_exige_argumentos_vazios_antes_do_POST")
                     self.phone = None
                     self.pages, self.search_complete = {}, False
+                    self.development.searches = {}
+                    self.development.verified = None
+                    self.development.read_failed = False
                 if name == SEARCH:
                     if not self.phone or self.post_attempted:
                         return block("resolva_o_telefone_no_Brain_antes_da_busca")
@@ -188,8 +334,13 @@ class CadastroGuard:
                     if reno:
                         return block("telefone_ja_possui_cliente_Reno_nao_arquivado")
                     body = payload.get("body", {})
-                    if set(body) != {"phone", "fullName", "brokerId", "source"} or body["phone"] != self.phone or type(body["brokerId"]) is not int or body["brokerId"] != 35 or body["source"] != "Facebook Ads" or not isinstance(body["fullName"], str) or not body["fullName"].strip():
+                    did, _resolution = self.development.resolution()
+                    fields = {"phone", "fullName", "brokerId", "source"} | ({"idEmpreendimento"} if did is not None else set())
+                    if set(payload) != {"body"} or set(body) != fields or body["phone"] != self.phone or type(body["brokerId"]) is not int or body["brokerId"] != 35 or body["source"] != "Facebook Ads" or not isinstance(body["fullName"], str) or not body["fullName"].strip():
                         return block("POST_exige_telefone_exato_do_Brain_nome_broker35_source_sem_status")
+                    if did is not None and (body["idEmpreendimento"] != [did] or not all(valid_id(v) for v in body["idEmpreendimento"])):
+                        return block("POST_exige_array_com_empreendimento_verificado")
+                    self.requested_development = did
                     # Reserve before dispatch: timeout/error must never authorize another POST.
                     self.post_attempted = True
                 if name == READ:
@@ -238,6 +389,10 @@ class CadastroGuard:
                     if type(mode) is not bool or (not isinstance(document, dict) and "test_mode" in body):
                         raise ValueError("invalid_test_mode")
                     self.synthetic = mode
+                    body_hash = hashlib.sha256(body.encode()).hexdigest()
+                    if not self.post_attempted and body_hash != self.task_body_hash:
+                        self.development = CtwaDevelopment(document)
+                    self.task_body_hash = body_hash
                     if self.synthetic:
                         self.fixture = document.get("fixture")
                         if isinstance(self.fixture, dict) and "cadastro" in self.fixture:
@@ -264,9 +419,18 @@ class CadastroGuard:
                     if not valid_id(row.get("id")):
                         raise ValueError("invalid_created_id")
                     self.created_id = row["id"]
+                elif name == DEV_SEARCH:
+                    self.development.observe_search(payload, result)
+                elif name == DEV_READ:
+                    self.development.observe_read(result)
                 elif name == READ:
                     row = http_body(result)
                     self.readback_confirmed = (type(row.get("id")) is int and row["id"] == self.created_id and type(row.get("brokerId")) is int and row["brokerId"] == 35 and row.get("status") == "Sem Atendimento" and phones_match(self.phone, row.get("phone")))
+                    if self.requested_development is not None:
+                        ids = row.get("idEmpreendimento")
+                        self.readback_confirmed = self.readback_confirmed and ids == [self.requested_development] and all(valid_id(v) for v in ids)
+                    elif row.get("idEmpreendimento") not in (None, []):
+                        self.readback_confirmed = False
                 self.error = None
         except Exception:
             # Core observer hooks fail open. Keep dependent operations closed in our own state.
@@ -304,7 +468,13 @@ class CadastroGuard:
         if decision == "JA_E_CLIENTE":
             summary += " status=" + reno[0]["status"]
         summary += "\n" + (f"Candidatos: {counts['candidates_returned']}; telefones correspondentes: {counts['normalized_matches']}; clientes Reno nao arquivados: {counts['active_broker35_matches']}." if counts else "Consulta completa ainda nao comprovada.")
-        return {"summary": summary, "metadata": {"status": "completed", "decision": decision, "entities": {"client_id": entity} if entity else {}, "evidence": {**counts, "response_complete": bool(counts), "post_attempted": self.post_attempted, "readback_confirmed": self.readback_confirmed, "readback_fields": ["id", "phone", "brokerId", "status"] if self.readback_confirmed else [], "validator_version": VERSION}, "reason": reason, "response_ready": None, "requested_next_action": "return_to_ceo"}}
+        entities = {"client_id": entity} if entity else {}
+        if self.readback_confirmed and self.requested_development is not None:
+            entities["empreendimento_id"] = self.requested_development
+        readback_fields = ["id", "phone", "brokerId", "status"] if self.readback_confirmed else []
+        if self.readback_confirmed and self.requested_development is not None:
+            readback_fields.append("idEmpreendimento")
+        return {"summary": summary, "metadata": {"status": "completed", "decision": decision, "entities": entities, "evidence": {**counts, "response_complete": bool(counts), "post_attempted": self.post_attempted, "readback_confirmed": self.readback_confirmed, "readback_fields": readback_fields, "empreendimento_resolution": self.development.resolution()[1] if not reno else "existing_client", "validator_version": VERSION}, "reason": reason, "response_ready": None, "requested_next_action": "return_to_ceo"}}
 
     def transform(self, *, tool_name, args, result, **_):
         """Advisory only; enforcement and handoff never depend on the model reading this."""
@@ -320,10 +490,25 @@ class CadastroGuard:
             return None
 
 
+def block_business_outside_worker(*, tool_name, args, **_):
+    """Keep administrative tools available without unguarded CRM access."""
+    try:
+        name, _payload = CadastroGuard.unwrap(tool_name, args)
+    except (KeyError, TypeError):
+        return block("chamada_indireta_invalida")
+    if name in BUSINESS:
+        return block("operacao_de_negocio_exige_worker_Kanban_com_tarefa_e_execucao")
+    return None
+
+
 def register(ctx):
-    # Administrative gateway sessions have no worker task and retain their maintenance tools.
+    # Preserve the installed 1.0.1 containment for native profile invocations.
+    profile = os.environ.get("HERMES_PROFILE") or Path(os.environ.get("HERMES_HOME", "")).name
+    if profile != "cadastro":
+        return
     task, run = os.environ.get("HERMES_KANBAN_TASK"), os.environ.get("HERMES_KANBAN_RUN_ID")
-    if os.environ.get("HERMES_PROFILE") != "cadastro" or not task or not run:
+    if not task or not run:
+        ctx.register_hook("pre_tool_call", block_business_outside_worker)
         return
     guard = CadastroGuard(task, run)
     ctx.register_hook("pre_tool_call", guard.before)

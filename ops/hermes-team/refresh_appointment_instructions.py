@@ -28,7 +28,8 @@ def candidates(path: Path, policy_marker: str = POLICY_MARKER) -> list[str]:
             WHERE s.source IN ('whatsapp','telegram')
               AND length(coalesce(p.prompt,s.system_prompt,'')) > 0
               AND instr(coalesce(p.prompt,s.system_prompt,''),?) = 0
-        ''', (policy_marker,))]
+              AND (? != 'fama-cadastro-ctwa-v1' OR s.source = 'whatsapp')
+        ''', (policy_marker, policy_marker))]
 
 
 def refresh(path: Path, policy_marker: str = POLICY_MARKER) -> int:
@@ -52,9 +53,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('profile', choices=['default', 'reno'])
     parser.add_argument('--apply', action='store_true')
-    parser.add_argument('--policy-marker', choices=[POLICY_MARKER, 'fama-saudacao-v1'],
+    parser.add_argument('--policy-marker', choices=[POLICY_MARKER, 'fama-saudacao-v1', 'fama-cadastro-ctwa-v1'],
                         default=POLICY_MARKER)
     args = parser.parse_args()
+    if args.policy_marker == 'fama-cadastro-ctwa-v1' and args.profile != 'default':
+        parser.error('cadastro CTWA snapshot refresh is scoped to the CEO')
     home = ROOT if args.profile == 'default' else ROOT / 'profiles' / args.profile
     path = home / 'state.db'
     if not args.apply:

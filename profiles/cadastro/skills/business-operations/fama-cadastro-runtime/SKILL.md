@@ -3,7 +3,7 @@ name: fama-cadastro-runtime
 description: "Use when Cadastro processes a post-Porteiro Kanban task."
 license: MIT
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   author: Fama Negócios Imobiliários
   platforms: [linux]
   hermes:
@@ -45,11 +45,17 @@ Execute em sequência, aguardando cada resultado:
 2. Consulte candidatos no FamaChat e complete a paginação segundo o contrato.
 3. Aplique o critério sobre telefones completos: um cliente elegível significa
    `JA_E_CLIENTE`; mais de um significa `INCONCLUSIVO`, sem criar.
-4. Ausência comprovada exige criar na mesma execução e confirmar por leitura
+4. Ausência comprovada: leia `contexto.ctwa_attributions` e siga a identificação
+   do empreendimento no contrato. Atribuição confirmada permite buscar por nome
+   e ler o candidato único por ID. Sem identificação segura, crie sem vínculo.
+5. Ausência comprovada exige criar na mesma execução e confirmar por leitura
    independente. Limite: um POST, inclusive após timeout; até três releituras.
-5. Só reporte `LEAD_NOVO_CADASTRADO` depois da confirmação completa.
+6. Só reporte `LEAD_NOVO_CADASTRADO` depois da confirmação completa, incluindo
+   `idEmpreendimento` quando enviado no POST. A pendência de identificação de
+   empreendimento, antes do POST, não impede criar sem vínculo.
 
-Capability ausente, MCP indisponível ou telefone não resolvido:
+Nas capacidades obrigatórias de identidade/cliente, capability ausente, MCP
+indisponível ou telefone não resolvido:
 `kanban_block(kind="capability")`. Consulta incompleta, resposta inválida,
 ambiguidade entre clientes ou criação/readback não comprovado: `INCONCLUSIVO`.
 Se a indisponibilidade ocorrer após o POST, preserve o ID conhecido no resultado
@@ -68,6 +74,6 @@ calculada, com `status`, `decision`, `entities`, `evidence`, `reason`,
 `validator_version` na evidência. Nunca estime as contagens.
 
 O guard aplica o contrato nos workers identificados; fora deles bloqueia as
-quatro ferramentas comerciais. Um bloqueio significa operação não executada.
+ferramentas Brain/FamaChat do fluxo. Um bloqueio significa operação não executada.
 Preserve o limite de um POST e não tente contornar a ferramenta. Sem guard
 carregado ou sem capacidade aprovada, bloqueie a execução comercial.

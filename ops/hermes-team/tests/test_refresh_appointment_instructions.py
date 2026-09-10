@@ -12,6 +12,33 @@ from hermes_state import SessionDB
 
 
 class RefreshTests(unittest.TestCase):
+    def test_cadastro_ctwa_refresh_only_changes_ceo_whatsapp_snapshots(self):
+        script = Path(__file__).resolve().parents[1] / 'refresh_appointment_instructions.py'
+        spec = importlib.util.spec_from_file_location('ctwa_refresh', script)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        marker = 'fama-cadastro-ctwa-v1'
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'state.db'
+            db = SessionDB(path)
+            try:
+                for sid, source, prompt in [('old', 'whatsapp', 'old'),
+                                            ('admin', 'telegram', 'old'),
+                                            ('worker', 'cli', 'old'),
+                                            ('updated', 'whatsapp', marker)]:
+                    db.create_session(sid, source)
+                    db.update_system_prompt(sid, prompt)
+            finally:
+                db.close()
+            self.assertEqual(module.candidates(path, marker), ['old'])
+            self.assertEqual(module.refresh(path, marker), 1)
+            db = SessionDB(path, read_only=True)
+            try:
+                self.assertEqual(db.get_session('admin')['system_prompt'], 'old')
+                self.assertEqual(db.get_session('worker')['system_prompt'], 'old')
+            finally:
+                db.close()
+
     def test_greeting_refresh_selects_only_stale_gateway_snapshots(self):
         script = Path(__file__).resolve().parents[1] / 'refresh_appointment_instructions.py'
         spec = importlib.util.spec_from_file_location('greeting_refresh', script)
