@@ -139,6 +139,24 @@ if no supported repair interface exists within authorized write boundaries,
 report that capability/scope blocker. Passing existing authorization tests is
 not evidence of a repaired cross-platform flow or successful live resumption.
 
+For an explicitly authorized resumption implementation, test that grants are
+bound to the first new canonical Run, not simply any Run above a watermark.
+Include a failed first Run that never reads history, concurrent repeated reads,
+expiry/revocation, and revalidation after changes to the parent, edge, control
+session and contact. Match the installed timestamp precision: Hermes claim times
+can be integer seconds, so a subsecond grant timestamp must not reject a valid
+same-second claim; use the canonical Run ordering as the tie-breaker.
+
+Keep local-administrator attestation separate from gateway authentication. An
+audit UUID or an environment flag is not identity proof; root-only CLI guards
+are not a sandbox against a root agent. Never expose an administrative grant
+issuer as a model tool as a shortcut to control-channel authentication.
+
+When the installed compatibility fixture inherits delegated-process guards, it
+may fail creating a temporary Kanban DB because native connect opens it read-only.
+Report that execution-context limitation separately from focused application
+tests; do not remove delegation markers or modify upstream to force a green test.
+
 ## Logs
 
 Count and classify sanitized findings instead of quoting raw logs. Search for:
@@ -172,10 +190,10 @@ Treat these as effective runtime risks even when config/tests pass.
 
 For a narrowly authorized instruction fix:
 
-1. Require a clean Git baseline. If unrelated paths are dirty, stop rather than
-   stashing, resetting, or folding them into the fix. Audit pre-existing changes
-   separately and commit them only when they are reusable, non-sensitive, and
-   independently validated.
+1. Capture a Git baseline and preserve unrelated dirty paths without stashing,
+   resetting, or folding them into the fix. Stop only when overlapping changes
+   cannot be separated safely. Audit pre-existing changes separately; thematic
+   similarity alone is not permission to include them in the task commit.
 2. Search every operational layer of the target profile before editing: the
    always-loaded identity, project context, and relevant runtime skills. Exclude
    backups and historical design documents from runtime-conflict conclusions.
