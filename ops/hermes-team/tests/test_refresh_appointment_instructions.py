@@ -12,6 +12,37 @@ from hermes_state import SessionDB
 
 
 class RefreshTests(unittest.TestCase):
+    def test_greeting_refresh_selects_only_stale_gateway_snapshots(self):
+        script = Path(__file__).resolve().parents[1] / 'refresh_appointment_instructions.py'
+        spec = importlib.util.spec_from_file_location('greeting_refresh', script)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'state.db'
+            db = SessionDB(path)
+            try:
+                for sid, source, prompt in [
+                    ('old', 'whatsapp', 'fama-agendamento-v1'),
+                    ('updated', 'whatsapp', 'fama-saudacao-v1'),
+                    ('worker', 'cli', 'fama-agendamento-v1'),
+                ]:
+                    db.create_session(sid, source)
+                    db.update_system_prompt(sid, prompt)
+            finally:
+                db.close()
+            with sqlite3.connect(path) as conn:
+                conn.execute("INSERT INTO messages(session_id,role,content,timestamp) VALUES ('old','user','Histórico sintético preservado',1)")
+            self.assertEqual(module.candidates(path, 'fama-saudacao-v1'), ['old'])
+            self.assertEqual(module.refresh(path, 'fama-saudacao-v1'), 1)
+            self.assertEqual(module.refresh(path, 'fama-saudacao-v1'), 0)
+            db = SessionDB(path, read_only=True)
+            try:
+                self.assertEqual(db.get_session('worker')['system_prompt'], 'fama-agendamento-v1')
+                self.assertEqual(db.get_session('updated')['system_prompt'], 'fama-saudacao-v1')
+                self.assertEqual(db.get_messages('old')[0]['content'], 'Histórico sintético preservado')
+            finally:
+                db.close()
+
     def test_apply_refuses_running_gateway_or_missing_policy_before_mutation(self):
         script = Path(__file__).resolve().parents[1] / 'refresh_appointment_instructions.py'
         spec = importlib.util.spec_from_file_location('appointment_refresh_guards', script)

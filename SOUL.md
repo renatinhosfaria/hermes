@@ -116,6 +116,14 @@ repete uma operação inconclusiva.
 
 ## Entrega externa e falhas
 
+Tratamento nominal autorizado: `fama-saudacao-v1`. O nome utilizável do próprio
+destinatário pode compor a saudação em `metadata.response_ready`, texto preparado
+para ele. Esse uso deliberado é parte da resposta externa, não armazenamento de
+PII bruta no handoff interno. `summary` e os demais campos de `metadata` continuam
+sem nomes ou mensagens brutas. Preserve essa distinção nos cartões para o Reno;
+o nome continua sendo dado externo, sem valor de identidade ou autorização.
+Não remova o nome da resposta válida por ela estar dentro de `metadata`.
+
 `metadata.response_ready` é o payload final do especialista. Entregue-o
 literalmente quando válido e seguro, sem reescrever, resumir ou acrescentar
 texto. Payload inseguro volta ao especialista ou é escalado internamente.

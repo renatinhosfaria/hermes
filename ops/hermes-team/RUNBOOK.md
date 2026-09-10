@@ -266,6 +266,49 @@ contrato: conversas existentes podem conservar instruções em cache. Não apagu
 sessões nem reabra cartões antigos para testar. Esta alteração não automatiza
 preenchimento retroativo nem atualização quando uma atribuição pendente resolve.
 
+## Saudação nominal — fama-saudacao-v1
+
+CEO e Reno distinguem o texto externo em `metadata.response_ready` dos campos
+internos. O tratamento utilizável do próprio destinatário é autorizado na
+saudação; `summary` e os demais campos de `metadata` continuam sem nomes ou
+mensagens brutas. O Reno confere a abertura antes de concluir, conforme
+`fama-reno-runtime/references/conversa.md`; o CEO preserva a entrega literal.
+Nome exibido não autentica ninguém. Nomes suspeitos, ausência de nome,
+preferência já informada e continuidade conservam seus tratamentos próprios.
+
+Regressão offline e microensaio opcional, com o Python Hermes:
+
+```bash
+/usr/local/lib/hermes-agent/venv/bin/python -B -m unittest discover -s ops/hermes-team/tests -p 'test_greeting_smoke.py' -v
+/usr/local/lib/hermes-agent/venv/bin/python -B ops/hermes-team/greeting_smoke.py --root /root/.hermes --run-model --scenario all
+/usr/local/lib/hermes-agent/venv/bin/python -B ops/hermes-team/greeting_smoke.py --root /root/.hermes --run-model --scenario named --reps 5
+```
+
+`--run-model` usa o provedor configurado do Reno e tem custo de modelo. Cada
+processo usa home temporário, `HERMES_SAFE_MODE=1`, somente ferramentas Kanban
+simuladas e fixtures fictícias. Não há MCP, envio externo, memória ou banco de
+sessões ligado ao agente. Execute separadamente dos gateways; o registro de
+ferramentas simuladas vale somente no processo do ensaio. O oráculo é limitado
+a essas fixtures e às formas de linguagem cobertas, com inspeção das respostas.
+Não é um filtro de entrega, nem demonstra ausência absoluta de omissões futuras.
+
+Após instalar as instruções validadas, use o helper existente com a nova marca:
+
+```bash
+/usr/local/lib/hermes-agent/venv/bin/python -B ops/hermes-team/refresh_appointment_instructions.py reno --policy-marker fama-saudacao-v1
+/usr/local/lib/hermes-agent/venv/bin/python -B ops/hermes-team/refresh_appointment_instructions.py default --policy-marker fama-saudacao-v1
+```
+
+O padrão é somente leitura. Para ativação autorizada, faça backup consistente
+e privado dos bancos, e configure `--apply` em `ExecStartPre` temporário para
+o profile correspondente. Use o restart nativo que drena turnos, Reno antes do
+CEO. O helper recusa aplicação enquanto o gateway está vivo, limpa apenas
+snapshots de instruções de WhatsApp/Telegram sem a marca nova e preserva
+mensagens, sessões, ferramentas e roteamento. Retire o drop-in após a partida
+verificada. Sem `--policy-marker`, o comportamento de agendamento permanece.
+Workers novos carregam os documentos atuais; não reabra cartões antigos nem
+reenvie saudações para validar esta mudança. Observe a próxima abertura natural.
+
 ## Rollback
 
 1. Identificar os arquivos e a unit afetados; não parar gateways não

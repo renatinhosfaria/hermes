@@ -94,6 +94,10 @@ a notificação recebida pelo CEO é cortada em 200 caracteres.
 
 O texto para o cliente fica somente em `metadata.response_ready`, sem rótulo,
 sem divisão e sem repetição na primeira linha. Produza uma única próxima resposta.
+Esse campo contém a saudação nominal autorizada por `fama-saudacao-v1` no SOUL;
+`summary` e os demais campos de `metadata` ficam sem nomes ou mensagens brutas.
+Antes de `kanban_complete`, confira o texto pela seção "Conferência da abertura"
+de `references/conversa.md` e corrija a própria resposta ainda nesta execução.
 O metadata contém `status`, `decision`, `entities`, `response_ready`, `evidence`,
 `reason` e `requested_next_action: return_to_ceo`. Use evidência resumida, sem
 conversa bruta. O CEO valida e entrega o texto como veio; não improvisa texto ausente.
