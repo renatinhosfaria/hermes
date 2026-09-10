@@ -57,10 +57,12 @@ class-level workflow for learning reviews and lifecycle validation.
    date, incident, ticket, or error string.
 5. Use `memory` for the user fact and `skill_manage` for the procedure. Batch
    related writes atomically where the tool supports it. When the user explicitly
-   requests active learning, make one targeted, read-before-write attempt against
-   the closest class-level skill; if the target is protected, do not create a
-   duplicate skill merely to satisfy the request, and report the boundary. Do not
-   write when review finds no durable, verified learning.
+   requests active learning or sets an expectation that most reviews yield a
+   skill update, make one targeted, read-before-write patch to the closest
+   editable class-level skill when this work exposes a durable, verified
+   procedure; strengthen an existing rule instead of adding a session note. If
+   no safe generalization exists or the target is protected, report that boundary
+   rather than manufacturing a lesson or creating a duplicate.
 6. After a skill write, inspect the tool result and reload the resulting skill
    with `skill_view`. For lifecycle claims, separately verify the persisted
    record in an independent process; never infer persistence from configuration

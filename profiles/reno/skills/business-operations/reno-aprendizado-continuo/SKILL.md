@@ -22,7 +22,7 @@ conclua a avaliação sem escrever.
 5. Escreva regras acionáveis acompanhadas do motivo: pré-requisitos, sequência comprovada, erro a evitar e critério de verificação. Não narre o incidente nem transforme uma tentativa em comando recomendado.
 6. Para memória, use a ferramenta `memory`, com entradas compactas e sem duplicar instruções de contexto. Consolide antes de ultrapassar a capacidade. A ferramenta não tem ação de leitura: o contexto inicial contém o snapshot e as respostas de escrita mostram o estado atual.
 7. Confira o resultado das ferramentas e releia a skill ou referência gravada com `skill_view`; para memória, confira o estado retornado pela escrita. Não declare aprendizado salvo quando estiver apenas proposto, pendente de aprovação ou bloqueado. Respeite qualquer aprovação exigida pelo runtime.
-8. Em manutenção, relate brevemente o aprendizado efetivamente salvo quando útil. Em atendimento, mantenha a entrega comercial normal e não mencione memória ou skills ao cliente.
+8. Em manutenção, relate brevemente o aprendizado efetivamente salvo quando útil. Em atendimento, mantenha a entrega comercial normal e não mencione memória ou skills ao cliente. Não inclua a avaliação de aprendizagem em `metadata.evidence` do handoff comercial: esse campo sustenta decisões do atendimento, e um registro de revisão sem nova lição só acrescenta ruído para o CEO.
 
 ## Armadilhas
 
