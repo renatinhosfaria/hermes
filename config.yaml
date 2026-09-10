@@ -127,6 +127,7 @@ plugins:
     - fama-whatsapp-human-handover
     - fama-kanban-channel-policy
     - fama-learning-lifecycle
+    - fama-session-lifecycle
 security:
   protected_instruction_files: false
   protected_instruction_extra_patterns:
@@ -223,3 +224,7 @@ platforms:
       chat_id: 125301493366925@lid
       name: Renato Faria
       user_id: 125301493366925@lid
+
+# Preserve history when idle WhatsApp sessions are closed by the local plugin.
+sessions:
+  auto_prune: false

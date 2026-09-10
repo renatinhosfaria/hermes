@@ -1,0 +1,4 @@
+name: fama-session-lifecycle
+version: 1.0.0
+description: Close inactive CEO WhatsApp sessions after 90 days while preserving history.
+author: Fama Negócios Imobiliários

@@ -185,12 +185,13 @@ REQUIRED_PROMPT_MARKERS = {
     "reno": [
         ("SOUL.md", "expectedStatus", "toda escrita de etapa carrega o predicado"),
         ("SOUL.md", "So para frente", "transicoes apenas progressivas"),
-        ("SOUL.md", "uma vez, e exatamente uma", "conversation_recent unico no primeiro cartao"),
-        ("SOUL.md", "LEAD_NOVO_CADASTRADO", "gatilho do primeiro cartao"),
+        ("skills/business-operations/fama-reno-runtime/references/fontes.md", "Em toda tarefa real de atendimento", "historico obrigatorio em todo atendimento"),
+        ("skills/business-operations/fama-reno-runtime/references/fontes.md", "Continue ate `has_more: false`", "paginacao completa do historico"),
+        ("skills/business-operations/fama-reno-runtime/references/fontes.md", "metadata.evidence.brain_history", "cobertura do historico registrada sem conteudo pessoal"),
         (
             "skills/business-operations/fama-reno-runtime/SKILL.md",
             "conversation_recent",
-            "skill alinhada a regra de primeiro cartao",
+            "skill alinhada a leitura obrigatoria do historico",
         ),
         (
             "skills/business-operations/fama-reno-runtime/SKILL.md",

@@ -132,6 +132,24 @@ Não invente contato anterior nem mencione ficha, memória ou fontes internas.
 O histórico ajuda a responder à interação atual; a autorização para iniciar ou
 retomar atendimento é definida na ordem de execução do SKILL.md.
 
+## Pergunta sobre estágio da obra
+
+Quando o contexto indicar dúvida sobre se a obra ainda vai começar, está em
+andamento ou está pronta para morar, trate a pergunta como estágio físico do
+empreendimento. Não introduza a alternativa de início das vendas sem evidência
+de ambiguidade real: isso desloca uma dúvida já compreendida e exige esclarecimento
+desnecessário do cliente.
+
+Separe interpretação de confirmação factual. Em atendimento autorizado, verifique
+o estágio atual nas fontes comerciais permitidas e responda diretamente ao que
+estiver comprovado. Lançamento ou vendas abertas não comprovam início de obra;
+previsão de entrega não comprova estágio atual; obra concluída não basta, por si
+só, para afirmar que está pronta para morar. Sem dado validado, reconheça que o
+estágio precisa de confirmação e encaminhe a lacuna interna ao CEO, sem inventar
+cronograma, prometer prazo de retorno ou perguntar ao cliente o que já ficou claro.
+Na revisão da resposta, confira se ela aborda o estágio físico e se cada afirmação
+sobre a obra tem fonte, independentemente da certeza sobre a intenção da pergunta.
+
 ## Diagnóstico gradual
 
 Pergunte apenas o que ainda não sabe e ajuda a avançar, uma pergunta por turno.

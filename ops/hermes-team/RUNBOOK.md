@@ -477,3 +477,46 @@ aguarda turnos em andamento. Preserve mensagens, sessões e roteamento.
 ## Correção das divergências — 09/09/2026
 
 Memória e skills são esperadas em todos os canais dos especialistas. O CLI mantém suas capacidades comerciais; Cadastro e FamaAgent usam `no_mcp` no Telegram administrativo. As 10 divergências anteriores foram resolvidas e o verificador `full` passou. Evidências em `TEAM-DIVERGENCES-RESOLVED.md`.
+
+## Histórico obrigatório do Reno — 10/09/2026
+
+Por solicitação do operador, `fama-reno-runtime` v1.4.0 substitui a consulta
+única no primeiro cartão por leitura paginada em toda tarefa real de atendimento,
+antes de preparar resposta, inclusive continuações e respostas de agenda.
+O procedimento canônico, os limites e o tratamento de falha estão em
+`profiles/reno/skills/business-operations/fama-reno-runtime/references/fontes.md`.
+O resumo do CEO e o CRM continuam úteis, mas não dispensam a consulta atual.
+Testes sintéticos continuam sem chamadas ao Brain ou ao CRM.
+
+O Reno registra somente cobertura em `metadata.evidence.brain_history`, com
+`status`, `pages` e `messages`; sem transcrição, telefone, nome ou cursor.
+Percorrer todas as páginas não remove truncamento aplicado pelo Brain. Os
+estados `partial` e `unavailable` não podem ser apresentados como leitura completa.
+Essa regra é de instrução do agente; não foi adicionado bloqueio mecânico à
+ferramenta de conclusão nem alterado o serviço Brain.
+
+Neste ajuste somente os arquivos de procedimento foram alterados. O plugin
+`fama-reno-autoload` instalado relê esses arquivos no hook `pre_llm_call`,
+incluindo conversas existentes; não é preciso limpar sessões nem reiniciar
+o gateway para esta edição. Não alteramos SOUL, configuração ou código do plugin.
+O carregamento do conteúdo atual foi verificado localmente; isso não equivale
+a confirmar obediência em um atendimento real posterior. Na revisão operacional,
+confira chamadas `conversation_recent`, continuidade dos cursores e evidência
+de cobertura, sem gerar mensagens ou clientes de teste em produção.
+
+
+## Encerramento de sessões WhatsApp por inatividade — 10/09/2026
+
+O CEO carrega `fama-session-lifecycle`, com fonte e instruções em
+[`ops/session-lifecycle/README.md`](../session-lifecycle/README.md).
+A verificação diária encerra sessões elegíveis após 90 dias sem atividade
+externa; trabalho pendente e pausas impedem aplicação. Não envia mensagens.
+O encerramento usa a API nativa `promote_to_session_reset(..., reason="idle")`
+e preserva o histórico. `sessions.auto_prune: false` no CEO impede que a poda
+nativa apague essas sessões depois. Outros profiles mantêm sua retenção.
+
+O plugin usa guardas privados auditados do gateway, protegidos por hashes.
+Atualização do Hermes exige revisão de compatibilidade e testes antes de
+atualizar esse manifesto; não recapture hashes para ocultar uma divergência.
+Consultar `/root/.hermes/session-lifecycle/status.json` para confirmar ciclos
+ou bloqueios. O Brain e o core upstream não foram modificados para esta função.

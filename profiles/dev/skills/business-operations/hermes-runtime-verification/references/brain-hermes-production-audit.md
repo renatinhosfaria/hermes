@@ -85,8 +85,11 @@ that directory and whether the configured backup mode protects it.
   sanitized `systemctl status`, `ss`, and effective unit inspection.
 - Confirm the listener is loopback-only, not merely that config says so.
 - Sanitize unit content before displaying any Environment values.
-- Open SQLite with `file:<path>?mode=ro`, set `PRAGMA query_only=ON`, and use only
-  schema/integrity/aggregate queries.
+- Open SQLite with `file:<path>?mode=ro` and set `PRAGMA query_only=ON`.
+  Prefer schema/integrity/aggregate queries. For an explicitly scoped binding
+  audit, select only the required metadata columns, compare sensitive fields
+  in memory and emit booleans plus permitted technical identifiers; avoid
+  `SELECT *` on session tables because they can contain unrelated private fields.
 - Inspect DB, WAL, and SHM existence and traversal permissions without exposing
   rows.
 - Trace application enforcement (`mode=ro`, query-only, authorizer) separately
@@ -106,6 +109,25 @@ running a test suite, inspect it for production writes. TemporaryDirectory-based
 fixture writes that clean themselves may be acceptable when the user's read-only
 constraint concerns deployed state, but state that boundary explicitly and
 re-check Git plus recent `__pycache__` creation afterward.
+
+Before using automatic project verification, run `hermes verify --help` and
+`hermes verify --detect-only --json <project-root>`, then compare the detected
+recipe with the repository CI, package metadata and entrypoint. Dependency-based
+detection is a hypothesis, not the project's test/start contract. If the recipe
+conflicts with those sources, use the canonical commands directly; do not run a
+known-wrong phase merely to collect a predictable failure, install an unrelated
+test runner, or start the guessed application. Select only authorized phases;
+bootstrap, application startup and readiness probes can have production effects.
+
+Run Python discovery from the repository root with its virtualenv and the import
+paths required by the tests. For Brain's unittest layout, the validated commands
+are `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:tests .venv/bin/python -B -m unittest
+test_resumption test_brain` for the focused suites and
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.:src .venv/bin/python -B -m unittest discover
+-s tests` for discovery. Re-check current CI before reusing suite names. Including
+the repository root resolves tests that import `scripts.*`; it does not remove
+native runtime authorization guards. Report the canonical command's actual
+result separately from automatic recipe detection and from live activation.
 
 ## Read-only live MCP availability
 
@@ -151,6 +173,40 @@ Keep local-administrator attestation separate from gateway authentication. An
 audit UUID or an environment flag is not identity proof; root-only CLI guards
 are not a sandbox against a root agent. Never expose an administrative grant
 issuer as a model tool as a shortcut to control-channel authentication.
+
+### Verify an operator-activated resumption without consuming its Run
+
+1. Separate the operator's activation report from fresh observations. Read
+   `systemctl show brain.service -p ExecStart -p WorkingDirectory -p MainPID
+   -p ExecMainStartTimestamp -p ActiveState -p SubState`, then check the local
+   `/health` endpoint. For editable Python installs, inspect the launcher and
+   the matching site-packages `.pth`, source Git state and source modification
+   times. Report this as loading configuration plus chronology, not proof of
+   the daemon's in-memory modules; do not treat `active` alone as new-code proof.
+2. Read the exact persisted grant through the permitted read-only interface.
+   When direct metadata inspection is explicitly allowed, compare the complete
+   saved binding with canonical Task, parent, edge, principal and session fields
+   in memory. Verify matching destinations as a constraint, not identity proof.
+   Check expiry, revocation, bound Run and whether any Run exists after the
+   issuance watermark. Never call the claim/resolve operation as a preflight:
+   it consumes the first eligible Run and changes the case being verified.
+3. Test a custom diagnostic with isolated fixtures before relying on its output:
+   cover a valid grant, expired grant, changed binding, sensitive output
+   sentinels and the connector's `mode=ro`/`query_only` safeguards. Load the
+   delivered file by its actual path. Keep fixture success distinct from the
+   separate live metadata readback.
+4. Match the terminal decision to the declared phase. If the contract ends at
+   activation and persisted binding readiness, hand off the first real worker
+   Run as a downstream gate. If acceptance requires a successful live worker
+   authorization, metadata alone does not satisfy it: record the missing proof
+   instead of silently narrowing acceptance. Never impersonate that worker or
+   fabricate a Run to close the gap.
+5. Put the grant's exact expiry and first-Run restriction in the handoff. Require
+   the owner to recheck expiry before release and verify claim/audit under the
+   worker's own identity before delivery. Stop on denial or expiry; a history
+   grant does not prove freshness or exactly-once commercial sending. Mark old
+   activation-pending report sections explicitly historical so they do not
+   contradict the current evidence.
 
 When the installed compatibility fixture inherits delegated-process guards, it
 may fail creating a temporary Kanban DB because native connect opens it read-only.

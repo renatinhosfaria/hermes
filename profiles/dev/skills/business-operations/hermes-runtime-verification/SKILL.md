@@ -148,12 +148,24 @@ sessions, or production systems.
    created even if the inspected repository is clean.
 
    When a changed verifier has no narrow canonical test, create a focused probe
-   under `/tmp` with an OS-safe temporary path, execute the real changed verifier
-   plus explicit assertions for the acceptance criteria, and remove the probe
-   before finalizing. Run Python probes with `-B` or set
-   `PYTHONDONTWRITEBYTECODE=1` so importing project modules does not leave an
-   untracked `__pycache__`; otherwise remove only the cache created by the probe.
-   Confirm both the temporary path and repository status are clean afterward.
+   under `/tmp` with an OS-safe temporary path. Import the actual delivered file
+   with `importlib.util.spec_from_file_location`; if it moved, test its final path
+   rather than a stale workspace copy. Replace database and subprocess boundaries
+   with in-memory SQLite fixtures and `unittest.mock.patch`, then call the real
+   entry point under `contextlib.redirect_stdout`. Parse each JSON output line
+   and assert both expected findings and absence of synthetic sensitive sentinel
+   values. For a read-only connector, separately assert `uri=True`, `mode=ro`
+   and execution of `PRAGMA query_only=ON`; mocking the connector in the behavioral
+   test alone does not verify those safeguards.
+
+   Run the probe with `python3 -B <temporary-path>` or set
+   `PYTHONDONTWRITEBYTECODE=1`. Record its actual exit code and label this evidence
+   ad-hoc and fixture-based: it validates the diagnostic, not a repaired live
+   workflow. Execute verification and cleanup as separate tool calls so a cleanup
+   approval requirement cannot prevent the test from running. Remove only the
+   probe and caches created by that probe when permitted; if cleanup is refused,
+   leave them untouched and report the exact residual path. Confirm repository
+   status and distinguish successful verification from pending cleanup.
 
 ## Post-update dependent validation
 
