@@ -47,8 +47,11 @@ class-level workflow for learning reviews and lifecycle validation.
    `skill_view` during the current review before patching its SKILL.md; load an
    exact supporting file before overwriting or removing it.
 3. Select the earliest valid destination: patch an editable loaded skill, then
-   patch an existing class-level umbrella, then extend a topical reference, and
-   create a new class-level umbrella only when no suitable destination exists.
+   inspect `skills_list` for an editable existing class-level umbrella, then
+   extend a topical reference, and create a new class-level umbrella only when
+   no suitable destination exists. If the first target is protected (including
+   a refusal that identifies it as not curator-managed or user-owned), do not
+   retry it: continue the search before declaring that nothing can be saved.
    Do not edit bundled, hub-installed, externally owned, pinned, or user-owned
    skills when the runtime marks them protected.
 4. Patch the sentence that is wrong or incomplete instead of adding an

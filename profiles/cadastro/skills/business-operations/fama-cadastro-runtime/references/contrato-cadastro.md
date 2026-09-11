@@ -141,6 +141,11 @@ existente mantém `JA_E_CLIENTE`: não crie nem altere seu vínculo.
    positiva com o mesmo empreendimento. Busca vazia não prova que não existe
    outra pista: uma campanha genérica ou nome sem correspondência deixa o
    cadastro sem vínculo. Se indicar outro empreendimento, o resultado é ambíguo.
+   Quando a atribuição traz um marcador de construtora, produto ou campanha além
+   do nome do empreendimento, trate-o apenas como pista externa: não use esse
+   marcador para escolher entre homônimos se a busca pelo nome completo retornar
+   mais de um candidato compatível. Sem candidato único, a resolução é ambígua e
+   o novo cadastro deve omitir o vínculo.
 3. A resposta válida tem HTTP 200, `truncated: false` e `body` como lista de
    registros com `id` inteiro positivo e `nomeEmpreendimento`. Confira o nome
    completo, tolerando apenas caixa, acentos e separadores. Sem correspondência
