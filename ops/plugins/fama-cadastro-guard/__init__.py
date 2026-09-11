@@ -9,12 +9,13 @@ import unicodedata
 from pathlib import Path
 
 BRAIN = "mcp__brain__conversation_phone"
+CONTEXT = "mcp__brain__conversation_context"
 SEARCH = "mcp__famachat__fc_get_clientes"
 POST = "mcp__famachat__fc_post_clientes"
 READ = "mcp__famachat__fc_get_clientes_by_id"
 DEV_SEARCH = "mcp__famachat__fc_get_empreendimentos_buscar"
 DEV_READ = "mcp__famachat__fc_get_empreendimentos_by_id"
-BUSINESS = {BRAIN, SEARCH, POST, READ, DEV_SEARCH, DEV_READ}
+BUSINESS = {BRAIN, CONTEXT, SEARCH, POST, READ, DEV_SEARCH, DEV_READ}
 WATCHED = BUSINESS | {"kanban_show", "kanban_complete"}
 VERSION = "1.1.0"
 
@@ -41,6 +42,14 @@ def phones_match(left, right):
     if len(left) < len(right):
         left, right = right, left
     return len(left) == 11 and len(right) == 10 and left[2] == "9" and left[:2] + left[3:] == right
+
+
+def crm_phone(value):
+    """Return FamaChat national format, restoring a legacy mobile ninth digit."""
+    digits = national_phone(value)
+    if len(digits) == 10 and digits[2] in "6789":
+        return digits[:2] + "9" + digits[2:]
+    return digits
 
 
 def decode_result(raw):
@@ -305,6 +314,9 @@ class CadastroGuard:
                         self.development.begin_search(payload)
                     else:
                         self.development.begin_read(payload)
+                if name == CONTEXT:
+                    if payload or self.post_attempted:
+                        return block("conversation_context_exige_argumentos_vazios_antes_do_POST")
                 if name == BRAIN:
                     if payload or self.post_attempted:
                         return block("conversation_phone_exige_argumentos_vazios_antes_do_POST")
@@ -336,7 +348,7 @@ class CadastroGuard:
                     body = payload.get("body", {})
                     did, _resolution = self.development.resolution()
                     fields = {"phone", "fullName", "brokerId", "source"} | ({"idEmpreendimento"} if did is not None else set())
-                    if set(payload) != {"body"} or set(body) != fields or body["phone"] != self.phone or type(body["brokerId"]) is not int or body["brokerId"] != 35 or body["source"] != "Facebook Ads" or not isinstance(body["fullName"], str) or not body["fullName"].strip():
+                    if set(payload) != {"body"} or set(body) != fields or body["phone"] != crm_phone(self.phone) or type(body["brokerId"]) is not int or body["brokerId"] != 35 or body["source"] != "Facebook Ads" or not isinstance(body["fullName"], str) or not body["fullName"].strip():
                         return block("POST_exige_telefone_exato_do_Brain_nome_broker35_source_sem_status")
                     if did is not None and (body["idEmpreendimento"] != [did] or not all(valid_id(v) for v in body["idEmpreendimento"])):
                         return block("POST_exige_array_com_empreendimento_verificado")
@@ -404,6 +416,23 @@ class CadastroGuard:
                         raise ValueError("brain_unavailable")
                     national_phone(data.get("phone"))
                     self.phone = data["phone"]
+                elif name == CONTEXT:
+                    data = decode_result(result)
+                    if data.get("status") != "ok" or not isinstance(data.get("events"), list):
+                        raise ValueError("brain_context_unavailable")
+                    events = []
+                    for event in data["events"]:
+                        if not isinstance(event, dict) or event.get("transport_kind") != "ctwa_candidate":
+                            continue
+                        meta = event.get("meta_attribution")
+                        if meta is None:
+                            continue
+                        events.append({
+                            "event_id": event.get("event_id"),
+                            "source_app": event.get("source_app"),
+                            "meta_attribution": meta,
+                        })
+                    self.development = CtwaDevelopment({"contexto": {"ctwa_attributions": events}})
                 elif name == SEARCH:
                     body = http_body(result)
                     rows, pagination = body["data"], body["pagination"]

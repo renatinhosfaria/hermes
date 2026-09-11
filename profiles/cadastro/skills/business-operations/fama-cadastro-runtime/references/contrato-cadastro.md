@@ -89,7 +89,7 @@ Use fc_post_clientes com estes quatro campos, acrescentando somente
 
 | Campo | Valor |
 |---|---|
-| phone | exatamente o telefone retornado pelo Brain nesta execução |
+| phone | telefone nacional do Brain, sem o código `55`; se o retorno tiver 10 dígitos e o assinante móvel começar por 6–9, acrescente o nono dígito após o DDD |
 | fullName | o nome do WhatsApp se o cartão trouxer; senão Lead WhatsApp <4 dígitos> |
 | brokerId | 35, sempre |
 | source | Facebook Ads |
@@ -99,7 +99,7 @@ A chamada tem esta forma exata — os campos vão DENTRO de body, nunca na raiz:
 
     {
       "body": {
-        "phone": "<telefone exato retornado pelo Brain>",
+        "phone": "<telefone nacional normalizado para o FamaChat>",
         "fullName": "Lead WhatsApp <4 dígitos>",
         "brokerId": 35,
         "source": "Facebook Ads"

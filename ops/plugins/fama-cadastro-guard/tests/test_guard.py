@@ -45,7 +45,8 @@ class GuardTests(unittest.TestCase):
         return self.call(SEARCH, {"query": {"search": "4567", "page": page, "pageSize": page_size}}, response({"data": rows, "pagination": {"total": len(rows), "page": page, "pageSize": page_size}}, truncated=truncated))
 
     def create(self, phone=PHONE, **extra):
-        return self.call(POST, {"body": {"phone": phone, "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads", **extra}}, response(client(201), 201))
+        stored_phone = guard.crm_phone(phone)
+        return self.call(POST, {"body": {"phone": stored_phone, "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads", **extra}}, response(client(201, phone=stored_phone), 201))
 
     def finish(self, **overrides):
         return self.g.before(tool_name="kanban_complete", args={"task_id": "t_synthetic", "summary": "Invented verdict", "metadata": {"decision": "JA_E_CLIENTE", "evidence": {"normalized_matches": 999}}, **overrides}, session_id="session_a", tool_call_id="finish")
@@ -68,6 +69,26 @@ class GuardTests(unittest.TestCase):
             with self.subTest(candidate=candidate):
                 self.assertEqual(guard.phones_match(PHONE, candidate), expected)
         self.assertTrue(guard.phones_match("5555991234567", "(55) 9123-4567"))
+
+    def test_create_stores_brazilian_national_phone_and_restores_mobile_ninth_digit(self):
+        legacy_phone = "553496694690"
+        self.call(
+            "kanban_show",
+            {},
+            json.dumps({"task": {"id": "t_synthetic", "body": "upstream_decision: NAO_CORRETOR\n", "current_run_id": 1}}),
+        )
+        self.call(BRAIN, {}, json.dumps({"status": "ok", "phone": legacy_phone}))
+        self.call(
+            SEARCH,
+            {"query": {"search": "4690"}},
+            response({"data": [], "pagination": {"total": 0, "page": 1, "pageSize": 100}}),
+        )
+        directive = self.call(
+            POST,
+            {"body": {"phone": "34996694690", "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads"}},
+            response(client(201, phone="34996694690"), 201),
+        )
+        self.assertIsNone(directive)
 
     def test_existing_reno_blocks_create_but_archived_or_other_broker_do_not(self):
         for broker, status, blocked in [(35, "Em Atendimento", True), (35, "Novo Status", True), (35, "Arquivado", False), (14, "Em Atendimento", False)]:
@@ -146,7 +167,7 @@ class GuardTests(unittest.TestCase):
 
     def test_timeout_after_post_and_parallel_calls_cannot_authorize_duplicate_creation(self):
         self.identify(); self.search([])
-        args = {"body": {"phone": PHONE, "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads"}}
+        args = {"body": {"phone": guard.crm_phone(PHONE), "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads"}}
         self.assertIsNone(self.g.before(tool_name=POST, args=args, session_id="session_a", tool_call_id="pending"))
         self.assertEqual(self.create()["action"], "block")
         self.g.after(tool_name=POST, args=args, session_id="session_a", tool_call_id="pending", result='{"error":"timeout"}', status="error")

@@ -7,6 +7,7 @@ from test_guard import BRAIN, READ, PHONE, client, response, guard
 
 DEV_SEARCH = "mcp__famachat__fc_get_empreendimentos_buscar"
 DEV_READ = "mcp__famachat__fc_get_empreendimentos_by_id"
+CONTEXT = "mcp__brain__conversation_context"
 
 
 def event(name="Residencial Aurora", eid="waevt_synthetic"):
@@ -14,6 +15,15 @@ def event(name="Residencial Aurora", eid="waevt_synthetic"):
         "status": "confirmed", "ad_id": "91", "ad_name": name + " - lançamento",
         "campaign_id": "81", "campaign_name": name,
     }}
+
+
+def context_event(name="Residencial Aurora", eid="waevt_synthetic"):
+    return {
+        **event(name, eid),
+        "transport_kind": "ctwa_candidate",
+        "inbound_kind": None,
+        "external_ad_reply": {"title": name, "sourceId": "91"},
+    }
 
 
 def development(did=123, name="Residencial Aurora"):
@@ -52,6 +62,25 @@ class CtwaTests(unittest.TestCase):
         self.assertEqual(meta["evidence"]["empreendimento_resolution"], "verified")
         self.assertIn("idEmpreendimento", meta["evidence"]["readback_fields"])
         self.assertNotIn("Aurora", json.dumps(meta))
+
+    def test_direct_brain_context_recovers_attribution_when_card_yaml_is_invalid(self):
+        invalid_yaml = (
+            "test_mode: false\ncontexto:\n  ctwa_attributions: []\n"
+            "criterios_de_aceite:\n  - Primeira linha: veredito\n"
+        )
+        self.call("kanban_show", {}, json.dumps({"task": {
+            "id": "t_synthetic", "current_run_id": 1, "body": invalid_yaml,
+        }}))
+        self.call(BRAIN, {}, json.dumps({"status": "ok", "phone": PHONE}))
+        self.search([])
+        self.call(CONTEXT, {}, json.dumps({
+            "status": "ok",
+            "contact": {"phone_e164": PHONE, "display_name": "Synthetic", "display_name_source": "whatsapp_profile"},
+            "events": [context_event()],
+        }))
+        self.assertIsNone(self.lookup())
+        self.assertIsNone(self.verify())
+        self.assertIsNone(self.create(idEmpreendimento=[123]))
 
     def test_verified_id_cannot_be_omitted_replaced_or_scalar(self):
         self.identify(); self.lookup(); self.verify()

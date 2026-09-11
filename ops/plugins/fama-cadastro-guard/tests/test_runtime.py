@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from test_guard import ROOT, PHONE, BRAIN, SEARCH, POST, READ, client, response
+import test_guard as base
 
 
 class RuntimeTests(unittest.TestCase):
@@ -52,7 +53,7 @@ class RuntimeTests(unittest.TestCase):
                     dispatch(SEARCH, {"query": {"search": "4567"}}, response({"data": [], "pagination": {"page": 1, "pageSize": 100, "total": 0}}))
                     dispatch(DEV_SEARCH, {"query": {"termo": "Residencial Aurora"}}, response([development()]))
                     dispatch(DEV_READ, {"id": 123}, response(development()))
-                    post = {"body": {"phone": PHONE, "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads", "idEmpreendimento": [123]}}
+                    post = {"body": {"phone": base.guard.crm_phone(PHONE), "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads", "idEmpreendimento": [123]}}
                     self.assertNotIsInstance(dispatch(POST, post, response(client(201), 201)), dict)
                     dispatch(READ, {"id": 201}, response({**client(201), "idEmpreendimento": [123]}))
                     result = dispatch("kanban_complete", {"summary": "wrong", "metadata": {}})["arguments"]["metadata"]
@@ -98,7 +99,7 @@ class RuntimeTests(unittest.TestCase):
                     dispatch("kanban_show", {}, json.dumps({"task": {"id": "t_synthetic", "current_run_id": 1, "body": "upstream_decision: NAO_CORRETOR\n"}}))
                     dispatch(BRAIN, {}, json.dumps({"result": json.dumps({"status": "ok", "phone": PHONE})}))
                     dispatch(SEARCH, {"query": {"search": "4567"}}, response({"data": [client()], "pagination": {"page": 1, "pageSize": 100, "total": 1}}))
-                    self.assertIn("blocked", dispatch(POST, {"body": {"phone": PHONE, "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads"}}))
+                    self.assertIn("blocked", dispatch(POST, {"body": {"phone": base.guard.crm_phone(PHONE), "fullName": "Synthetic", "brokerId": 35, "source": "Facebook Ads"}}))
                     result = dispatch("kanban_complete", {"summary": "LEAD_NOVO_CADASTRADO cliente_id=999", "result": "Invented", "metadata": {"decision": "LEAD_NOVO_CADASTRADO", "evidence": {"normalized_matches": 999}}})
                     self.assertEqual(result["metadata"]["decision"], "JA_E_CLIENTE")
                     self.assertEqual(result["metadata"]["evidence"]["normalized_matches"], 1)
