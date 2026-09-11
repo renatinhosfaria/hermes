@@ -83,6 +83,7 @@ mcp_servers:
     tools:
       include:
         - conversation_phone
+        - conversation_context
     resources: false
     prompts: false
   famachat:

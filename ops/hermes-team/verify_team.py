@@ -103,9 +103,9 @@ EXPECTED_CONFIGURED_MCP = {
 # Allowlists exatas da secao 12 da spec. Um servidor MCP sem entrada aqui e
 # erro: nenhum profile pode expor um servidor sem contrato declarado.
 EXPECTED_MCP_TOOLS = {
-    ("porteiro", "brain"): ["conversation_phone"],
+    ("porteiro", "brain"): ["conversation_phone", "conversation_context"],
     ("porteiro", "famachat"): ["fc_get_users"],
-    ("cadastro", "brain"): ["conversation_phone"],
+    ("cadastro", "brain"): ["conversation_phone", "conversation_context"],
     ("cadastro", "famachat"): [
         "fc_get_clientes",
         "fc_get_clientes_by_id",
@@ -113,7 +113,11 @@ EXPECTED_MCP_TOOLS = {
         "fc_get_empreendimentos_by_id",
         "fc_post_clientes",
     ],
-    ("reno", "brain"): ["conversation_recent", "conversation_search"],
+    ("reno", "brain"): [
+        "conversation_recent",
+        "conversation_search",
+        "conversation_context",
+    ],
     ("reno", "famachat"): [
         "fc_get_apartamentos",
         "fc_get_apartamentos_empreendimento_by_id",
