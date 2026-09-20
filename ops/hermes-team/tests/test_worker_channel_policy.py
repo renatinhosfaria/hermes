@@ -22,7 +22,22 @@ class WorkerChannelPolicyTests(unittest.TestCase):
                 resolved = verify_team.resolve_platform(config, name, "cli")
                 self.assertTrue({"brain", "famachat", "skills", "memory"} <= resolved)
                 for channel in ("cli", "telegram"):
-                    self.assertEqual(config["platform_toolsets"][channel], verify_team.EXPECTED_PLATFORM_TOOLSETS[name][channel])
+                    self.assertTrue(
+                        verify_team.same_toolset_selection(
+                            config["platform_toolsets"][channel],
+                            verify_team.EXPECTED_PLATFORM_TOOLSETS[name][channel],
+                        )
+                    )
+
+    def test_toolset_order_is_not_semantic(self):
+        expected = ["clarify", "no_mcp", "terminal", "file", "skills", "memory"]
+        self.assertTrue(
+            verify_team.same_toolset_selection(
+                ["memory", "file", "clarify", "terminal", "no_mcp", "skills"],
+                expected,
+            )
+        )
+        self.assertFalse(verify_team.same_toolset_selection(expected + ["skills"], expected))
 
 if __name__ == "__main__":
     unittest.main()

@@ -162,6 +162,16 @@ EXPECTED_MCP_TOOLS = {
 PENDING_MCP_ALLOWLIST: set[tuple[str, str]] = set()
 FORBIDDEN_TOOL_PREFIXES = ("fc_patch_", "fc_put_", "fc_delete_", "fc_del_", "db_")
 
+
+def same_toolset_selection(actual: object, expected: list[str]) -> bool:
+    """Compare tool selections as sets; YAML list order has no meaning."""
+    return (
+        isinstance(actual, list)
+        and len(actual) == len(expected)
+        and len(set(actual)) == len(actual)
+        and set(actual) == set(expected)
+    )
+
 # A Amendment 2 entregou as transicoes de etapa ao Reno, entao exatamente uma
 # ferramenta sob prefixo proibido esta autorizada, para exatamente um profile.
 # A excecao e nominal de proposito: afrouxar o prefixo autorizaria fc_patch_*
@@ -559,7 +569,7 @@ def main() -> int:
             for platform, expected_toolsets in EXPECTED_PLATFORM_TOOLSETS[name].items():
                 actual_toolsets = actual_platform_toolsets.get(platform)
                 check(
-                    actual_toolsets == expected_toolsets,
+                    same_toolset_selection(actual_toolsets, expected_toolsets),
                     f"{name}: platform_toolsets.{platform} incorreto: "
                     f"{actual_toolsets!r}",
                     errors,

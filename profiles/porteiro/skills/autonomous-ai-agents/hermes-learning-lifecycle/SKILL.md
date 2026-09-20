@@ -25,14 +25,16 @@ class-level workflow for learning reviews and lifecycle validation.
 - Do not save transient task state, raw conversations, third-party PII,
   secrets, unsupported hypotheses, or a procedure that has not worked.
 - Prefer strengthening an existing class-level skill over appending a duplicate
-  rule; keep always-on behavior in SKILL.md and put occasional depth in a small
-  topical reference.
+  rule; keep always-on behavior and stable user presentation preferences in
+  SKILL.md, put only occasional depth in a small topical reference, and never
+  create a per-session skill or reference.
 - Treat configuration and nudge activation as scheduling evidence only. Prove
   persistence by observing the write and recovering it from an independent
   process in the same profile.
 - Follow the user's preferred presentation: procedure first, concrete decision
-  points, concise evidence, and no artificial learning entry merely to make a
-  review non-empty.
+  points, terminal decision first in structured handoffs, concise evidence on
+  following lines, and no artificial learning entry merely to make a review
+  non-empty.
 
 ## Procedure
 
@@ -59,7 +61,22 @@ class-level workflow for learning reviews and lifecycle validation.
    imperative rule with a short reason. Name new references by topic, never by
    date, incident, ticket, or error string.
 5. Use `memory` for the user fact and `skill_manage` for the procedure. Batch
-   related writes atomically where the tool supports it. When the user explicitly requests active learning or expects most reviews to yield a skill update, actively test at least one candidate generalization against the completed work and the existing skill text; when a durable, verified procedure is exposed, make one targeted, read-before-write patch to the closest editable class-level skill, strengthening an existing rule instead of adding a session note. If no safe generalization exists after this check or the target is protected, report that boundary rather than manufacturing a lesson or creating a duplicate.
+   related writes atomically where the tools support it. Treat an explicit
+   active-learning request or a standing expectation that most reviews yield a
+   skill update as a required review gate: save the preference to the user
+   profile, inspect at least one relevant loaded class-level skill, search its
+   SKILL.md and references for an existing rule, and make one targeted,
+   read-before-write patch when the request or completed work supplies a
+   verified reusable generalization. Prefer strengthening that loaded skill in
+   place; do not treat an already-similar rule as a reason for a no-op when the
+   new instruction adds an actionable decision point. Do not manufacture a
+   lesson or create a session-specific duplicate; if no safe generalization
+   exists or the target is protected, report that boundary. For query-backed
+   verification, record source success and completeness separately from
+   correlation counts in the handoff evidence, and count a zero-match outcome
+   as valid only when both are positive (for example, HTTP status plus an
+   explicit truncation/completeness signal); otherwise treat the result as
+   unavailable or incomplete rather than as a negative.
 6. After a skill write, inspect the tool result and reload the resulting skill
    with `skill_view`. For lifecycle claims, separately verify the persisted
    record in an independent process; never infer persistence from configuration

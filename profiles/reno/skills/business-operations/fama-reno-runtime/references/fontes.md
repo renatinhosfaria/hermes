@@ -85,6 +85,16 @@ cliente sem evidência e registre a limitação.
 - Use `fc_get_empreendimentos_buscar` com `query: {"termo": "<nome>"}`; `nome` e `q` não atendem ao parâmetro obrigatório desse endpoint. Verifique retorno 200, ausência de truncamento e candidatos antes de selecionar. Prefira a busca direcionada à listagem geral, que pode exceder o limite de saída.
 - Quando houver empreendimentos homônimos, confronte também a construtora indicada no nome confirmado do anúncio com o cadastro comercial. Se essa combinação distinguir um único candidato, leia-o por id e use seus fatos, sem misturar endereço, lazer ou prazo dos homônimos nem pedir ao contato que repita o anúncio. Se a distinção não for suficiente, preserve a ambiguidade.
 
+## Característica específica e preço de unidade
+
+Quando o pedido exigir uma característica específica, como garden privativo,
+confira essa característica na fonte comercial da própria unidade antes de
+associar seu preço ao pedido. Título de apartamento térreo, varanda ou área
+privativa maior não comprovam garden nem a metragem da área externa. Se apenas
+o térreo e seu preço estiverem confirmados, distinga esses fatos da característica
+pendente e encaminhe a confirmação ao CEO; não apresente o valor como preço de
+garden nem conclua que não existem gardens pela ausência dessa descrição.
+
 ## Atribuição CTWA recebida no cartão
 
 Leia `contexto.ctwa_attributions` para identificar o contexto disponível do
